@@ -30,30 +30,27 @@ DEFAULT_COLUMNS = [
     "Duration", "Mobile No.", "Email ID", "Address"
 ]
 
-if "local_db" not in st.session_state:
-    st.session_state.local_db = pd.DataFrame(columns=DEFAULT_COLUMNS)
-
 # फॉर्म खाली करने के लिए विशेष ट्रिगर स्टेट
 if "reset_trigger" not in st.session_state:
     st.session_state.reset_trigger = False
 
-# गूगल शीट से लाइव डेटा लोड करने का फंक्शन
-def load_data():
+# गूगल शीट से हमेशा एकदम नया लाइव डेटा लोड करने का फंक्शन (सभी डिवाइस के लिए समान)
+def load_live_data_from_cloud():
     try:
-        response = requests.get(API_URL, timeout=10)
+        response = requests.get(API_URL, timeout=12)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
-                headers = data[0]
+                headers = data
                 rows = data[1:]
                 if rows:
                     df = pd.DataFrame(rows, columns=headers)
                     return df.loc[:, ~df.columns.duplicated()].reset_index(drop=True)
-    except Exception as e:
+    except:
         pass
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# गूगल शीट में डेटा भेजने का फंक्शन (बिना टाइमआउट एरर के तुरंत रिपॉन्स देने वाला)
+# गूगल शीट में डेटा भेजने का फंक्शन
 def save_to_google(df_to_save):
     try:
         df_clean = df_to_save.loc[:, ~df_to_save.columns.duplicated()].reset_index(drop=True)
@@ -61,22 +58,20 @@ def save_to_google(df_to_save):
         rows = df_clean.fillna("").astype(str).values.tolist()
         full_data = [headers] + rows
         
-        # बैकग्राउंड में डेटा पोस्ट करना ताकि वेबसाइट अटके नहीं
-        requests.post(API_URL, data=json.dumps(full_data), timeout=10)
-        return True
-    except:
-        # अगर नेटवर्क धीमा भी है तो भी ऐप को क्रैश होने से बचाने के लिए True वापस करेंगे
-        return True
+        with st.spinner("क्लाウド डेटाबेस (Google Sheets) को सभी डिवाइस के लिए अपडेट किया जा रहा है..."):
+            response = requests.post(API_URL, data=json.dumps(full_data), headers={"Content-Type": "application/json"}, timeout=15)
+            if response.status_code == 200:
+                return True
+    except Exception as e:
+        st.error(f"सिंक एरर: {e}")
+    return False
 
-# शुरुआत में एक बार गूगल शीट से डेटा लोड करें
-if st.session_state.local_db.empty:
-    fetched_df = load_data()
-    if not fetched_df.empty:
-        st.session_state.local_db = fetched_df
+# हर बार पेज लोड होने पर सीधे गूगल शीट से ताजा डेटा लाएं (लोकल स्टेट पर निर्भरता खत्म)
+live_db = load_live_data_from_cloud()
 
 for col in DEFAULT_COLUMNS:
-    if col not in st.session_state.local_db.columns:
-        st.session_state.local_db[col] = ""
+    if col not in live_db.columns:
+        live_db[col] = ""
 
 # --- सेक्शन 1: CSV फ़ाइल अपलोड ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
@@ -89,14 +84,13 @@ if uploaded_file is not None:
         uploaded_df = uploaded_df.loc[:, ~uploaded_df.columns.duplicated()].reset_index(drop=True)
         
         if st.button("Upload CSV", type="primary"):
-            df_current_clean = st.session_state.local_db.reset_index(drop=True)
+            df_current_clean = live_db.reset_index(drop=True)
             uploaded_df_clean = uploaded_df.reset_index(drop=True)
             updated_df = pd.concat([df_current_clean, uploaded_df_clean], ignore_index=True)
             
-            save_to_google(updated_df)
-            st.session_state.local_db = updated_df
-            st.success("CSV डेटा सफलतापूर्वक क्लाउड डेटाबेस में जोड़ दिया गया है!")
-            st.rerun()
+            if save_to_google(updated_df):
+                st.success("CSV डेटा सफलतापूर्वक सभी डिवाइस के लिए अपडेट कर दिया गया है!")
+                st.rerun()
     except Exception as e:
         st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
 st.markdown('</div>', unsafe_allow_html=True)
@@ -106,7 +100,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-# अगर पिछला सबमिशन सफल रहा, तो रीसेट करने के लिए वैल्यू खाली भेजेंगे
 v_adm = "" if st.session_state.reset_trigger else st.session_state.get("adm", "")
 v_app = "" if st.session_state.reset_trigger else st.session_state.get("app", "")
 v_m_nm = "" if st.session_state.reset_trigger else st.session_state.get("m_nm", "")
@@ -162,27 +155,26 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        new_row_df = pd.DataFrame([new_row])
-        df_current_clean = st.session_state.local_db.reset_index(drop=True)
-        updated_df = pd.concat([df_current_clean, new_row_df], ignore_index=True)
+        # दोबारा गूगल शीट से सबसे ताजा डेटा लेकर ही नया रो जोड़ेंगे
+        fresh_db = load_live_data_from_cloud()
+        df_current_clean = fresh_db.reset_index(drop=True)
+        updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
         
-        save_to_google(updated_df)
-        st.session_state.local_db = updated_df
-        st.session_state.reset_trigger = True  # रीसेट ऑन करें
-        st.success("डेटा सफलतापूर्वक डेटाबेस में सुरक्षित हो गया है!")
-        st.rerun()
+        if save_to_google(updated_df):
+            st.session_state.reset_trigger = True  # टाइपिंग बॉक्स खाली करें
+            st.success("डेटा सफलतापूर्वक जुड़ गया है और सभी डिवाइसेज पर अपडेट हो गया है!")
+            st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- सेक्शन 3 और 4: लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
 st.header("📊 Live Student Database")
 
-if st.button("🔄 क्लाउड से डेटा रिफ्रेश करें"):
-    st.session_state.local_db = load_data()
+if st.button("🔄 तुरंत नया डेटा रीफ्रेश करें"):
     st.rerun()
 
-if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
-    display_df = st.session_state.local_db.copy().reset_index(drop=True)
+if not live_db.empty and len(live_db) > 0:
+    display_df = live_db.copy().reset_index(drop=True)
     display_df.insert(0, "Delete स्टूडेंट", False)
     display_df.index = display_df.index + 1
     display_df.index.name = "S. No."
@@ -202,19 +194,24 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
         st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
         if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
             indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
-            df_current_clean = st.session_state.local_db.reset_index(drop=True)
+            
+            # डिलीट करने से पहले बिल्कुल नया क्लाउड डेटा लें ताकि कोई क्लैश न हो
+            fresh_db = load_live_data_from_cloud()
+            df_current_clean = fresh_db.reset_index(drop=True)
             updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
             
-            save_to_google(updated_df)
-            st.session_state.local_db = updated_df
-            st.success("चुने गए स्टूडेंट्स का डेटा सफलतापुर्वक डिलीट कर दिया गया है!")
-            st.rerun()
+            if save_to_google(updated_df):
+                st.success("डेटा हमेशा के लिए डिलीट हो गया और सभी डिवाइसेज से हट गया है!")
+                st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("डेटाबेस अभी खाली है। यदि आपने नया डेटा जोड़ा है, तो ऊपर 'क्लाउड से डेटा रिफ्रेश करें' बटन दबाएं।")
+    st.info("डेटाबेस अभी खाली है।")
 
 
 # --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("📥 Actions")
-        
+action_col1, action_col2 = st.columns(2)
+with action_col1:
+    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
