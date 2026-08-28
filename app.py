@@ -130,7 +130,7 @@ if st.session_state.user_role is None:
 # --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
 if st.session_state.user_role is not None:
     
-    # यूनिवर्सल लॉगआउट बटन (दाहिने कोने की तरह शीर्ष पर फुल विड्थ)
+    # यूनिवर्सल लॉगआउट बटन
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
         st.session_state.edit_mode = False
@@ -146,10 +146,9 @@ if st.session_state.user_role is not None:
     is_admin = st.session_state.user_role == "full_admin"
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (लेवल 1 और लेवल 3 के लिए)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (लेवल 1 और एडमिन के लिए)
     # ==========================================
     if is_entry_allowed:
-        # 📁 बल्क डेटा अपलोड सेक्शन
         st.header("📁 CSV File Bulk Upload")
         uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
         if uploaded_file is not None:
@@ -158,7 +157,7 @@ if st.session_state.user_role is not None:
                 if st.button("Upload CSV Now"):
                     if "Admission No." in uploaded_df.columns:
                         uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                    if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+                    if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
                         updated_df = uploaded_df
                     else:
                         updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
@@ -170,7 +169,6 @@ if st.session_state.user_role is not None:
 
         st.markdown("---")
 
-        # ➕ मैनुअल डेटा एंट्री सेक्शन
         st.header("➕ Naya Student Data Add Karein")
         eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
         unique_id = st.text_input("Unique ID")
@@ -199,7 +197,7 @@ if st.session_state.user_role is not None:
                     "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
-                if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+                if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
                     updated_df = pd.DataFrame([new_row])
                 else:
                     updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
@@ -208,7 +206,7 @@ if st.session_state.user_role is not None:
                 st.rerun()
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और लेवल 3 के लिए)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और एडमिन के लिए)
     # ==========================================
     if is_list_allowed:
         st.markdown("---")
@@ -222,14 +220,14 @@ if st.session_state.user_role is not None:
             
         base_df = live_db[safe_order].copy()
         
-        # --- डाउनलोड और प्रिंट विकल्प (लेवल 2 और 3 दोनों के लिए उपलब्ध) ---
+        # डाउनलोड और प्रिंट विकल्प
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
         
         if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
             st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # 🔄 कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए विशेष रूप से)
+        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
                 st.session_state.select_all_state = not st.session_state.select_all_state
@@ -237,4 +235,7 @@ if st.session_state.user_role is not None:
 
             if not st.session_state.column_move_mode:
                 if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                
+                    st.session_state.column_move_mode = True
+                    st.rerun()
+            else:
+            
