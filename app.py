@@ -157,21 +157,19 @@ st.markdown('</div>', unsafe_allow_html=True)
 # यदि पासवर्ड सही है, तभी नीचे का सारा हिस्सा दिखाई देगा
 if user_password == CORRECT_PASSWORD:
 
-    # --- सेक्शन 3 और 4: लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
+    # --- लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
     st.header("📊 Live Student Database")
 
     if not live_db.empty and len(live_db) > 0:
         display_df = live_db.copy().reset_index(drop=True)
         
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        # ऑल सेलेक्ट / डीसेलेक्ट बटन का लेआउट और लॉजिक
         btn_label = "⬜ सब सेलेक्ट करें (Select All)" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें (Deselect All)"
         if st.button(btn_label):
             st.session_state.select_all_state = not st.session_state.select_all_state
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # वर्तमान ऑल-सेलेक्ट स्टेट के हिसाब से डिफ़ॉल्ट वैल्यू सेट करें
         display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
@@ -184,7 +182,6 @@ if user_password == CORRECT_PASSWORD:
             use_container_width=True
         )
 
-        # जिन रोज़ पर टिक लगा है उन्हें पहचानें
         selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
         if len(selected_rows) > 0:
@@ -205,12 +202,16 @@ if user_password == CORRECT_PASSWORD:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (No Columns/With Fix) ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
-    action_col1, action_col2 = st.columns(2)
-    with action_col1:
-        csv_data = live_db.to_csv(index=False).encode('utf-8')
-        st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-    with action_col2:
-        
+    
+    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:10px;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# यदि पासवर्ड खाली है या गलत है
+elif user_password != "":
+    
