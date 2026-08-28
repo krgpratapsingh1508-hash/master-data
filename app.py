@@ -200,7 +200,7 @@ if st.session_state.database_unlocked:
                 st.rerun()
                     
         with col_ed2:
-            if st.button("💾 डेटा锁 और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
+            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 if st.session_state.edit_mode:
                     cleaned_edited_df = edited_df.drop(columns=["Delete स्टूडेंट"]).reset_index(drop=True)
                     save_live_data(cleaned_edited_df)
@@ -231,7 +231,7 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (नया परफेक्ट लेआउट) ---
+    # --- SECTION 5: प्रिंट, डाउनलोड और लॉगआउट बटन ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
@@ -239,7 +239,7 @@ if st.session_state.database_unlocked:
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
-        # 1. डाउनलोड बटन
+        # 1. डाउनलोड बटन (लेफ्ट साइड में)
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Download Database as CSV", 
@@ -248,4 +248,3 @@ if st.session_state.database_unlocked:
             mime="text/csv", 
             use_container_width=True
         )
-        
