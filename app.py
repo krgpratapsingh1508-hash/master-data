@@ -178,7 +178,7 @@ if st.session_state.database_unlocked:
     if not live_db.empty and len(live_db) > 0:
         display_df = live_db.copy().reset_index(drop=True)
         
-        # --- एक्शन बटन रो (Row): 4 बटन्स अगल-बगल ---
+        # --- एक्शन बटन रो (Row): 4 बटन्स बिल्कुल सटीक अगल-बगल ---
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         act_col1, act_col2, act_col3, act_col4 = st.columns(4)
         
@@ -189,7 +189,6 @@ if st.session_state.database_unlocked:
                 st.rerun()
                 
         with act_col2:
-            # CSV फ़ाइल तैयार करें डाउनलोड के लिए
             csv_data = live_db.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="💾 CSV डाउनलोड करें",
@@ -201,16 +200,9 @@ if st.session_state.database_unlocked:
             )
             
         with act_col3:
-            # जावास्क्रिप्ट कोड की मदद से सीधे प्रिंट कमांड चलाना
-            print_script = """
-                <script>
-                function startPrint() {
-                    window.print();
-                }
-                </script>
-                <button onclick="startPrint()" style="width:100%; height:38px; background-color:#f0f2f6; border:1px solid #d3d3d3; border-radius:4px; cursor:pointer; font-weight:500;">🖨️ लिस्ट प्रिंट करें</button>
-            """
-            st.components.v1.html(print_script, height=45)
+            # बिना एरर वाला सुरक्षित नेटिव प्रिंट बटन
+            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
+                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
             
         with act_col4:
             if st.button("🔒 लॉगआउट करें", use_container_width=True, type="primary"):
@@ -252,4 +244,9 @@ if st.session_state.database_unlocked:
         col_ed1, col_ed2 = st.columns(2)
         
         with col_ed1:
+            if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True, type="secondary"):
+                st.session_state.edit_mode = True
+                st.rerun()
+                    
+        with col_ed2:
             
