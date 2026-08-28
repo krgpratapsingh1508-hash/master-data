@@ -83,7 +83,6 @@ def load_live_data():
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
-    # क्रैश से बचाने के लिए खाली डेटाफ़्रेम स्ट्रक्चर भेजें (बिना किसी खराब खाली रो के)
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
@@ -215,19 +214,21 @@ if st.session_state.user_role is not None:
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
             
-        # 💡 सुधार: यदि डेटाबेस पूरी तरह खाली है, तो ग्रिड दिखाने के लिए 1 खाली रो (Blank row) जबरदस्ती जोड़ें ताकि स्ट्रक्चर कभी न छिपे
+        # यदि डेटाबेस खाली है, तो ग्रिड दिखाने के लिए खाली रो बनाएँ
         if live_db.empty:
             base_df = pd.DataFrame([{c: "" for c in safe_order}])
         else:
             base_df = live_db[safe_order].copy()
         
-        csv_data = live_db.to_csv(index=False).encode('utf-8')
-        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-        
-        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+        # 💡 बदलाव: डाउनलोड और प्रिंट बटन केवल "Viewer" अकाउंट के लिए दिखेंगे (Admin के लिए छिपे रहेंगे)
+        if st.session_state.user_role == "list_viewer":
+            csv_data = live_db.to_csv(index=False).encode('utf-8')
+            st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+            
+            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
+                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन के लिए)
+        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
                 st.session_state.select_all_state = not st.session_state.select_all_state
@@ -238,5 +239,4 @@ if st.session_state.user_role is not None:
                 st.rerun()
             
             if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
-                
+            
