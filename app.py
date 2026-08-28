@@ -61,6 +61,9 @@ if "database_unlocked" not in st.session_state:
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
 
+if "pwd_reset_key" not in st.session_state:
+    st.session_state.pwd_reset_key = 0
+
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
@@ -138,9 +141,6 @@ st.markdown("---")
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.subheader("🔒 Live Student Database Lock")
 
-if "pwd_reset_key" not in st.session_state:
-    st.session_state.pwd_reset_key = 0
-
 user_password = st.text_input(
     "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
     type="password", 
@@ -193,24 +193,21 @@ if st.session_state.database_unlocked:
             use_container_width=True
         )
 
-        # --- एडिट और सेव बटन्स का बिल्कुल नया दो-बटन लॉजिक ---
+        # --- एडिट और सेव बटन्स का लॉजिक ---
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         col_ed1, col_ed2 = st.columns(2)
         
         with col_ed1:
-            # बटन 1: केवल एडिट मोड शुरू करने के लिए
             if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True, type="secondary"):
                 st.session_state.edit_mode = True
                 st.rerun()
                     
         with col_ed2:
-            # बटन 2: केवल बदलावों को सेव करके लिस्ट को दोबारा लॉक करने के लिए
             if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 if st.session_state.edit_mode:
-                    # डेटा एडिटर से बदला हुआ डेटा साफ़ करके सुरक्षित करना
                     cleaned_edited_df = edited_df.drop(columns=["Delete स्टूडेंट"]).reset_index(drop=True)
                     save_live_data(cleaned_edited_df)
-                    st.session_state.edit_mode = False  # एडिट मोड बंद करें (लॉक करें)
+                    st.session_state.edit_mode = False  
                     st.success("बदला हुआ डेटा सफलतापूर्वक सुरक्षित और लॉक कर दिया गया है!")
                     st.rerun()
                 else:
@@ -240,4 +237,8 @@ if st.session_state.database_unlocked:
 
 
     # --- SECTION 5: प्रिंट, डाउनलोड और डेटाबेस क्लोज करने का बटन ---
+    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+    st.header("📥 Actions")
+    
+    csv_data = live_db.to_csv(index=False).encode('utf-8')
     
