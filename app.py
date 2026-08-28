@@ -149,7 +149,7 @@ if st.session_state.database_unlocked:
                 if "Admission No." in uploaded_df.columns:
                     uploaded_df = uploaded_df.drop(columns=["Admission No."])
                 # यदि मुख्य लाइव डेटाबेस अभी खाली स्ट्रक्चर में है, तो उसे रिप्लेस करें
-                if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+                if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
                     updated_df = uploaded_df
                 else:
                     updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
@@ -191,7 +191,7 @@ if st.session_state.database_unlocked:
                 "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
             }
             # यदि केवल खाली स्ट्रक्चर रो मौजूद है, तो उसे हटाकर फ्रेश एंट्री करें
-            if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+            if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
                 updated_df = pd.DataFrame([new_row])
             else:
                 updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
@@ -217,7 +217,7 @@ if st.session_state.database_unlocked:
     # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
     if st.session_state.list_unlocked:
         
-        # 🛡️ क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
+        # क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
         safe_order = [c for c in st.session_state.current_column_order if c in live_db.columns]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
@@ -242,5 +242,6 @@ if st.session_state.database_unlocked:
                 st.session_state.column_move_mode = True
                 st.rerun()
         else:
-            if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
-            
+            if st.button("🔒 Column Move मोड बंद और ऑर्डर锁 करें", use_container_width=True, type="primary"):
+                st.session_state.column_move_mode = False
+                
