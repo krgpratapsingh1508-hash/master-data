@@ -29,7 +29,7 @@ st.markdown("""
     .header-text h3 {
         margin: 0 !important;
         padding: 0 !important;
-        color: #FF5733; /* आप अपनी पसंद का रंग चुन सकते हैं */
+        color: #FF5733;
     }
     .header-text h1 {
         margin: 0 !important;
@@ -38,8 +38,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- शीर्ष अनुभाग (Header Section): छवि और दोहरी लाइन शीर्षक ---
-# 💡 नोट: 'your_image_url_or_path' की जगह अपनी छवि का वास्तविक लिंक या लोकल पाथ डालें।
+# --- शीर्ष अनुभाग (Header Section) ---
 IMAGE_PATH = "https://w3schools.com" 
 
 st.markdown(f"""
@@ -97,6 +96,10 @@ if "list_unlocked" not in st.session_state:
     st.session_state.list_unlocked = False
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
+if "column_move_mode" not in st.session_state:
+    st.session_state.column_move_mode = False
+if "current_column_order" not in st.session_state:
+    st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
 live_db = load_live_data()
 
@@ -110,17 +113,18 @@ if not st.session_state.database_unlocked:
             st.session_state.database_unlocked = True
             st.rerun()
         else:
-            st.error("गलत यूज़रनेम या पासवर्ड!")
+            st.error("गलत यूज़रनेम या密码!")
 
 # --- लॉगिन होने के बाद का मुख्य पैनल ---
 if st.session_state.database_unlocked:
     
-    # मुख्य लॉगआउट बटन (फाइल एग्जिट करने के लिए)
+    # मुख्य लॉगआउट बटन
     if st.button("🔒 मुख्य लॉगआउट (Exit File)", type="primary", use_container_width=True):
         st.session_state.database_unlocked = False
         st.session_state.list_unlocked = False
         st.session_state.edit_mode = False
         st.session_state.select_all_state = False
+        st.session_state.column_move_mode = False
         st.rerun()
 
     st.markdown("---")
@@ -194,7 +198,9 @@ if st.session_state.database_unlocked:
     # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
     if st.session_state.list_unlocked:
         if not live_db.empty and len(live_db) > 0:
-            display_df = live_db.copy().reset_index(drop=True)
+            
+            # सेव किए गए या वर्तमान कॉलम आर्डर के आधार पर डेटा को व्यवस्थित करना
+            display_df = live_db[st.session_state.current_column_order].copy().reset_index(drop=True)
             
             # एक्शन बटन्स की सीधी लिस्ट
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
@@ -206,45 +212,33 @@ if st.session_state.database_unlocked:
             
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+
+            # 🛠️ आपके निर्देशानुसार: "सिर्फ लिस्ट लॉक बटन के ऊपर एक और बटन"
+            if not st.session_state.column_move_mode:
+                if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
+                    st.session_state.column_move_mode = True
+                    st.rerun()
+            else:
+                if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
+                    st.session_state.column_move_mode = False
+                    st.success("कॉलम की स्थिति को सफलतापूर्वक लॉक कर दिया गया है!")
+                    st.rerun()
                 
             if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True):
                 st.session_state.list_unlocked = False
                 st.session_state.edit_mode = False
+                st.session_state.column_move_mode = False
                 st.rerun()
 
             st.markdown("---")
 
-            # 🛠️ "Delete स्टूडेंट" कॉलम को तालिका में सबसे पहले वापस जोड़ा गया
-            display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
-            display_df.index = display_df.index + 1
-            display_df.index.name = "S. No."
+            # 💡 यदि Column Move मोड ऑन है, तो यह ऊपर टेक्स्ट बॉक्स में वर्तमान स्थिति दिखाएगा
+            if st.session_state.column_move_mode:
+                st.info("ℹ️ कॉलम री-ऑर्डर मोड एक्टिव है! आप नीचे तालिका में किसी भी कॉलम के नाम को माउस/टच से पकड़कर बाएँ या दाएँ खिसका (Drag) सकते हैं। जब काम हो जाए, तो ऊपर 'ऑर्डर लॉक करें' बटन दबाएं।")
+                
+                # वर्तमान में कौन सा कॉलम किस नंबर पर है, उसका टेक्स्ट बॉक्स इंडिकेटर
+                cols_str = " | ".join([f" [{i+1}] {col}" for i, col in enumerate(st.session_state.current_column_order)])
+                st.text_input("वर्तमान कॉलम पोजीशन इंडिकेटर (Current Positions):", value=cols_str, disabled=True)
 
-            column_configuration = {
-                "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट"),
-                "Eligibility": st.column_config.SelectboxColumn("Eligibility", options=ELIGIBILITY_OPTIONS, required=True),
-                "Duration": st.column_config.SelectboxColumn("Duration", options=DURATION_OPTIONS, required=True),
-                "Status": st.column_config.SelectboxColumn("Status", options=STATUS_OPTIONS, required=True)
-            }
-
-            # एडिट मोड के अनुसार लॉकिंग सेटिंग्स
-            if st.session_state.edit_mode:
-                disabled_cols = ["Delete स्टूडेंट"]
-                st.info("📝 एडमिट मोड एक्टिव है! आप सीधे तालिका में संपादन कर सकते हैं।")
-            else:
-                # यदि एडिट मोड ऑन नहीं है, तो सिर्फ "Delete स्टूडेंट" का चेकबॉक्स क्लिक किया जा सकेगा
-                disabled_cols = [col for col in display_df.columns if col != "Delete स्टूडेंट"]
-
-            edited_df = st.data_editor(
-                display_df,
-                hide_index=False,
-                column_config=column_configuration,
-                disabled=disabled_cols,
-                use_container_width=True
-            )
-
-            # लिस्ट कंट्रोल बटन्स
-            if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True):
-                st.session_state.edit_mode = True
-                st.rerun()
-
-                    
+            # "Delete स्टूडेंट" कॉलम को तालिका में सबसे पहले जोड़ा गया
+            
