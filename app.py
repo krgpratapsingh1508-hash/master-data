@@ -250,3 +250,4 @@ if st.session_state.database_unlocked:
         with col_ed2:
             if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 final_df = edited_df.copy()
+                
