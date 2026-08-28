@@ -221,7 +221,7 @@ if st.session_state.user_role is not None:
                 st.rerun()
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉग-इन यूज़र्स के लिए सुरक्षित रूप से दृश्यमान)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉगिन यूज़र्स के लिए)
     # ==========================================
     if is_list_allowed:
         st.markdown("---")
@@ -232,7 +232,7 @@ if st.session_state.user_role is not None:
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
         
-        # यूटिलिटी बटन्स केवल "Viewer" अकाउंट के लिए
+        # यूटिलिटी बटन्स (केवल "Viewer" अकाउंट के लिए)
         if st.session_state.user_role == "list_viewer":
             csv_data = live_db.to_csv(index=False).encode('utf-8')
             st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
@@ -244,4 +244,5 @@ if st.session_state.user_role is not None:
         if is_admin:
             col1, col2, col3 = st.columns(3)
             with col1:
-            
+                if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट", use_container_width=True):
+                
