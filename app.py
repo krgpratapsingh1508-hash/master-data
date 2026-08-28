@@ -138,27 +138,27 @@ st.header("🗑️ Delete Student Data")
 if not st.session_state.local_db.empty and "Student Name" in st.session_state.local_db.columns and len(st.session_state.local_db) > 0:
     df_current_clean = st.session_state.local_db.reset_index(drop=True)
     student_list = df_current_clean.apply(lambda row: f"Index {row.name} | {row['Student Name']} (Roll: {row['Roll No.']})", axis=1).tolist()
-    selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", ["-- चुनें --"] + student_list)
-    
-    if selected_student_string != "-- चुनें --":
-        
-# पहले चेक करें कि क्या " | " टेक्स्ट में मौजूद है
-if " | " in selected_student_string:
-    
-    # टेक्स्ट को अलग करें और पहले हिस्से का नंबर निकालें
-    parts = selected_student_string.split(" | ")
-    selected_idx = int(parts[0].strip())
-else:
-    selected_idx = 0  # अगर डेटा सही न हो तो डिफ़ॉल्ट 0 मान लें
-        if st.button("चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
-            updated_df = df_current_clean.drop(index=selected_idx).reset_index(drop=True)
+            selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", student_list)
+
+        if selected_student_string != "-- चुनें --":
             
-            # लोकल और गूगल दोनों जगह से हटाएं
-            st.session_state.local_db = updated_df
-            save_to_google(updated_df)
-            st.success("डेटा हमेशा के लिए डेटाबेस से डिलीट कर दिया गया है!")
-            st.rerun()
-else:
+            # सुरक्षित तरीके से इंडेक्स (ID) निकालना
+            if " | " in selected_student_string:
+                parts = selected_student_string.split(" | ")
+                selected_idx = int(parts[0].strip())
+            else:
+                selected_idx = 0
+
+            # डिलीट बटन (यह बटन मुख्य इफ ब्लॉक के सीधे नीचे होना चाहिए)
+            if st.button("चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
+                updated_df = df_current_clean.drop(index=selected_idx)
+                
+                # लोकल और गूगल दोनों जगह से हटाएं
+                st.session_state.local_db = updated_df
+                save_google(updated_df)
+                st.success("डेटा हमेशा के लिए डेटाबेस से डिलीट कर दिया गया है!")
+                st.rerun()
+
     st.info("डेटाबेस अभी खाली है।")
 
 
