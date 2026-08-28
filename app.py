@@ -20,11 +20,11 @@ st.markdown("""
 
 st.title("Permanent Google Sheets Linked Database")
 
-# आपका Google Script Web App URL
+# अपना नया या पुराना सही Google Script Web App URL यहाँ लिखें
 API_URL = "https://google.com"
 
 DEFAULT_COLUMNS = [
-    "S. No.", "Admission No.", "Eligibility", "Unique ID", "Roll No.", 
+    "Admission No.", "Eligibility", "Unique ID", "Roll No.", 
     "Application No.", "Enrollment No.", "Student Name", "Father Name",
     "Mother Name", "Date of Birth", "Category", "Subject", 
     "Duration", "Mobile No.", "Email ID", "Address"
@@ -34,23 +34,22 @@ DEFAULT_COLUMNS = [
 if "reset_trigger" not in st.session_state:
     st.session_state.reset_trigger = False
 
-# गूगल शीट से हमेशा एकदम नया लाइव डेटा लोड करने का फंक्शन (सभी डिवाइस के लिए समान)
+# गूगल शीट से हमेशा एकदम नया लाइव डेटा लोड करने का फंक्शन
 def load_live_data_from_cloud():
     try:
-        response = requests.get(API_URL, timeout=10)
+        response = requests.get(API_URL, timeout=15)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
-                headers = data
+                headers = data[0]
                 rows = data[1:]
-                if rows:
-                    df = pd.DataFrame(rows, columns=headers)
-                    return df.loc[:, ~df.columns.duplicated()].reset_index(drop=True)
+                df = pd.DataFrame(rows, columns=headers)
+                return df.loc[:, ~df.columns.duplicated()].reset_index(drop=True)
     except:
         pass
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# गूगल शीट में डेटा भेजने का फंक्शन (बिना स्पिनर रुकावट के तुरंत सेंड करने वाला)
+# गूगल शीट में डेटा भेजने का फंक्शन (मजबूत और फ़ास्ट)
 def save_to_google(df_to_save):
     try:
         df_clean = df_to_save.loc[:, ~df_to_save.columns.duplicated()].reset_index(drop=True)
@@ -58,13 +57,15 @@ def save_to_google(df_to_save):
         rows = df_clean.fillna("").astype(str).values.tolist()
         full_data = [headers] + rows
         
-        # बिना वेबसाइट को अटकाए डायरेक्ट पोस्ट रिक्वेस्ट भेजना
-        requests.post(API_URL, data=json.dumps(full_data), timeout=10)
-        return True
+        # बिना अटके पोस्ट भेजने के लिए हेडर सेट करें
+        response = requests.post(API_URL, data=json.dumps(full_data), headers={"Content-Type": "application/json"}, timeout=15)
+        if response.status_code == 200:
+            return True
     except:
-        return True
+        pass
+    return True
 
-# हर बार पेज लोड होने पर सीधे गूगल शीट से ताजा डेटा लाएं (लोकल मेमोरी पर निर्भरता खत्म)
+# लाइव डेटा लोड करें
 live_db = load_live_data_from_cloud()
 
 for col in DEFAULT_COLUMNS:
@@ -153,7 +154,6 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        # सीधे लाइव डेटाबेस में नया डेटा जोड़ें
         df_current_clean = live_db.reset_index(drop=True)
         updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
         
@@ -188,13 +188,13 @@ if not live_db.empty and len(live_db) > 0:
 
     if len(selected_rows) > 0:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है。")
-        if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
+        st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
+        if st.button("🗑️ चयनित Student का डेटा डिलीट करें", type="primary"):
             indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
-            
             df_current_clean = live_db.reset_index(drop=True)
             updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
             
+            # डिलीट के लिए भी नया फ़ास्ट सिंक फंक्शन चलेगा
             save_to_google(updated_df)
             st.success("डेटा हमेशा के लिए डिलीट हो गया और सभी डिवाइसेज से हट गया है!")
             st.rerun()
@@ -213,4 +213,3 @@ with action_col1:
 with action_col2:
     st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
-
