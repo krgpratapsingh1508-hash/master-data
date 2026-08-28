@@ -46,13 +46,13 @@
         <h2>➕ Naya Student Data Add Karein</h2>
         <form id="studentForm" onsubmit="event.preventDefault();">
             <div class="grid-inputs">
-                <input type="text" id="admNo" placeholder="Admission No." required>
+                <input type="text" id="admNo" placeholder="Admission No.">
                 <input type="text" id="eligibility" placeholder="Eligibility">
                 <input type="text" id="uniqueId" placeholder="Unique ID">
                 <input type="text" id="rollNo" placeholder="Roll No.">
                 <input type="text" id="appNo" placeholder="Application No.">
                 <input type="text" id="enrollNo" placeholder="Enrollment No.">
-                <input type="text" id="studentName" placeholder="Student Name" required>
+                <input type="text" id="studentName" placeholder="Student Name">
                 <input type="text" id="fatherName" placeholder="Father Name">
                 <input type="text" id="motherName" placeholder="Mother Name">
                 <input type="date" id="dob">
@@ -105,6 +105,117 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", loadData);
+
+    function getStorageData() {
+        try {
+            return JSON.parse(localStorage.getItem("studentDB")) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveStorageData(data) {
+        localStorage.setItem("studentDB", JSON.stringify(data));
+        loadData();
+    }
+
+    function loadData() {
+        const students = getStorageData();
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+
+        students.forEach((student, index) => {
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td>${student.admNo || ''}</td>
+                <td>${student.eligibility || ''}</td>
+                <td>${student.uniqueId || ''}</td>
+                <td>${student.rollNo || ''}</td>
+                <td>${student.appNo || ''}</td>
+                <td>${student.enrollNo || ''}</td>
+                <td>${student.studentName || ''}</td>
+                <td>${student.fatherName || ''}</td>
+                <td>${student.motherName || ''}</td>
+                <td>${student.dob || ''}</td>
+                <td>${student.category || ''}</td>
+                <td>${student.subject || ''}</td>
+                <td>${student.duration || ''}</td>
+                <td>${student.mobile || ''}</td>
+                <td>${student.email || ''}</td>
+                <td>${student.address || ''}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function saveManualData() {
+        const newStudent = {
+            admNo: document.getElementById("admNo").value.trim(),
+            eligibility: document.getElementById("eligibility").value.trim(),
+            uniqueId: document.getElementById("uniqueId").value.trim(),
+            rollNo: document.getElementById("rollNo").value.trim(),
+            appNo: document.getElementById("appNo").value.trim(),
+            enrollNo: document.getElementById("enrollNo").value.trim(),
+            studentName: document.getElementById("studentName").value.trim(),
+            fatherName: document.getElementById("fatherName").value.trim(),
+            motherName: document.getElementById("motherName").value.trim(),
+            dob: document.getElementById("dob").value,
+            category: document.getElementById("category").value.trim(),
+            subject: document.getElementById("subject").value.trim(),
+            duration: document.getElementById("duration").value.trim(),
+            mobile: document.getElementById("mobile").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            address: document.getElementById("address").value.trim()
+        };
+
+        const students = getStorageData();
+        students.push(newStudent);
+        saveStorageData(students);
+        document.getElementById("studentForm").reset();
+    }
+
+    function uploadCSV() {
+        const fileInput = document.getElementById("csvFileInput");
+        const files = fileInput.files;
+
+        if (!files || files.length === 0) {
+            alert("कृपया पहले एक CSV फ़ाइल चुनें!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result;
+            const rows = text.split("\n");
+            const students = getStorageData();
+
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].trim() === "") continue;
+                
+                const cols = rows[i].split(",");
+                
+                const csvStudent = {
+                    admNo: cols[0] ? cols[0].trim() : '',
+                    eligibility: cols[1] ? cols[1].trim() : '',
+                    uniqueId: cols[2] ? cols[2].trim() : '',
+                    rollNo: cols[3] ? cols[3].trim() : '',
+                    appNo: cols[4] ? cols[4].trim() : '',
+                    enrollNo: cols[5] ? cols[5].trim() : '',
+                    studentName: cols[6] ? cols[6].trim() : '',
+                    fatherName: cols[7] ? cols[7].trim() : '',
+                    motherName: cols[8] ? cols[8].trim() : '',
+                    dob: cols[9] ? cols[9].trim() : '',
+                    category: cols[10] ? cols[10].trim() : '',
+                    subject: cols[11] ? cols[11].trim() : '',
+                    duration: cols[12] ? cols[12].trim() : '',
+                    mobile: cols[13] ? cols[13].trim() : '',
+                    email: cols[14] ? cols[14].trim() : '',
+                    address: cols[15] ? cols[15].trim() : ''
+                };
+                students.push(csvStudent);
+            }
+            saveStorageData(students);
+            alert("CSV डेटा सफलतापूर्वक लोड हो गया!");
 
     function getStorageData() {
         try {
