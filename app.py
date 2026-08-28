@@ -10,21 +10,10 @@ st.set_page_config(layout="wide")
 st.markdown("""
     <style>
     @media print {
-        /* ऊपर के सारे फॉर्म, अपलोडर, बटन्स और साइडबार को छुपाएं */
-        [data-testid="stHeader"], 
-        div[element-to-hide="true"],
-        .stButton, 
-        .stFileUploader,
-        header,
-        footer,
-        [data-testid="stForm"] {
+        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"] {
             display: none !important;
         }
-        /* मुख्य कंटेंट का खाली स्पेस सेट करें */
-        .main .block-container {
-            padding-top: 0px !important;
-            padding-bottom: 0px !important;
-        }
+        .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -68,7 +57,6 @@ def save_to_google(df_to_save):
         rows = df_clean.fillna("").astype(str).values.tolist()
         full_data = [headers] + rows
         
-        # सिंक मोड में पोस्ट करना ताकि डेटा सर्वर पर जाने के बाद ही कोड आगे बढ़े
         with st.spinner("क्लाउड डेटाबेस (Google Sheets) में डेटा सुरक्षित किया जा रहा है..."):
             response = requests.post(API_URL, data=json.dumps(full_data), headers={"Content-Type": "application/json"}, timeout=15)
             if response.status_code == 200:
@@ -115,31 +103,21 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-# रीसेट के लिए कॉलबैक फंक्शन - यह सबमिट होते ही बिना डेटा लॉक किए फॉर्म साफ करेगा
 def handle_form_submission():
     s_name_val = st.session_state.get("st_nm", "").strip()
-    
     if s_name_val == "":
         st.error("कृपया कम से कम Student Name ज़रूर भरें।")
         return
 
     new_row = {
-        "Admission No.": st.session_state.get("adm", ""),
-        "Eligibility": st.session_state.get("elig", ""),
-        "Unique ID": st.session_state.get("uniq", ""),
-        "Roll No.": st.session_state.get("roll", ""),
-        "Application No.": st.session_state.get("app", ""),
-        "Enrollment No.": st.session_state.get("enr", ""),
-        "Student Name": s_name_val,
-        "Father Name": st.session_state.get("f_nm", ""),
-        "Mother Name": st.session_state.get("m_nm", ""),
-        "Date of Birth": st.session_state.get("dob", ""),
-        "Category": st.session_state.get("cat", ""),
-        "Subject": st.session_state.get("sub", ""),
-        "Duration": st.session_state.get("dur", ""),
-        "Mobile No.": st.session_state.get("mob", ""),
-        "Email ID": st.session_state.get("eml", ""),
-        "Address": st.session_state.get("adr", "")
+        "Admission No.": st.session_state.get("adm", ""), "Eligibility": st.session_state.get("elig", ""),
+        "Unique ID": st.session_state.get("uniq", ""), "Roll No.": st.session_state.get("roll", ""),
+        "Application No.": st.session_state.get("app", ""), "Enrollment No.": st.session_state.get("enr", ""),
+        "Student Name": s_name_val, "Father Name": st.session_state.get("f_nm", ""),
+        "Mother Name": st.session_state.get("m_nm", ""), "Date of Birth": st.session_state.get("dob", ""),
+        "Category": st.session_state.get("cat", ""), "Subject": st.session_state.get("sub", ""),
+        "Duration": st.session_state.get("dur", ""), "Mobile No.": st.session_state.get("mob", ""),
+        "Email ID": st.session_state.get("eml", ""), "Address": st.session_state.get("adr", "")
     }
     
     current_cloud_df = load_data()
@@ -189,12 +167,10 @@ st.markdown('</div>', unsafe_allow_html=True)
 # --- सेक्शन 3 और 4: लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
 st.header("📊 Live Student Database")
 
-# डिवाइस सिंक के लिए मैनुअल रिफ्रेश बटन
 if st.button("🔄 क्लाउड से डेटा रिफ्रेश करें"):
     st.session_state.local_db = load_data()
     st.rerun()
 
-# बिना किसी 'else' एरर के सुरक्षित डेटा चेक
 if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     display_df = st.session_state.local_db.copy().reset_index(drop=True)
     display_df.insert(0, "Delete स्टूडेंट", False)
@@ -204,13 +180,7 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     edited_df = st.data_editor(
         display_df,
         hide_index=False,
-        column_config={
-            "Delete स्टूडेंट": st.column_config.CheckboxColumn(
-                "Delete स्टूडेंट",
-                help="डेटा डिलीट करने के लिए टिक करें",
-                default=False,
-            )
-        },
+        column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें", default=False)},
         disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
         use_container_width=True
     )
@@ -222,11 +192,9 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
         st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
         if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
             indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
-            
             current_cloud_df = load_data()
             if current_cloud_df.empty:
                 current_cloud_df = st.session_state.local_db.copy()
-                
             df_current_clean = current_cloud_df.reset_index(drop=True)
             updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
             
@@ -236,17 +204,21 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-# डेटाबेस खाली होने पर मैसेज दिखाएं (बिना एरर वाले सेफ मोड में)
 if st.session_state.local_db.empty or len(st.session_state.local_db) == 0:
     st.info("डेटाबेस अभी खाली है या क्लाउड से लोड हो रहा है...")
 
 
-# --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+# --- SECTION 5: प्रिंट और डाउनलोड विकल्प (सिंगल-लाइन फिक्स ताकि ब्रैकेट का एरर न आए) ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("📥 Actions")
 action_col1, action_col2 = st.columns(2)
 
 with action_col1:
     csv_data = st.session_state.local_db.to_csv(index=False).encode('utf-8')
-    st.download_button(
-    
+    st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+
+with action_col2:
+    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
