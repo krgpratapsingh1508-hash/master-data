@@ -9,7 +9,7 @@ st.set_page_config(layout="wide")
 st.title("Permanent Google Sheets Linked Database")
 
 # आपका बिल्कुल सही Google Script Web App URL
-API_URL = "https://google.com"
+API_URL = "https://script.google.com/macros/s/AKfycbzzYnmbIQIxtsqAJDu2RhqjP5JP6UxKu61CSAgBQaAlDvjGnFZFE8K7r-aXd61IexgWCQ/exec"
 
 # डिफ़ॉल्ट कॉलम सूची जो हमारी शीट में होनी चाहिए
 DEFAULT_COLUMNS = [
