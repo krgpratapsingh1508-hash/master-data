@@ -141,8 +141,10 @@ if not st.session_state.local_db.empty and "Student Name" in st.session_state.lo
     selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", ["-- चुनें --"] + student_list)
     
     if selected_student_string != "-- चुनें --":
+        
 # पहले चेक करें कि क्या " | " टेक्स्ट में मौजूद है
 if " | " in selected_student_string:
+    
     # टेक्स्ट को अलग करें और पहले हिस्से का नंबर निकालें
     parts = selected_student_string.split(" | ")
     selected_idx = int(parts[0].strip())
