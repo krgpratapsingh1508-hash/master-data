@@ -54,10 +54,12 @@ st.markdown(f"""
 # डेटाबेस फ़ाइल पाथ
 DB_FILE = "shared_student_database.csv"
 
-# 🔑 सुरक्षा क्रेडेंशियल्स सेटिंग्स
-CORRECT_USERNAME = "admin"
-CORRECT_PASSWORD = "admin123"
-LIST_PASSWORD = "list789"
+# 🔑 3-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स
+CREDENTIALS = {
+    "entry": {"password": "entry123", "role": "data_entry"},
+    "viewer": {"password": "viewer123", "role": "list_viewer"},
+    "admin": {"password": "admin123", "role": "full_admin"}
+}
 
 DEFAULT_COLUMNS = [
     "Eligibility", "Unique ID", "Roll No.", 
@@ -75,34 +77,25 @@ def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
-            # सुनिश्चित करें कि सभी डिफ़ॉल्ट कॉलम्स फ़ाइल में हों
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
-            # यदि फ़ाइल में कोई डेटा रो नहीं है, तो एक खाली रो जोड़ें ताकि टेबल गायब न हो
             if df.empty:
-                empty_row = {c: "" for c in DEFAULT_COLUMNS}
-                df = pd.DataFrame([empty_row])
+                df = pd.DataFrame([{c: "" for c in DEFAULT_COLUMNS}])
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
-    # यदि फाइल उपलब्ध नहीं है, तो एक खाली डिफ़ॉल्ट रो के साथ नया ढांचा वापस भेजें
-    empty_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
-    empty_row = {c: "" for c in DEFAULT_COLUMNS}
-    empty_df = pd.concat([empty_df, pd.DataFrame([empty_row])], ignore_index=True)
-    return empty_df
+    return pd.DataFrame([{c: "" for c in DEFAULT_COLUMNS}])
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
 # मेमोरी स्टेट्स सेटअप (Session States)
+if "user_role" not in st.session_state:
+    st.session_state.user_role = None  # लॉगिन रोल स्टोर करने के लिए
 if "select_all_state" not in st.session_state:
     st.session_state.select_all_state = False
-if "database_unlocked" not in st.session_state:
-    st.session_state.database_unlocked = False
-if "list_unlocked" not in st.session_state:
-    st.session_state.list_unlocked = False
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
 if "column_move_mode" not in st.session_state:
@@ -110,28 +103,36 @@ if "column_move_mode" not in st.session_state:
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
-# डेटा लोड करें
+# सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- पहला लॉक: लॉगिन फॉर्म ---
-if not st.session_state.database_unlocked:
-    st.subheader("🔒 Admin Login")
-    user_input = st.text_input("Username:")
-    password_input = st.text_input("Password:", type="password")
-    if st.button("Login", type="primary", use_container_width=True):
-        if user_input == CORRECT_USERNAME and password_input == CORRECT_PASSWORD:
-            st.session_state.database_unlocked = True
+
+# --- मुख्य लॉगिन गेटवे (यदि लॉगिन नहीं है तो फॉर्म दिखाएं) ---
+if st.session_state.user_role is None:
+    st.markdown("---")
+    st.subheader("🔒 Multi-User Secure Login Gateway")
+    
+    with st.form(key="secure_login_form"):
+        user_input = st.text_input("Username दर्ज करें:")
+        password_input = st.text_input("Password दर्ज करें:", type="password")
+        login_submit = st.form_submit_button("Secure Login", use_container_width=True, type="primary")
+        
+    if login_submit:
+        user_input = user_input.strip()
+        if user_input in CREDENTIALS and CREDENTIALS[user_input]["password"] == password_input:
+            st.session_state.user_role = CREDENTIALS[user_input]["role"]
+            st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
-            st.error("गलत यूज़रनेम या पासवर्ड!")
+            st.error("❌ गलत यूज़रनेम या पासवर्ड! कृपया पुनः प्रयास करें।")
 
-# --- यदि पहला डेटाबेस अनलॉक है, तभी अंदर का सिस्टम खुलेगा ---
-if st.session_state.database_unlocked:
+
+# --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
+if st.session_state.user_role is not None:
     
-    # मुख्य लॉगआउट बटन
-    if st.button("🔒 मुख्य लॉगआउट (Exit File)", type="primary", use_container_width=True):
-        st.session_state.database_unlocked = False
-        st.session_state.list_unlocked = False
+    # यूनिवर्सल लॉगआउट बटन (दाहिने कोने की तरह शीर्ष पर फुल विड्थ)
+    if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
+        st.session_state.user_role = None
         st.session_state.edit_mode = False
         st.session_state.select_all_state = False
         st.session_state.column_move_mode = False
@@ -139,85 +140,81 @@ if st.session_state.database_unlocked:
 
     st.markdown("---")
     
-    # 📁 बल्क डेटा अपलोड सेक्शन
-    st.header("📁 CSV File Bulk Upload")
-    uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-    if uploaded_file is not None:
-        try:
-            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-            if st.button("Upload CSV Now"):
-                if "Admission No." in uploaded_df.columns:
-                    uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                # यदि मुख्य लाइव डेटाबेस अभी खाली स्ट्रक्चर में है, तो उसे रिप्लेस करें
-                if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
-                    updated_df = uploaded_df
+    # 🎯 भूमिका क्रेडेंशियल वेरिएबल्स
+    is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
+    is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
+    is_admin = st.session_state.user_role == "full_admin"
+
+    # ==========================================
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (लेवल 1 और लेवल 3 के लिए)
+    # ==========================================
+    if is_entry_allowed:
+        # 📁 बल्क डेटा अपलोड सेक्शन
+        st.header("📁 CSV File Bulk Upload")
+        uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+        if uploaded_file is not None:
+            try:
+                uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                if st.button("Upload CSV Now"):
+                    if "Admission No." in uploaded_df.columns:
+                        uploaded_df = uploaded_df.drop(columns=["Admission No."])
+                    if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+                        updated_df = uploaded_df
+                    else:
+                        updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
+                    save_live_data(updated_df)
+                    st.success("CSV डेटा सफलतापूर्वक डेटाबेस में जोड़ दिया गया है!")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"त्रुटि: {e}")
+
+        st.markdown("---")
+
+        # ➕ मैनुअल डेटा एंट्री सेक्शन
+        st.header("➕ Naya Student Data Add Karein")
+        eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
+        unique_id = st.text_input("Unique ID")
+        roll_no = st.text_input("Roll No.")
+        application_no = st.text_input("Application No.")
+        enr_no = st.text_input("Enrollment No.")
+        s_name = st.text_input("Student Name")
+        f_name = st.text_input("Father Name")
+        m_name = st.text_input("Mother Name")
+        dob = st.text_input("Date of Birth")
+        category = st.text_input("Category")
+        subject = st.text_input("Subject")
+        duration = st.selectbox("Duration", DURATION_OPTIONS)
+        mobile = st.text_input("Mobile No.")
+        email = st.text_input("Email ID")
+        address = st.text_input("Address")
+        status_input = st.selectbox("Status", STATUS_OPTIONS)
+
+        if st.button("Save Student Data", type="primary", use_container_width=True):
+            if s_name.strip() == "":
+                st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+            else:
+                new_row = {
+                    "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+                    "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
+                    "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
+                    "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
+                }
+                if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
+                    updated_df = pd.DataFrame([new_row])
                 else:
-                    updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
+                    updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
                 save_live_data(updated_df)
-                st.success("डेटा जोड़ दिया गया है!")
+                st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है!")
                 st.rerun()
-        except Exception as e:
-            st.error(f"त्रुटि: {e}")
 
-    st.markdown("---")
-
-    # ➕ मैनुअल डेटा एंट्री सेक्शन
-    st.header("➕ Naya Student Data Add Karein")
-    eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
-    unique_id = st.text_input("Unique ID")
-    roll_no = st.text_input("Roll No.")
-    application_no = st.text_input("Application No.")
-    enr_no = st.text_input("Enrollment No.")
-    s_name = st.text_input("Student Name")
-    f_name = st.text_input("Father Name")
-    m_name = st.text_input("Mother Name")
-    dob = st.text_input("Date of Birth")
-    category = st.text_input("Category")
-    subject = st.text_input("Subject")
-    duration = st.selectbox("Duration", DURATION_OPTIONS)
-    mobile = st.text_input("Mobile No.")
-    email = st.text_input("Email ID")
-    address = st.text_input("Address")
-    status_input = st.selectbox("Status", STATUS_OPTIONS)
-
-    if st.button("Save Student Data", type="primary", use_container_width=True):
-        if s_name.strip() == "":
-            st.warning("कृपया Student Name ज़रूर भरें।")
-        else:
-            new_row = {
-                "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-                "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
-                "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-                "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
-            }
-            # यदि केवल खाली स्ट्रक्चर रो मौजूद है, तो उसे हटाकर फ्रेश एंट्री करें
-            if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
-                updated_df = pd.DataFrame([new_row])
-            else:
-                updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
-            save_live_data(updated_df)
-            st.success("डेटा हमेशा के लिए सेव हो गया है!")
-            st.rerun()
-
-    st.markdown("---")
-
-    # 📊 डेटा लिस्ट लॉक और प्रोटेक्शन सेक्शन
-    st.header("📊 Live Student Database")
-    if not st.session_state.list_unlocked:
-        with st.form(key="list_password_form"):
-            list_pass = st.text_input("⚠️ छात्र सूची (Data List) देखने के लिए पासवर्ड डालें:", type="password")
-            submit_pass = st.form_submit_button("डेटा लिस्ट अनलॉक करें", use_container_width=True)
-        if submit_pass:
-            if list_pass == LIST_PASSWORD:
-                st.session_state.list_unlocked = True
-                st.rerun()
-            else:
-                st.error("गलत लिस्ट पासवर्ड!")
-
-    # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
-    if st.session_state.list_unlocked:
+    # ==========================================
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और लेवल 3 के लिए)
+    # ==========================================
+    if is_list_allowed:
+        st.markdown("---")
+        st.header("📊 Live Student Database")
         
-        # क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
+        # सुरक्षित कॉलम सिंकिंग
         safe_order = [c for c in st.session_state.current_column_order if c in live_db.columns]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
@@ -225,23 +222,19 @@ if st.session_state.database_unlocked:
             
         base_df = live_db[safe_order].copy()
         
-        # एक्शन बटन्स की सूची
-        if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
-            st.session_state.select_all_state = not st.session_state.select_all_state
-            st.rerun()
-            
+        # --- डाउनलोड और प्रिंट विकल्प (लेवल 2 और 3 दोनों के लिए उपलब्ध) ---
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
         
         if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
             st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # 🔄 "Column Move Mode" बटन
-        if not st.session_state.column_move_mode:
-            if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                st.session_state.column_move_mode = True
+        # 🔄 कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए विशेष रूप से)
+        if is_admin:
+            if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
+                st.session_state.select_all_state = not st.session_state.select_all_state
                 st.rerun()
-        else:
-            if st.button("🔒 Column Move मोड बंद और ऑर्डर锁 करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
+
+            if not st.session_state.column_move_mode:
+                if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
                 
