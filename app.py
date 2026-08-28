@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 st.title("Permanent Google Sheets Linked Database")
 
 # आपकी असली गूगल शीट का लिंक
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Uoeucj2Ayi8mpvBe4T5LlVII_o2PyJg_OrvPxWjIf68/edit?usp=sharing"
+GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzzYnmbIQIxtsqAJDu2RhqjP5JP6UxKu61CSAgBQaAlDvjGnFZFE8K7r-aXd61IexgWCQ/exec"
 
 # गूगल शीट से कनेक्शन स्थापित करना
 try:
