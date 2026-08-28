@@ -118,7 +118,7 @@ if st.button("Save Student Data", use_container_width=True):
         st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
     else:
         new_row = {
-            "S. No.": , "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+            "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
             "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
             "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
