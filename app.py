@@ -80,18 +80,17 @@ def load_live_data():
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
-            if df.empty:
-                df = pd.DataFrame([{c: "" for c in DEFAULT_COLUMNS}])
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
-    return pd.DataFrame([{c: "" for c in DEFAULT_COLUMNS}])
+    # क्रैश से बचाने के लिए खाली डेटाफ़्रेम स्ट्रक्चर भेजें (बिना किसी खराब खाली रो के)
+    return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# मेमोरी स्टेट्स सेटअप (Session States)
+# 메모리 स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "select_all_state" not in st.session_state:
@@ -155,7 +154,7 @@ if st.session_state.user_role is not None:
                 if st.button("Upload CSV Now"):
                     if "Admission No." in uploaded_df.columns:
                         uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                    if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
+                    if live_db.empty:
                         updated_df = uploaded_df
                     else:
                         updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
@@ -195,7 +194,7 @@ if st.session_state.user_role is not None:
                     "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
-                if len(live_db) == 1 and "".join(live_db.iloc.values).strip() == "":
+                if live_db.empty:
                     updated_df = pd.DataFrame([new_row])
                 else:
                     updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
@@ -210,12 +209,17 @@ if st.session_state.user_role is not None:
         st.markdown("---")
         st.header("📊 Live Student Database")
         
-        safe_order = [c for c in st.session_state.current_column_order if c in live_db.columns]
+        # क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
+        safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
             
-        base_df = live_db[safe_order].copy()
+        # डेटाबेस खाली होने पर भी खाली स्ट्रक्चर ढांचा तैयार रखें ताकि एरर न आए
+        if live_db.empty:
+            base_df = pd.DataFrame(columns=safe_order)
+        else:
+            base_df = live_db[safe_order].copy()
         
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
@@ -229,7 +233,6 @@ if st.session_state.user_role is not None:
                 st.session_state.select_all_state = not st.session_state.select_all_state
                 st.rerun()
 
-            # सरल बना दिया गया: दो सीधे बटन बिना किसी एक्स्ट्रा इफ कंडीशन के
             if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
                 st.session_state.column_move_mode = True
                 st.rerun()
@@ -238,5 +241,4 @@ if st.session_state.user_role is not None:
                 st.session_state.column_move_mode = False
                 st.rerun()
 
-            # बाएँ-दाएँ खिसकाने वाले बटन (जब स्टेट True हो)
-            
+
