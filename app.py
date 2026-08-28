@@ -25,11 +25,12 @@ DB_FILE = "shared_student_database.csv"
 # 🔑 यहाँ अपना मनपसंद पासवर्ड सेट करें (अभी 'admin123' है)
 CORRECT_PASSWORD = "admin123"
 
+# 'Status' कॉलम को डिफ़ॉल्ट सूची में जोड़ दिया गया है
 DEFAULT_COLUMNS = [
     "Admission No.", "Eligibility", "Unique ID", "Roll No.", 
     "Application No.", "Enrollment No.", "Student Name", "Father Name",
     "Mother Name", "Date of Birth", "Category", "Subject", 
-    "Duration", "Mobile No.", "Email ID", "Address"
+    "Duration", "Mobile No.", "Email ID", "Address", "Status"
 ]
 
 # फ़ाइल से डेटा लोड करने का मजबूत फंक्शन (सभी डिवाइसेज के लिए)
@@ -37,6 +38,7 @@ def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
+            # सुनिश्चित करें कि सभी जरूरी कॉलम्स मौजूद हों
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
@@ -55,6 +57,9 @@ if "select_all_state" not in st.session_state:
 
 if "database_unlocked" not in st.session_state:
     st.session_state.database_unlocked = False
+
+if "edit_mode" not in st.session_state:
+    st.session_state.edit_mode = False
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -81,7 +86,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-# clear_on_submit=True से बटन क्लिक होते ही सारे टेक्स्ट बॉक्स 100% खाली हो जाएंगे
 with st.form(key="student_form", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -104,6 +108,8 @@ with st.form(key="student_form", clear_on_submit=True):
         f_name = st.text_input("Father Name")
         subject = st.text_input("Subject")
         address = st.text_input("Address")
+    
+    status_input = st.text_input("Status (जैसे: Active, Pending, Pass)")
 
     submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
 
@@ -115,7 +121,7 @@ if submit_button:
             "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
             "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
             "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
+            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
         }
         
         fresh_db = load_live_data()
@@ -127,12 +133,11 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स (बिना फॉर्म के ताकि एंटर दबाते ही पासवर्ड गायब हो सके) ---
+# --- पासवर्ड इनपुट बॉक्स ---
 st.markdown("---")
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.subheader("🔒 Live Student Database Lock")
 
-# पासवर्ड बॉक्स की वैल्यू को हर बार रीसेट रखने के लिए की (key) ट्रिक का उपयोग
 if "pwd_reset_key" not in st.session_state:
     st.session_state.pwd_reset_key = 0
 
@@ -142,23 +147,20 @@ user_password = st.text_input(
     key=f"password_input_{st.session_state.pwd_reset_key}"
 )
 
-# जैसे ही सही पासवर्ड डाल कर Enter दबाया जाए
 if user_password == CORRECT_PASSWORD:
     st.session_state.database_unlocked = True
-    st.session_state.pwd_reset_key += 1  # यह लाइन पासवर्ड बॉक्स में लिखे टेक्स्ट को तुरंत हटा (clear) देगी
+    st.session_state.pwd_reset_key += 1  
     st.rerun()
 
-# गलत पासवर्ड की स्थिति में एरर दिखाएं
 if user_password != "" and user_password != CORRECT_PASSWORD:
     st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- यदि डेटाबेस अनलॉक स्टेट 'True' है, तभी नीचे का सारा सिस्टम दिखेगा ---
+# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा ---
 if st.session_state.database_unlocked:
 
-    # --- लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
     st.header("📊 Live Student Database")
 
     if not live_db.empty and len(live_db) > 0:
@@ -175,17 +177,50 @@ if st.session_state.database_unlocked:
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
 
+        # एडिट मोड के आधार पर कॉलम्स लॉक या अनलॉक करना
+        if st.session_state.edit_mode:
+            disabled_cols = ["Delete स्टूडेंट"]
+            st.info("📝 एडिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं। सुधार के बाद नीचे 'Save' बटन दबाएं।")
+        else:
+            disabled_cols = [col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"]
+
+        # डेटा एडिटर तालिका विजेट
         edited_df = st.data_editor(
             display_df,
             hide_index=False,
             column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें")},
-            disabled=[col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"],
+            disabled=disabled_cols,
             use_container_width=True
         )
 
+        # --- एडिट और सेव बटन्स का बिल्कुल नया दो-बटन लॉजिक ---
+        st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+        col_ed1, col_ed2 = st.columns(2)
+        
+        with col_ed1:
+            # बटन 1: केवल एडिट मोड शुरू करने के लिए
+            if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True, type="secondary"):
+                st.session_state.edit_mode = True
+                st.rerun()
+                    
+        with col_ed2:
+            # बटन 2: केवल बदलावों को सेव करके लिस्ट को दोबारा लॉक करने के लिए
+            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
+                if st.session_state.edit_mode:
+                    # डेटा एडिटर से बदला हुआ डेटा साफ़ करके सुरक्षित करना
+                    cleaned_edited_df = edited_df.drop(columns=["Delete स्टूडेंट"]).reset_index(drop=True)
+                    save_live_data(cleaned_edited_df)
+                    st.session_state.edit_mode = False  # एडिट मोड बंद करें (लॉक करें)
+                    st.success("बदला हुआ डेटा सफलतापूर्वक सुरक्षित और लॉक कर दिया गया है!")
+                    st.rerun()
+                else:
+                    st.warning("कोई बदलाव सेव करने के लिए पहले 'Edit Mode' बटन दबाकर डेटा में सुधार करें।")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # --- डिलीट प्रक्रिया का लॉजिक ---
         selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
-        if len(selected_rows) > 0:
+        if len(selected_rows) > 0 and not st.session_state.edit_mode:
             st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
             st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
             if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
@@ -195,8 +230,8 @@ if st.session_state.database_unlocked:
                 updated_df = fresh_db.drop(index=indices_to_drop).reset_index(drop=True)
                 
                 save_live_data(updated_df)
-                st.session_state.select_all_state = False  # डिलीट के बाद स्टेट रिसेट करें
-                st.success("डेटा डेटाबेस और सभी डिवाइसेज से हटा दिया गया है!")
+                st.session_state.select_all_state = False
+                st.success("डेटा सफलतापूर्वक डिलीट कर दिया गया है!")
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -204,20 +239,5 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट, डाउनलोड और डेटाबेस क्लोज/लॉक करने का बटन ---
-    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-    st.header("📥 Actions")
-    
-    csv_data = live_db.to_csv(index=False).encode('utf-8')
-    st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:10px;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
-    
-    # 🔒 क्लोज (Close) बटन जो डेटाबेस को फिर से लॉक कर देगा
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    if st.button("🔒 डेटाबेस बंद करें और लॉक करें (Close Database)", use_container_width=True, type="secondary"):
-        st.session_state.database_unlocked = False
-        st.session_state.select_all_state = False
-        st.rerun()
-        
-    st.markdown('</div>', unsafe_allow_html=True)
+    # --- SECTION 5: प्रिंट, डाउनलोड और डेटाबेस क्लोज करने का बटन ---
     
