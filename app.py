@@ -49,9 +49,12 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# फॉर्म खाली करने और ऑल-सेलेक्ट के लिए स्टेट्स सेट करें
+# मेमोरी स्टेट्स (Session States) सेट करें
 if "select_all_state" not in st.session_state:
     st.session_state.select_all_state = False
+
+if "database_unlocked" not in st.session_state:
+    st.session_state.database_unlocked = False
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -124,26 +127,36 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट फॉर्म लॉजिक (Enter दबाने पर लॉक खोलने के लिए) ---
+# --- पासवर्ड इनपुट बॉक्स (बिना फॉर्म के ताकि एंटर दबाते ही पासवर्ड गायब हो सके) ---
 st.markdown("---")
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.subheader("🔒 Live Student Database Lock")
 
-with st.form(key="password_form", clear_on_submit=False):
-    user_password = st.text_input("नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", type="password")
-    unlock_button = st.form_submit_button("🔓 लाइव डेटाबेस अनलॉक करें", use_container_width=True)
+# पासवर्ड बॉक्स की वैल्यू को हर बार रीसेट रखने के लिए की (key) ट्रिक का उपयोग
+if "pwd_reset_key" not in st.session_state:
+    st.session_state.pwd_reset_key = 0
+
+user_password = st.text_input(
+    "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
+    type="password", 
+    key=f"password_input_{st.session_state.pwd_reset_key}"
+)
+
+# जैसे ही सही पासवर्ड डाल कर Enter दबाया जाए
+if user_password == CORRECT_PASSWORD:
+    st.session_state.database_unlocked = True
+    st.session_state.pwd_reset_key += 1  # यह लाइन पासवर्ड बॉक्स में लिखे टेक्स्ट को तुरंत हटा (clear) देगी
+    st.rerun()
+
+# गलत पासवर्ड की स्थिति में एरर दिखाएं
+if user_password != "" and user_password != CORRECT_PASSWORD:
+    st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# गलत पासवर्ड होने पर तुरंत वार्निंग
-if user_password != "" and user_password != CORRECT_PASSWORD:
-    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-    st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-# यदि पासवर्ड बिल्कुल सही दर्ज करके Enter दबाया गया है, तो नीचे का सारा हिस्सा खोलें
-if user_password == CORRECT_PASSWORD:
+# --- यदि डेटाबेस अनलॉक स्टेट 'True' है, तभी नीचे का सारा सिस्टम दिखेगा ---
+if st.session_state.database_unlocked:
 
     # --- लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
     st.header("📊 Live Student Database")
@@ -191,7 +204,7 @@ if user_password == CORRECT_PASSWORD:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+    # --- SECTION 5: प्रिंट, डाउनलोड और डेटाबेस क्लोज/लॉक करने का बटन ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
@@ -199,5 +212,12 @@ if user_password == CORRECT_PASSWORD:
     st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
     st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:10px;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
     
+    # 🔒 क्लोज (Close) बटन जो डेटाबेस को फिर से लॉक कर देगा
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🔒 डेटाबेस बंद करें और लॉक करें (Close Database)", use_container_width=True, type="secondary"):
+        st.session_state.database_unlocked = False
+        st.session_state.select_all_state = False
+        st.rerun()
+        
     st.markdown('</div>', unsafe_allow_html=True)
     
