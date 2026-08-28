@@ -9,7 +9,7 @@ st.set_page_config(layout="wide")
 st.markdown("""
     <style>
     @media print {
-        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"] {
+        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"], [data-testid="stSidebar"] {
             display: none !important;
         }
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
@@ -81,7 +81,7 @@ def load_live_data():
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
-    # यदि फ़ाइल नहीं है, तो खाली ढांचा वापस भेजें ताकि टेबल हमेशा लोड हो सके
+    # यदि फाइल खाली है या उपलब्ध नहीं है, तो खाली ढांचा वापस भेजें ताकि एरर न आए
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
@@ -97,14 +97,12 @@ if "list_unlocked" not in st.session_state:
     st.session_state.list_unlocked = False
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
-if "column_move_mode" not in st.session_state:
-    st.session_state.column_move_mode = False
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
 live_db = load_live_data()
 
-# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और密码 दोनों) ---
+# --- पहला लॉक: लॉगिन फॉर्म ---
 if not st.session_state.database_unlocked:
     st.subheader("🔒 Admin Login")
     user_input = st.text_input("Username:")
@@ -125,7 +123,6 @@ if st.session_state.database_unlocked:
         st.session_state.list_unlocked = False
         st.session_state.edit_mode = False
         st.session_state.select_all_state = False
-        st.session_state.column_move_mode = False
         st.rerun()
 
     st.markdown("---")
@@ -198,11 +195,30 @@ if st.session_state.database_unlocked:
             else:
                 st.error("गलत लिस्ट पासवर्ड!")
 
-    # --- लिस्ट अनलॉक होने के बाद तालिका और बटन दृश्य (हमेशा दिखाई देंगे) ---
+    # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
     if st.session_state.list_unlocked:
         
-        # वर्तमान कॉलम आर्डर के आधार पर डेटा को फ़िल्टर करना
-        display_df = live_db[st.session_state.current_column_order].copy().reset_index(drop=True)
+        # 🔄 साइडबार में कॉलम मूव / री-ऑर्डर मोड फ़ंक्शनलिटी
+        with st.sidebar:
+            st.header("🔄 Column Move / Order Settings")
+            st.info("आप जिस आर्डर में यहाँ कॉलम सेलेक्ट करेंगे, टेबल में कॉलम उसी आर्डर में व्यवस्थित हो जाएँगे। पोजीशन बदलने के लिए नाम को हटाकर दोबारा मनचाही जगह चुनें।")
+            
+            chosen_order = st.multiselect(
+                "कॉलम का क्रम चुनें (Select Column Order):",
+                options=DEFAULT_COLUMNS,
+                default=st.session_state.current_column_order
+            )
+            
+            # यदि यूजर ने कुछ कॉलम हटा दिए हैं, तो बचे हुए डिफ़ॉल्ट कॉलम अंत में जुड़ जाएंगे ताकि डेटा लॉस न हो
+            if len(chosen_order) > 0:
+                missing_cols = [c for c in DEFAULT_COLUMNS if c not in chosen_order]
+                st.session_state.current_column_order = chosen_order + missing_cols
+            
+            if st.button("🔒 कॉलम आर्डर लॉक करें", use_container_width=True, type="primary"):
+                st.success("कॉलम की स्थिति सुरक्षित रूप से लॉक कर दी गई है!")
+
+        # लाइव डेटाबेस को यूजर द्वारा चुने गए कॉलम क्रम में लोड करना
+        base_df = live_db[st.session_state.current_column_order].copy()
         
         # एक्शन बटन्स की सूची
         if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
@@ -214,32 +230,17 @@ if st.session_state.database_unlocked:
         
         if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
             st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
-
-        # 🔄 सिर्फ लिस्ट लॉक बटन के ठीक ऊपर "Column Move Mode" बटन
-        if not st.session_state.column_move_mode:
-            if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                st.session_state.column_move_mode = True
-                st.rerun()
-        else:
-            if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
-                st.success("कॉलम की स्थिति को सफलतापूर्वक लॉक कर दिया गया है!")
-                st.rerun()
             
         if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True):
             st.session_state.list_unlocked = False
             st.session_state.edit_mode = False
-            st.session_state.column_move_mode = False
             st.rerun()
 
         st.markdown("---")
 
-        # Column Move मोड ऑन होने पर लाइव इंडिकेटर टेक्स्ट बॉक्स दिखाना
-        if st.session_state.column_move_mode:
-            st.info("ℹ️ कॉलम री-ऑर्डर मोड एक्टिव है! नीचे टेबल में कॉलम के नाम पर टच/क्लिक करके उसे आगे-पीछे ड्रैग करें।")
-            cols_str = " | ".join([f" [{i+1}] {col}" for i, col in enumerate(st.session_state.current_column_order)])
-            st.text_input("वर्तमान कॉलम पोजीशन इंडिकेटर (Current Positions):", value=cols_str, disabled=True)
+        # 💡 लाइव टेक्स्ट बॉक्स इंडिकेटर (जो आपने मांगा था)
+        cols_str = " | ".join([f" [{i+1}] {col}" for i, col in enumerate(st.session_state.current_column_order)])
+        st.text_input("वर्तमान कॉलम पोजीशन इंडिकेटर (Current Positions):", value=cols_str, disabled=True)
 
-        # 🛠️ "Delete स्टूडेंट" कॉलम को तालिका में सबसे पहले जोड़ा गया
-        display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
+        # 🛠️ "Delete स्टूडेंट" कॉलम को हमेशा सुरक्षित रूप से प्रथम स्थान पर जोड़ना
         
