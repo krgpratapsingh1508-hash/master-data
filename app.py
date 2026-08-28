@@ -104,13 +104,12 @@ if "current_column_order" not in st.session_state:
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे (यहाँ टाइपिंग बॉक्स को हटाकर स्क्रॉल ड्रॉपडाउन लगा दिया गया है) ---
+# --- मुख्य लॉगिन गेटवे (स्क्रॉल ड्रॉपडाउन बॉक्स) ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
     
     with st.form(key="secure_login_form"):
-        # 🔄 यूज़रनेम के लिए स्क्रॉल ड्रॉपडाउन बॉक्स
         user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(CREDENTIALS.keys()))
         password_input = st.text_input("Password दर्ज करें:", type="password")
         login_submit = st.form_submit_button("Secure Login", use_container_width=True, type="primary")
@@ -202,7 +201,7 @@ if st.session_state.user_role is not None:
                 st.rerun()
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2และ एडमिन के लिए)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और एडमिन के लिए)
     # ==========================================
     if is_list_allowed:
         st.markdown("---")
@@ -226,7 +225,7 @@ if st.session_state.user_role is not None:
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए)
+        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए - एक्स्ट्रा इफ हटा दिया गया)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
                 st.session_state.select_all_state = not st.session_state.select_all_state
@@ -237,4 +236,6 @@ if st.session_state.user_role is not None:
                 st.rerun()
             
             if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
-            
+                st.session_state.column_move_mode = False
+                st.rerun()
+
