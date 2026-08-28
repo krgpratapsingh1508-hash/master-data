@@ -141,7 +141,13 @@ if not st.session_state.local_db.empty and "Student Name" in st.session_state.lo
     selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", ["-- चुनें --"] + student_list)
     
     if selected_student_string != "-- चुनें --":
-        selected_idx = int(selected_student_string.split(" | ").split(" "))
+# पहले चेक करें कि क्या " | " टेक्स्ट में मौजूद है
+if " | " in selected_student_string:
+    # टेक्स्ट को अलग करें और पहले हिस्से का नंबर निकालें
+    parts = selected_student_string.split(" | ")
+    selected_idx = int(parts[0].strip())
+else:
+    selected_idx = 0  # अगर डेटा सही न हो तो डिफ़ॉल्ट 0 मान लें
         if st.button("चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
             updated_df = df_current_clean.drop(index=selected_idx).reset_index(drop=True)
             
