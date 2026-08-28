@@ -106,27 +106,23 @@
 </div>
 
 <script>
-    // पेज खुलते ही डेटा लोड होगा
+    // यह नया फंक्शन पुराना अटका हुआ कैश साफ करने और टेस्टिंग के लिए है 
     window.onload = function() {
+        alert("नया सिस्टम लोड हो गया है! अब आप चेक कर सकते हैं।");
         loadData();
     };
 
-    // लोकल स्टोरेज से डेटा लाना
     function getStorageData() {
         var data = localStorage.getItem("studentDB");
-        if (data) {
-            return JSON.parse(data);
-        }
+        if (data) { return JSON.parse(data); }
         return [];
     }
 
-    // लोकल स्टोरेज में डेटा सेव करना
     function saveStorageData(arr) {
         localStorage.setItem("studentDB", JSON.stringify(arr));
         loadData();
     }
 
-    // टेबल में डेटा दिखाना
     function loadData() {
         var students = getStorageData();
         var tbody = document.getElementById("tableBody");
@@ -158,16 +154,18 @@
         }
     }
 
-    // 1. बटन - मैन्युअल डेटा सेव करना
     function saveManualData() {
+        var sName = document.getElementById("studentName").value;
+        var aNo = document.getElementById("admNo").value;
+        
         var newStudent = {
-            admNo: document.getElementById("admNo").value,
+            admNo: aNo,
             eligibility: document.getElementById("eligibility").value,
             uniqueId: document.getElementById("uniqueId").value,
             rollNo: document.getElementById("rollNo").value,
             appNo: document.getElementById("appNo").value,
             enrollNo: document.getElementById("enrollNo").value,
-            studentName: document.getElementById("studentName").value,
+            studentName: sName,
             fatherName: document.getElementById("fatherName").value,
             motherName: document.getElementById("motherName").value,
             dob: document.getElementById("dob").value,
@@ -183,12 +181,10 @@
         students.push(newStudent);
         saveStorageData(students);
         
-        // फॉर्म साफ करें
         document.getElementById("studentForm").reset();
         alert("डेटा सफलतापूर्वक सेव हो गया!");
     }
 
-    // 2. बटन - CSV फ़ाइल अपलोड करना
     function uploadCSV() {
         var fileInput = document.getElementById("csvFileInput");
         if (fileInput.files.length === 0) {
@@ -204,10 +200,21 @@
             var rows = text.split("\n");
             var students = getStorageData();
 
-            // पहली लाइन (हेडर) को छोड़कर लूप चलाएं
             for (var i = 1; i < rows.length; i++) {
                 if (rows[i].trim() === "") continue;
+                var cols = rows[i].split(",");
                 
+                var csvStudent = {
+                    admNo: cols[0] ? cols[0].trim() : '',
+                    eligibility: cols[1] ? cols[1].trim() : '',
+                    uniqueId: cols[2] ? cols[2].trim() : '',
+                    rollNo: cols[3] ? cols[3].trim() : '',
+                    appNo: cols[4] ? cols[4].trim() : '',
+                    enrollNo: cols[5] ? cols[5].trim() : '',
+                    studentName: cols[6] ? cols[6].trim() : '',
+                    fatherName: cols[7] ? cols[7].trim() : '',
+                    motherName: cols[8] ? cols[8].trim() : '',
+                    dob: cols[9] ? cols[9].trim() : '',
                 var cols = rows[i].split(",");
                 
                 var csvStudent = {
