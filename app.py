@@ -47,9 +47,12 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# फॉर्म खाली करने के लिए विशेष ट्रिगर स्टेट
+# फॉर्म खाली करने और ऑल-सेलेक्ट के लिए स्टेट्स सेट करें
 if "reset_trigger" not in st.session_state:
     st.session_state.reset_trigger = False
+
+if "select_all_state" not in st.session_state:
+    st.session_state.select_all_state = False
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -131,7 +134,6 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        # ताजा डेटाबेस दोबारा लोड करके उसमें जोड़ें
         fresh_db = load_live_data()
         updated_df = pd.concat([fresh_db, pd.DataFrame([new_row])], ignore_index=True)
         
@@ -147,18 +149,29 @@ st.header("📊 Live Student Database")
 
 if not live_db.empty and len(live_db) > 0:
     display_df = live_db.copy().reset_index(drop=True)
-    display_df.insert(0, "Delete स्टूडेंट", False)
+    
+    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+    # ऑल सेलेक्ट / डीसेलेक्ट बटन का लेआउट और लॉजिक
+    btn_label = "⬜ सब सेलेक्ट करें (Select All)" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें (Deselect All)"
+    if st.button(btn_label):
+        st.session_state.select_all_state = not st.session_state.select_all_state
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # वर्तमान ऑल-सेलेक्ट स्टेट के हिसाब से डिफ़ॉल्ट वैल्यू सेट करें
+    display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
     display_df.index = display_df.index + 1
     display_df.index.name = "S. No."
 
     edited_df = st.data_editor(
         display_df,
         hide_index=False,
-        column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें", default=False)},
-        disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
+        column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें")},
+        disabled=[col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"],
         use_container_width=True
     )
 
+    # जिन रोज़ पर टिक लगा है उन्हें पहचानें
     selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
     if len(selected_rows) > 0:
@@ -171,6 +184,7 @@ if not live_db.empty and len(live_db) > 0:
             updated_df = fresh_db.drop(index=indices_to_drop).reset_index(drop=True)
             
             save_live_data(updated_df)
+            st.session_state.select_all_state = False  # डिलीट के बाद स्टेट रिसेट करें
             st.success("डेटा डेटाबेस और सभी डिवाइसेज से हटा दिया गया है!")
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -178,7 +192,7 @@ else:
     st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-# --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+# --- SECTION 5: प्रिंट और下载 विकल्प ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("📥 Actions")
 action_col1, action_col2 = st.columns(2)
@@ -188,4 +202,4 @@ with action_col1:
 with action_col2:
     st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
-        
+
