@@ -25,7 +25,6 @@ DB_FILE = "shared_student_database.csv"
 # 🔑 यहाँ अपना मनपसंद पासवर्ड सेट करें (अभी 'admin123' है)
 CORRECT_PASSWORD = "admin123"
 
-# 'Status' कॉलम को डिफ़ॉल्ट सूची में जोड़ दिया गया है
 DEFAULT_COLUMNS = [
     "Admission No.", "Eligibility", "Unique ID", "Roll No.", 
     "Application No.", "Enrollment No.", "Student Name", "Father Name",
@@ -236,9 +235,14 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट, डाउनलोड और डेटाबेस क्लोज करने का बटन ---
+    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (Two Column Buttons Layout Fixed) ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
-    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    # डाउनलोड और प्रिंट बटन्स के लिए दो बराबर कॉलम बनाए गए हैं
+    action_col1, action_col2 = st.columns(2)
     
+    with action_col1:
+        # पहला बटन: डाउनलोड करने के लिए
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
+
