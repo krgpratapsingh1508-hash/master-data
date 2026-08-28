@@ -43,9 +43,9 @@ IMAGE_PATH = "https://w3schools.com"
 
 st.markdown(f"""
     <div class="header-container">
-        <img src="{IMAGE_PATH}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>
+        <img src="logo pratap" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>
         <div class="header-text">
-            <h3>Om Guruye Namaha</h3>
+            <h3>ॐ गुरुवर्य नमः</h3>
             <h1>Permanent Shared Live Database</h1>
         </div>
     </div>
