@@ -178,7 +178,7 @@ if st.session_state.database_unlocked:
     if not live_db.empty and len(live_db) > 0:
         display_df = live_db.copy().reset_index(drop=True)
         
-        # --- एक्शन बटन रो (Row): 4 बटन्स बिल्कुल सटीक अगल-बगल ---
+        # --- एक्शन बटन रो (Row): 4 बटन्स बिल्कुल सटीक स्पेसिंग के साथ ---
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         act_col1, act_col2, act_col3, act_col4 = st.columns(4)
         
@@ -200,7 +200,7 @@ if st.session_state.database_unlocked:
             )
             
         with act_col3:
-            # बिना एरर वाला सुरक्षित नेटिव प्रिंट बटन
+            # सुरक्षित इंडेंटेशन के साथ प्रिंट बटन कार्यक्षमता
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
             
@@ -249,4 +249,5 @@ if st.session_state.database_unlocked:
                 st.rerun()
                     
         with col_ed2:
-            
+            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
+                
