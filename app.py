@@ -237,5 +237,6 @@ if st.session_state.user_role is not None:
                 if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
                     st.session_state.column_move_mode = True
                     st.rerun()
-            else:
+            
+            if st.session_state.column_move_mode:
             
