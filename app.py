@@ -37,6 +37,7 @@ def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
+            # सुनिश्चित करें कि सभी जरूरी कॉलम्स मौजूद हों
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
@@ -134,7 +135,7 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स (अनलॉक होते ही स्क्रीन से गायब हो जाएगा) ---
+# --- पासवर्ड इनपुट बॉक्स (केवल लॉक होने पर ही दिखाई देगा, अनलॉक होते ही गायब) ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
@@ -157,7 +158,7 @@ if not st.session_state.database_unlocked:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा ---
+# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा और पासवर्ड बॉक्स गायब रहेगा ---
 if st.session_state.database_unlocked:
 
     st.header("📊 Live Student Database")
@@ -231,14 +232,14 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (100% पक्का आमने-सामने दिखने वाला सिस्टम) ---
+    # --- SECTION 5: प्रिंट, डाउनलोड और लॉगआउट बटन (परफेक्ट लेफ्ट-राइट कॉलम लेआउट) ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
-    # डाउनलोड करने के लिए डेटा तैयार करना
-    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    # बटन्स को अगल-बगल (Left-Right) करने के लिए स्ट्रीमलिट का आधिकारिक कॉलम लेआउट
+    btn_col1, btn_col2 = st.columns(2)
     
-    # HTML और CSS ग्रिड का उपयोग करके दोनों बटनों को जबरदस्ती अगल-बगल फिट करना
-    st.components.v1.html(f"""
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%;">
+    with btn_col1:
+        # 1. डाउनलोड बटन (लेफ्ट कॉलम में)
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
     
