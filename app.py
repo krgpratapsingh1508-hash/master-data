@@ -15,17 +15,16 @@ st.markdown("""
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
     
-    /* 🛠️ मोबाइल और कंप्यूटर दोनों पर बटनों को एक ही लाइन में रखने का अचूक कोड */
-    .button-container {
+    /* 🛠️ मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का अचूक कोड */
+    .action-container {
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
-        gap: 15px !important;
+        gap: 10px !important;
         width: 100% !important;
     }
-    .button-container > div {
+    .action-container > div {
         flex: 1 !important;
-        width: 50% !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -179,43 +178,64 @@ if st.session_state.database_unlocked:
     if not live_db.empty and len(live_db) > 0:
         display_df = live_db.copy().reset_index(drop=True)
         
+        # --- एक्शन बटन रो (Row): 4 बटन्स अगल-बगल ---
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        btn_label = "⬜ सब सेलेक्ट करें (Select All)" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें (Deselect All)"
-        if st.button(btn_label):
-            st.session_state.select_all_state = not st.session_state.select_all_state
-            st.rerun()
+        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+        
+        with act_col1:
+            btn_label = "⬜ सब सेलेक्ट करें" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें"
+            if st.button(btn_label, use_container_width=True):
+                st.session_state.select_all_state = not st.session_state.select_all_state
+                st.rerun()
+                
+        with act_col2:
+            # CSV फ़ाइल तैयार करें डाउनलोड के लिए
+            csv_data = live_db.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="💾 CSV डाउनलोड करें",
+                data=csv_data,
+                file_name="student_database_export.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="secondary"
+            )
+            
+        with act_col3:
+            # जावास्क्रिप्ट कोड की मदद से सीधे प्रिंट कमांड चलाना
+            print_script = """
+                <script>
+                function startPrint() {
+                    window.print();
+                }
+                </script>
+                <button onclick="startPrint()" style="width:100%; height:38px; background-color:#f0f2f6; border:1px solid #d3d3d3; border-radius:4px; cursor:pointer; font-weight:500;">🖨️ लिस्ट प्रिंट करें</button>
+            """
+            st.components.v1.html(print_script, height=45)
+            
+        with act_col4:
+            if st.button("🔒 लॉगआउट करें", use_container_width=True, type="primary"):
+                st.session_state.database_unlocked = False
+                st.session_state.edit_mode = False
+                st.session_state.select_all_state = False
+                st.rerun()
+                
         st.markdown('</div>', unsafe_allow_html=True)
 
+        # तालिका सेटअप
         display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
 
-        # तालिका (Data Editor) के लिए ड्रॉपडाउन कॉन्फ़िगरेशन तैयार करें
         column_configuration = {
             "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें"),
-            "Eligibility": st.column_config.SelectboxColumn(
-                "Eligibility",
-                help="एलिजिबिलिटी चुनें",
-                options=ELIGIBILITY_OPTIONS,
-                required=True
-            ),
-            "Duration": st.column_config.SelectboxColumn(
-                "Duration",
-                help="कोर्स की अवधि चुनें",
-                options=DURATION_OPTIONS,
-                required=True
-            ),
-            "Status": st.column_config.SelectboxColumn(
-                "Status",
-                help="स्टूडेंट का स्टेटस चुनें",
-                options=STATUS_OPTIONS,
-                required=True
-            )
+            "Eligibility": st.column_config.SelectboxColumn("Eligibility", options=ELIGIBILITY_OPTIONS, required=True),
+            "Duration": st.column_config.SelectboxColumn("Duration", options=DURATION_OPTIONS, required=True),
+            "Status": st.column_config.SelectboxColumn("Status", options=STATUS_OPTIONS, required=True)
         }
 
         if st.session_state.edit_mode:
             disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडमिट मोड एक्टिव है! तालिका में Eligibility, Duration और Status कॉलम में ड्रॉपडाउन लिस्ट उपलब्ध है।")
+            st.info("📝 एडमिट मोड एक्टिव है! तालिका में सीधे बदलाव कर सकते हैं।")
         else:
             disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
@@ -232,22 +252,4 @@ if st.session_state.database_unlocked:
         col_ed1, col_ed2 = st.columns(2)
         
         with col_ed1:
-            if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True, type="secondary"):
-                st.session_state.edit_mode = True
-                st.rerun()
-                    
-        with col_ed2:
-            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
-                if st.session_state.edit_mode:
-                    cleaned_edited_df = edited_df.drop(columns=["Delete स्टूडेंट"]).reset_index(drop=True)
-                    save_live_data(cleaned_edited_df)
-                    st.session_state.edit_mode = False  
-                    st.success("बदला हुआ डेटा सफलतापूर्वक सुरक्षित और लॉक कर दिया गया है!")
-                    st.rerun()
-                else:
-                    st.warning("कोई बदलाव सेव करने के लिए पहले 'Edit Mode' बटन दबाकर डेटा में सुधार करें।")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # --- डिलीट प्रक्रिया का लॉजिक ---
-        selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
-
+            
