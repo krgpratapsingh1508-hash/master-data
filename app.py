@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import base64
 
 # पेज का लेआउट सेट करें
 st.set_page_config(layout="wide")
@@ -38,18 +39,38 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- शीर्ष अनुभाग (Header Section) ---
-IMAGE_PATH = "https://w3schools.com" 
+# --- लोगो/इमेज को लोड करने के लिए फंक्शन (Base64 रूपांतरण) ---
+def get_image_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode()
+            return f"data:image/png;base64,{encoded}"
+    return ""
 
-st.markdown(f"""
-    <div class="header-container">
-        <img src="logo pratap.png" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>
-        <div class="header-text">
-            <h3>ॐ गुरुवर्य नमः</h3>
-            <h1>Permanent Shared Live Database</h1>
+IMAGE_PATH = "logo pratap.png"
+img_base64 = get_image_base64(IMAGE_PATH)
+
+# --- शीर्ष अनुभाग (Header Section) ---
+if img_base64:
+    st.markdown(f"""
+        <div class="header-container">
+            <img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>
+            <div class="header-text">
+                <h3>ॐ गुरुवर्य नमः</h3>
+                <h1>Permanent Shared Live Database</h1>
+            </div>
         </div>
-    </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+else:
+    # यदि इमेज फाइल नहीं मिलती है तो केवल टेक्स्ट दिखेगा
+    st.markdown(f"""
+        <div class="header-container">
+            <div class="header-text">
+                <h3>ॐ गुरुवर्य नमः</h3>
+                <h1>Permanent Shared Live Database</h1>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 # डेटाबेस फ़ाइल पाथ
 DB_FILE = "shared_student_database.csv"
@@ -224,18 +245,4 @@ if st.session_state.user_role is not None:
             
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
-
-        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए - एक्स्ट्रा इफ हटा दिया गया)
-        if is_admin:
-            if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
-                st.session_state.select_all_state = not st.session_state.select_all_state
-                st.rerun()
-
-            if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                st.session_state.column_move_mode = True
-                st.rerun()
-            
-            if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
-                st.rerun()
 
