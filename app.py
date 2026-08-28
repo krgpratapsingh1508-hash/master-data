@@ -51,7 +51,7 @@ def load_data():
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
-                headers = data[0]
+                headers = data
                 rows = data[1:]
                 if rows:
                     df = pd.DataFrame(rows, columns=headers)
@@ -111,71 +111,86 @@ if uploaded_file is not None:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form & Reset Fixes) ---
+# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (परफेक्ट सिंक और ऑटो-रीसेट फिक्स) ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-# रिसेट करने के लिए सेशन स्टेट में कुंजियाँ (keys) सेट करें
-form_keys = ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]
-for col_key in form_keys:
-    if col_key not in st.session_state:
-        st.session_state[col_key] = ""
+# रीसेट के लिए कॉलबैक फंक्शन - यह सबमिट होते ही बिना डेटा लॉक किए फॉर्म साफ करेगा
+def handle_form_submission():
+    # वैल्यूज़ सीधे सेशन स्टेट विजेट्स से निकालें
+    s_name_val = st.session_state.get("st_nm", "").strip()
+    
+    if s_name_val == "":
+        st.error("कृपया कम से कम Student Name ज़रूर भरें।")
+        return
 
-# clear_on_submit=False रखेंगे ताकि पहले डेटा पाइथन को मिल सके, फिर हम खुद खाली करेंगे
+    new_row = {
+        "Admission No.": st.session_state.get("adm", ""),
+        "Eligibility": st.session_state.get("elig", ""),
+        "Unique ID": st.session_state.get("uniq", ""),
+        "Roll No.": st.session_state.get("roll", ""),
+        "Application No.": st.session_state.get("app", ""),
+        "Enrollment No.": st.session_state.get("enr", ""),
+        "Student Name": s_name_val,
+        "Father Name": st.session_state.get("f_nm", ""),
+        "Mother Name": st.session_state.get("m_nm", ""),
+        "Date of Birth": st.session_state.get("dob", ""),
+        "Category": st.session_state.get("cat", ""),
+        "Subject": st.session_state.get("sub", ""),
+        "Duration": st.session_state.get("dur", ""),
+        "Mobile No.": st.session_state.get("mob", ""),
+        "Email ID": st.session_state.get("eml", ""),
+        "Address": st.session_state.get("adr", "")
+    }
+    
+    # ताजा लाइव डेटा लाएं
+    current_cloud_df = load_data()
+    if current_cloud_df.empty:
+        current_cloud_df = st.session_state.local_db.copy()
+        
+    df_current_clean = current_cloud_df.reset_index(drop=True)
+    updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
+    
+    # गूगल शीट पर पक्का सेव होने पर ही आगे का कदम उठाएं
+    if save_to_google(updated_df):
+        st.session_state.local_db = updated_df
+        
+        # फॉर्म खाली (Reset) करें
+        form_keys = ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]
+        for key in form_keys:
+            st.session_state[key] = ""
+            
+        st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
+    else:
+        st.error("डेटा सर्वर पर सेव नहीं हो पाया। कृपया नेटवर्क की जांच करें।")
+
+# फॉर्म बनाना
 with st.form(key="student_form", clear_on_submit=False):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        adm_no = st.text_input("Admission No.", key="adm")
-        app_no = st.text_input("Application No.", key="app")
-        m_name = st.text_input("Mother Name", key="m_nm")
-        duration = st.text_input("Duration", key="dur")
+        st.text_input("Admission No.", key="adm")
+        st.text_input("Application No.", key="app")
+        st.text_input("Mother Name", key="m_nm")
+        st.text_input("Duration", key="dur")
     with col2:
-        eligibility = st.text_input("Eligibility", key="elig")
-        enr_no = st.text_input("Enrollment No.", key="enr")
-        dob = st.text_input("Date of Birth", key="dob")
-        mobile = st.text_input("Mobile No.", key="mob")
+        st.text_input("Eligibility", key="elig")
+        st.text_input("Enrollment No.", key="enr")
+        st.text_input("Date of Birth", key="dob")
+        st.text_input("Mobile No.", key="mob")
     with col3:
-        unique_id = st.text_input("Unique ID", key="uniq")
-        s_name = st.text_input("Student Name", key="st_nm")
-        category = st.text_input("Category", key="cat")
-        email = st.text_input("Email ID", key="eml")
+        st.text_input("Unique ID", key="uniq")
+        st.text_input("Student Name", key="st_nm")
+        st.text_input("Category", key="cat")
+        st.text_input("Email ID", key="eml")
     with col4:
-        roll_no = st.text_input("Roll No.", key="roll")
-        f_name = st.text_input("Father Name", key="f_nm")
-        subject = st.text_input("Subject", key="sub")
-        address = st.text_input("Address", key="adr")
+        st.text_input("Roll No.", key="roll")
+        st.text_input("Father Name", key="f_nm")
+        st.text_input("Subject", key="sub")
+        st.text_input("Address", key="adr")
 
-    submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
+    # कॉलबैक अटैच किया गया ताकि एरर न आए
+    st.form_submit_button("Save Student Data", use_container_width=True, type="primary", on_click=handle_form_submission)
 
-if submit_button:
-    if s_name.strip() == "":
-        st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
-    else:
-        new_row = {
-            "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-            "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
-            "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
-        }
-        
-        # ताजा डेटा सर्वर से लाएं ताकि सिंक बना रहे
-        current_cloud_df = load_data()
-        if current_cloud_df.empty:
-            current_cloud_df = st.session_state.local_db.copy()
-            
-        df_current_clean = current_cloud_df.reset_index(drop=True)
-        updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
-        
-        # पहले गूगल शीट पर पक्का सेव करें, फिर स्टेट साफ करें
-        if save_to_google(updated_df):
-            st.session_state.local_db = updated_df
-            
-            # सफलतापूर्वक सेव होने के बाद अब सभी इनपुट बॉक्स को रीसेट (खाली) करें
-            for col_key in form_keys:
-                st.session_state[col_key] = ""
-                
-            st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
-            st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -206,7 +221,7 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 default=False,
             )
         },
-        disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
+        disabled=[col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"],
         use_container_width=True
     )
 
@@ -233,26 +248,4 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("डेटाबेस अभी खाली है या लोड हो रहा है...")
-
-
-# --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
-st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-st.header("📥 Actions")
-action_col1, action_col2 = st.columns(2)
-
-with action_col1:
-    csv_data = st.session_state.local_db.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Download Database as CSV", 
-        data=csv_data, 
-        file_name="student_database.csv", 
-        mime="text/csv", 
-        use_container_width=True
-    )
-
-with action_col2:
-    # सुधरा हुआ प्रिंट बटन जो सिर्फ डेटा टेबल को टारगेट करेगा
-    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+    
