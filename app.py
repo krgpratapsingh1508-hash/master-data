@@ -200,7 +200,6 @@ if st.session_state.database_unlocked:
             )
             
         with act_col3:
-            # सुरक्षित इंडेंटेशन के साथ प्रिंट बटन कार्यक्षमता
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
             
