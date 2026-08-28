@@ -5,86 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Data Portal</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f6f9;
-            color: #333;
-        }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 8px;
-            font-size: 18px;
-            color: #444;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            background: #fafafa;
-        }
-        .grid-inputs {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 8px; font-size: 18px; color: #444; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
         .btn-upload { background-color: #007bff; }
         .btn-save { background-color: #28a745; width: 100%; }
         .btn-download { background-color: #17a2b8; margin-right: 10px; }
         .btn-print { background-color: #6c757d; }
-        
-        .table-container {
-            overflow-x: auto;
-            margin-top: 15px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
+        .table-container { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
-        
-        .actions-bar {
-            margin-top: 15px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        /* प्रिंट के लिए स्पेशल सेटिंग्स */
+        .actions-bar { margin-top: 15px; display: flex; justify-content: flex-end; }
         @media print {
             body * { visibility: hidden; }
             .table-container, .table-container * { visibility: visible; }
@@ -95,16 +32,193 @@
 <body>
 
 <div class="container">
-
-    <!-- 1. CSV Bulk Upload Section -->
+    <!-- 1. CSV Bulk Upload -->
     <div class="section">
-        <h2> CSV File Se Bulk Data Upload Karein</h2>
+        <h2>📁 CSV File Se Bulk Data Upload Karein</h2>
         <div style="display: flex; gap: 10px; align-items: center;">
             <input type="file" id="csvFileInput" accept=".csv" style="width: auto;">
             <button class="btn-upload" onclick="uploadCSV()">Upload CSV</button>
         </div>
     </div>
 
+    <!-- 2. Manual Data Entry -->
+    <div class="section">
+        <h2>➕ Naya Student Data Add Karein</h2>
+        <form id="studentForm" onsubmit="event.preventDefault();">
+            <div class="grid-inputs">
+                <input type="text" id="admNo" placeholder="Admission No." required>
+                <input type="text" id="eligibility" placeholder="Eligibility">
+                <input type="text" id="uniqueId" placeholder="Unique ID">
+                <input type="text" id="rollNo" placeholder="Roll No.">
+                <input type="text" id="appNo" placeholder="Application No.">
+                <input type="text" id="enrollNo" placeholder="Enrollment No.">
+                <input type="text" id="studentName" placeholder="Student Name" required>
+                <input type="text" id="fatherName" placeholder="Father Name">
+                <input type="text" id="motherName" placeholder="Mother Name">
+                <input type="date" id="dob">
+                <input type="text" id="category" placeholder="Category">
+                <input type="text" id="subject" placeholder="Subject">
+                <input type="text" id="duration" placeholder="Duration">
+                <input type="tel" id="mobile" placeholder="Mobile No.">
+                <input type="email" id="email" placeholder="Email ID">
+                <input type="text" id="address" placeholder="Address">
+            </div>
+            <button type="button" class="btn-save" onclick="saveManualData()">Save Student Data</button>
+        </form>
+    </div>
+
+    <!-- 3. Database Table -->
+    <div class="section">
+        <h2>📊 Live Student Database</h2>
+        <div class="table-container">
+            <table id="studentTable">
+                <thead>
+                    <tr>
+                        <th>S. No.</th>
+                        <th>Admission No.</th>
+                        <th>Eligibility</th>
+                        <th>Unique ID</th>
+                        <th>Roll No.</th>
+                        <th>Application No.</th>
+                        <th>Enrollment No.</th>
+                        <th>Student Name</th>
+                        <th>Father Name</th>
+                        <th>Mother Name</th>
+                        <th>DOB</th>
+                        <th>Category</th>
+                        <th>Subject</th>
+                        <th>Duration</th>
+                        <th>Mobile No.</th>
+                        <th>Email ID</th>
+                        <th>Address</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div class="actions-bar">
+            <button class="btn-download" onclick="downloadCSV()">Download CSV</button>
+            <button class="btn-print" onclick="printTable()">Print Data</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", loadData);
+
+    function getStorageData() {
+        try {
+            return JSON.parse(localStorage.getItem("studentDB")) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveStorageData(data) {
+        localStorage.setItem("studentDB", JSON.stringify(data));
+        loadData();
+    }
+
+    function loadData() {
+        const students = getStorageData();
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+
+        students.forEach((student, index) => {
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td>${student.admNo || ''}</td>
+                <td>${student.eligibility || ''}</td>
+                <td>${student.uniqueId || ''}</td>
+                <td>${student.rollNo || ''}</td>
+                <td>${student.appNo || ''}</td>
+                <td>${student.enrollNo || ''}</td>
+                <td>${student.studentName || ''}</td>
+                <td>${student.fatherName || ''}</td>
+                <td>${student.motherName || ''}</td>
+                <td>${student.dob || ''}</td>
+                <td>${student.category || ''}</td>
+                <td>${student.subject || ''}</td>
+                <td>${student.duration || ''}</td>
+                <td>${student.mobile || ''}</td>
+                <td>${student.email || ''}</td>
+                <td>${student.address || ''}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function saveManualData() {
+        const admNo = document.getElementById("admNo").value.trim();
+        const studentName = document.getElementById("studentName").value.trim();
+
+        if(!admNo || !studentName) {
+            alert("कृपया Admission No. और Student Name अवश्य भरें।");
+            return;
+        }
+
+        const newStudent = {
+            admNo,
+            eligibility: document.getElementById("eligibility").value.trim(),
+            uniqueId: document.getElementById("uniqueId").value.trim(),
+            rollNo: document.getElementById("rollNo").value.trim(),
+            appNo: document.getElementById("appNo").value.trim(),
+            enrollNo: document.getElementById("enrollNo").value.trim(),
+            studentName,
+            fatherName: document.getElementById("fatherName").value.trim(),
+            motherName: document.getElementById("motherName").value.trim(),
+            dob: document.getElementById("dob").value,
+            category: document.getElementById("category").value.trim(),
+            subject: document.getElementById("subject").value.trim(),
+            duration: document.getElementById("duration").value.trim(),
+            mobile: document.getElementById("mobile").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            address: document.getElementById("address").value.trim()
+        };
+
+        const students = getStorageData();
+        students.push(newStudent);
+        saveStorageData(students);
+        document.getElementById("studentForm").reset();
+    }
+
+    function uploadCSV() {
+        const fileInput = document.getElementById("csvFileInput");
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert("कृपया पहले एक CSV फ़ाइल चुनें!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result;
+            const rows = text.split("\n");
+            const students = getStorageData();
+
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].trim() === "") continue;
+                
+                const cols = rows[i].split(",");
+                
+                const csvStudent = {
+                    admNo: cols[0] ? cols[0].trim() : '',
+                    eligibility: cols[1] ? cols[1].trim() : '',
+                    uniqueId: cols[2] ? cols[2].trim() : '',
+                    rollNo: cols[3] ? cols[3].trim() : '',
+                    appNo: cols[4] ? cols[4].trim() : '',
+                    enrollNo: cols[5] ? cols[5].trim() : '',
+                    studentName: cols[6] ? cols[6].trim() : '',
+                    fatherName: cols[7] ? cols[7].trim() : '',
+                    motherName: cols[8] ? cols[8].trim() : '',
+                    dob: cols[9] ? cols[9].trim() : '',
+                    category: cols[10] ? cols[10].trim() : '',
+                    subject: cols[11] ? cols[11].trim() : '',
+                    duration: cols[12] ? cols[12].trim() : '',
+                    mobile: cols[13] ? cols[13].trim() : '',
+                    email: cols[14] ? cols[14].trim() : '',
+                    address: cols[15] ? cols[15].trim() : ''
     <!-- 2. Manual Data Entry Section -->
     <div class="section">
         <h2>➕ Naya Student Data Add Karein</h2>
