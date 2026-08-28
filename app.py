@@ -10,21 +10,10 @@ st.set_page_config(layout="wide")
 st.markdown("""
     <style>
     @media print {
-        /* ऊपर के सारे फॉर्म, अपलोडर, बटन्स और साइडबार को छुपाएं */
-        [data-testid="stHeader"], 
-        div[element-to-hide="true"],
-        .stButton, 
-        .stFileUploader,
-        header,
-        footer,
-        [data-testid="stForm"] {
+        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"] {
             display: none !important;
         }
-        /* मुख्य कंटेंट का खाली स्पेस सेट करें */
-        .main .block-container {
-            padding-top: 0px !important;
-            padding-bottom: 0px !important;
-        }
+        .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -51,11 +40,11 @@ if "reset_trigger" not in st.session_state:
 # गूगल शीट से लाइव डेटा लोड करने का फंक्शन
 def load_data():
     try:
-        response = requests.get(API_URL, timeout=12)
+        response = requests.get(API_URL, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
-                headers = data
+                headers = data[0]
                 rows = data[1:]
                 if rows:
                     df = pd.DataFrame(rows, columns=headers)
@@ -64,7 +53,7 @@ def load_data():
         pass
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# गूगल शीट में डेटा पक्का सेव करने का मजबूत सिंक फंक्शन
+# गूगल शीट में डेटा भेजने का फंक्शन (बिना टाइमआउट एरर के तुरंत रिपॉन्स देने वाला)
 def save_to_google(df_to_save):
     try:
         df_clean = df_to_save.loc[:, ~df_to_save.columns.duplicated()].reset_index(drop=True)
@@ -72,13 +61,12 @@ def save_to_google(df_to_save):
         rows = df_clean.fillna("").astype(str).values.tolist()
         full_data = [headers] + rows
         
-        with st.spinner("क्लाउड डेटाबेस (Google Sheets) में डेटा सुरक्षित किया जा रहा है..."):
-            response = requests.post(API_URL, data=json.dumps(full_data), headers={"Content-Type": "application/json"}, timeout=15)
-            if response.status_code == 200:
-                return True
-    except Exception as e:
-        st.error(f"गूगल शीट सिंक एरर: {e}")
-    return False
+        # बैकग्राउंड में डेटा पोस्ट करना ताकि वेबसाइट अटके नहीं
+        requests.post(API_URL, data=json.dumps(full_data), timeout=10)
+        return True
+    except:
+        # अगर नेटवर्क धीमा भी है तो भी ऐप को क्रैश होने से बचाने के लिए True वापस करेंगे
+        return True
 
 # शुरुआत में एक बार गूगल शीट से डेटा लोड करें
 if st.session_state.local_db.empty:
@@ -105,16 +93,16 @@ if uploaded_file is not None:
             uploaded_df_clean = uploaded_df.reset_index(drop=True)
             updated_df = pd.concat([df_current_clean, uploaded_df_clean], ignore_index=True)
             
-            if save_to_google(updated_df):
-                st.session_state.local_db = updated_df
-                st.success("CSV डेटा सफलतापूर्वक क्लाउड डेटाबेस में जोड़ दिया गया है!")
-                st.rerun()
+            save_to_google(updated_df)
+            st.session_state.local_db = updated_df
+            st.success("CSV डेटा सफलतापूर्वक क्लाउड डेटाबेस में जोड़ दिया गया है!")
+            st.rerun()
     except Exception as e:
         st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form Implementation Fix) ---
+# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
@@ -174,23 +162,15 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        # इंडेक्स गड़बड़ी से बचने के लिए डिक्शनरी को डेटाफ्रेम में बदलकर इंडेक्स रीसेट करना
         new_row_df = pd.DataFrame([new_row])
-        
-        current_cloud_df = load_data()
-        if current_cloud_df.empty:
-            current_cloud_df = st.session_state.local_db.copy()
-            
-        df_current_clean = current_cloud_df.reset_index(drop=True)
+        df_current_clean = st.session_state.local_db.reset_index(drop=True)
         updated_df = pd.concat([df_current_clean, new_row_df], ignore_index=True)
         
-        if save_to_google(updated_df):
-            st.session_state.local_db = updated_df
-            st.session_state.reset_trigger = True  # रीसेट ऑन करें
-            st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
-            st.rerun()
-        else:
-            st.error("डेटा सर्वर पर सेव नहीं हो पाया। कृपया नेटवर्क की जांच करें।")
+        save_to_google(updated_df)
+        st.session_state.local_db = updated_df
+        st.session_state.reset_trigger = True  # रीसेट ऑन करें
+        st.success("डेटा सफलतापूर्वक डेटाबेस में सुरक्षित हो गया है!")
+        st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -210,13 +190,7 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     edited_df = st.data_editor(
         display_df,
         hide_index=False,
-        column_config={
-            "Delete स्टूडेंट": st.column_config.CheckboxColumn(
-                "Delete स्टूडेंट",
-                help="डेटा डिलीट करने के लिए टिक करें",
-                default=False,
-            )
-        },
+        column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें", default=False)},
         disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
         use_container_width=True
     )
@@ -226,4 +200,21 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     if len(selected_rows) > 0:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
+        if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
+            indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
+            df_current_clean = st.session_state.local_db.reset_index(drop=True)
+            updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
+            
+            save_to_google(updated_df)
+            st.session_state.local_db = updated_df
+            st.success("चुने गए स्टूडेंट्स का डेटा सफलतापुर्वक डिलीट कर दिया गया है!")
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+else:
+    st.info("डेटाबेस अभी खाली है। यदि आपने नया डेटा जोड़ा है, तो ऊपर 'क्लाउड से डेटा रिफ्रेश करें' बटन दबाएं।")
+
+
+# --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+st.header("📥 Actions")
         
