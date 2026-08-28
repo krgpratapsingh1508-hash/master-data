@@ -50,7 +50,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# मेमोरी स्टेट्स (Session States) सेट करें
+# मेमोरी स्टेट्स (Session States) को एरर फ्री तरीके से सेट करें
 if "select_all_state" not in st.session_state:
     st.session_state.select_all_state = False
 
@@ -181,7 +181,7 @@ if st.session_state.database_unlocked:
             disabled_cols = ["Delete स्टूडेंट"]
             st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
         else:
-            disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
+            disabled_cols = [col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"]
 
         edited_df = st.data_editor(
             display_df,
