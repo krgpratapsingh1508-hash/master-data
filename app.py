@@ -135,29 +135,30 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स ---
-st.markdown("---")
-st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-st.subheader("🔒 Live Student Database Lock")
+# --- पासवर्ड इनपुट बॉक्स (केवल लॉक होने पर ही दिखाई देगा) ---
+if not st.session_state.database_unlocked:
+    st.markdown("---")
+    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+    st.subheader("🔒 Live Student Database Lock")
 
-user_password = st.text_input(
-    "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
-    type="password", 
-    key=f"password_input_{st.session_state.pwd_reset_key}"
-)
+    user_password = st.text_input(
+        "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
+        type="password", 
+        key=f"password_input_{st.session_state.pwd_reset_key}"
+    )
 
-if user_password == CORRECT_PASSWORD:
-    st.session_state.database_unlocked = True
-    st.session_state.pwd_reset_key += 1  
-    st.rerun()
+    if user_password == CORRECT_PASSWORD:
+        st.session_state.database_unlocked = True
+        st.session_state.pwd_reset_key += 1  
+        st.rerun()
 
-if user_password != "" and user_password != CORRECT_PASSWORD:
-    st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
+    if user_password != "" and user_password != CORRECT_PASSWORD:
+        st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
 
-st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा ---
+# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा और पासवर्ड बॉक्स गायब रहेगा ---
 if st.session_state.database_unlocked:
 
     st.header("📊 Live Student Database")
@@ -242,9 +243,4 @@ if st.session_state.database_unlocked:
         # 1. डाउनलोड बटन (लेफ्ट साइड में)
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="📥 Download Database as CSV", 
-            data=csv_data, 
-            file_name="student_database.csv", 
-            mime="text/csv", 
-            use_container_width=True
-        )
+        
