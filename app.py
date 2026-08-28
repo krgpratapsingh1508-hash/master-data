@@ -130,7 +130,7 @@ if submit_button:
         updated_df = pd.concat([fresh_db, pd.DataFrame([new_row])], ignore_index=True)
         
         save_live_data(updated_df)
-        st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है और टेक्स्ट बॉक्स खाली कर दिए गए हैं!")
+        st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है!")
         st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -176,14 +176,12 @@ if st.session_state.database_unlocked:
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
 
-        # एडिट मोड के आधार पर कॉलम्स लॉक या अनलॉक करना
         if st.session_state.edit_mode:
             disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं। सुधार के बाद नीचे 'Save' बटन दबाएं।")
+            st.info("📝 एडिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
         else:
-            disabled_cols = [col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"]
+            disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
-        # डेटा एडिटर तालिका विजेट
         edited_df = st.data_editor(
             display_df,
             hide_index=False,
@@ -192,7 +190,7 @@ if st.session_state.database_unlocked:
             use_container_width=True
         )
 
-        # --- एडिट और सेव बटन्स का लॉजिक ---
+        # --- एडिट और सेव बटन्स ---
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         col_ed1, col_ed2 = st.columns(2)
         
@@ -221,10 +219,8 @@ if st.session_state.database_unlocked:
             st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
             if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
                 indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
-                
                 fresh_db = load_live_data()
                 updated_df = fresh_db.drop(index=indices_to_drop).reset_index(drop=True)
-                
                 save_live_data(updated_df)
                 st.session_state.select_all_state = False
                 st.success("डेटा सफलतापूर्वक डिलीट कर दिया गया है!")
@@ -235,14 +231,19 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (Two Column Buttons Layout Fixed) ---
+    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (Two Large Stacked Buttons) ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
-    # डाउनलोड और प्रिंट बटन्स के लिए दो बराबर कॉलम बनाए गए हैं
-    action_col1, action_col2 = st.columns(2)
+    # बटन 1: डाउनलोड करने के लिए (यह पूरी चौड़ाई में दिखाई देगा)
+    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Database as CSV File", 
+        data=csv_data, 
+        file_name="student_database.csv", 
+        mime="text/csv", 
+        use_container_width=True
+    )
     
-    with action_col1:
-        # पहला बटन: डाउनलोड करने के लिए
-        csv_data = live_db.to_csv(index=False).encode('utf-8')
+    # बटन 2: प्रिंट करने के लिए (यह भी पूरी चौड़ाई में नीचे दिखाई देगा)
 
