@@ -38,8 +38,9 @@ DB_FILE = "shared_student_database.csv"
 # 🔑 यहाँ अपना मनपसंद पासवर्ड सेट करें (अभी 'admin123' है)
 CORRECT_PASSWORD = "admin123"
 
+# 🛑 "Admission No." कॉलम यहाँ से हटा दिया गया है
 DEFAULT_COLUMNS = [
-    "Admission No.", "Eligibility", "Unique ID", "Roll No.", 
+    "Eligibility", "Unique ID", "Roll No.", 
     "Application No.", "Enrollment No.", "Student Name", "Father Name",
     "Mother Name", "Date of Birth", "Category", "Subject", 
     "Duration", "Mobile No.", "Email ID", "Address", "Status"
@@ -88,6 +89,9 @@ if uploaded_file is not None:
     try:
         uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
         if st.button("Upload CSV", type="primary"):
+            # अपलोड किए गए डेटा में से भी Admission No. हटा दें यदि वो मौजूद हो
+            if "Admission No." in uploaded_df.columns:
+                uploaded_df = uploaded_df.drop(columns=["Admission No."])
             updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
             save_live_data(updated_df)
             st.success("CSV डेटा सफलतापूर्वक डेटाबेस में जोड़ दिया गया है!")
@@ -104,27 +108,26 @@ st.header("➕ Naya Student Data Add Karein")
 with st.form(key="student_form", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        adm_no = st.text_input("Admission No.")
-        app_no = st.text_input("Application No.")
+        eligibility = st.text_input("Eligibility")
+        enr_no = st.text_input("Enrollment No.")
         m_name = st.text_input("Mother Name")
         duration = st.text_input("Duration")
     with col2:
-        eligibility = st.text_input("Eligibility")
-        enr_no = st.text_input("Enrollment No.")
+        unique_id = st.text_input("Unique ID")
         dob = st.text_input("Date of Birth")
         mobile = st.text_input("Mobile No.")
-    with col3:
-        unique_id = st.text_input("Unique ID")
-        s_name = st.text_input("Student Name")
-        category = st.text_input("Category")
         email = st.text_input("Email ID")
-    with col4:
+    with col3:
         roll_no = st.text_input("Roll No.")
-        f_name = st.text_input("Father Name")
+        category = st.text_input("Category")
         subject = st.text_input("Subject")
         address = st.text_input("Address")
-    
-    status_input = st.text_input("Status (जैसे: Active, Pending, Pass)")
+    with col4:
+        application_no = st.text_input("Application No.")
+        s_name = st.text_input("Student Name")
+        f_name = st.text_input("Father Name")
+        # मैन्युअल इनपुट में भी Status के लिए ड्रॉपडाउन विकल्प दे दिया है
+        status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
 
     submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
 
@@ -133,8 +136,8 @@ if submit_button:
         st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
     else:
         new_row = {
-            "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-            "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
+            "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+            "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
             "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
         }
@@ -148,7 +151,7 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स (केवल लॉक होने पर ही दिखाई देगा, अनलॉक होते ही गायब) ---
+# --- पासवर्ड इनपुट बॉक्स ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
@@ -157,12 +160,11 @@ if not st.session_state.database_unlocked:
     user_password = st.text_input(
         "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
         type="password", 
-        key=f"password_input_{st.session_state.pwd_reset_key}"
+        key="password_input_field"
     )
 
     if user_password == CORRECT_PASSWORD:
         st.session_state.database_unlocked = True
-        st.session_state.pwd_reset_key += 1  
         st.rerun()
 
     if user_password != "" and user_password != CORRECT_PASSWORD:
@@ -171,7 +173,7 @@ if not st.session_state.database_unlocked:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा और पासवर्ड बॉक्स गायब रहेगा ---
+# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा ---
 if st.session_state.database_unlocked:
 
     st.header("📊 Live Student Database")
@@ -190,16 +192,28 @@ if st.session_state.database_unlocked:
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
 
+        # कॉन्फ़िगरेशन तैयार करें जिसमें डिलीट चेकबॉक्स और Status ड्रॉपडाउन दोनों शामिल हैं
+        column_configuration = {
+            "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें"),
+            "Status": st.column_config.SelectboxColumn(
+                "Status",
+                help="स्टूडेंट का स्टेटस चुनें",
+                options=["Active", "Pending", "Pass", "Inactive"],
+                required=True
+            )
+        }
+
         if st.session_state.edit_mode:
+            # एडिट मोड में 'Delete स्टूडेंट' को छोड़कर सभी कॉलम्स एडिट हो सकते हैं, Status में स्क्रॉल लिस्ट दिखेगी
             disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
+            st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं। Status कॉलम में स्क्रॉल लिस्ट उपलब्ध है।")
         else:
             disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
         edited_df = st.data_editor(
             display_df,
             hide_index=False,
-            column_config={"Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें")},
+            column_config=column_configuration,
             disabled=disabled_cols,
             use_container_width=True
         )
@@ -230,18 +244,4 @@ if st.session_state.database_unlocked:
 
         if len(selected_rows) > 0 and not st.session_state.edit_mode:
             st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-            st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
-            if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
-                indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
-                fresh_db = load_live_data()
-                updated_df = fresh_db.drop(index=indices_to_drop).reset_index(drop=True)
-                save_live_data(updated_df)
-                st.session_state.select_all_state = False
-                st.success("डेटा सफलतापूर्वक डिलीट कर दिया गया है!")
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
             
-    if live_db.empty or len(live_db) == 0:
-        st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
-
-
