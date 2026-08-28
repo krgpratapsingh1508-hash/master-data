@@ -154,7 +154,14 @@ user_password = st.text_input("🔒 नीचे का लाइव डेट�
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# यदि पासवर्ड सही है, तभी नीचे का सारा हिस्सा दिखाई देगा
+# गलत पासवर्ड होने पर तुरंत वार्निंग (बिना स्पेसिंग एरर वाले डायरेक्ट मोड में)
+if user_password != "" and user_password != CORRECT_PASSWORD:
+    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+    st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# यदि पासवर्ड बिल्कुल सही है, तो डेटाबेस और डाउनलोड सेक्शन अनलॉक करें
 if user_password == CORRECT_PASSWORD:
 
     # --- लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
@@ -198,20 +205,15 @@ if user_password == CORRECT_PASSWORD:
                 st.success("डेटा डेटाबेस और सभी डिवाइसेज से हटा दिया गया है!")
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-    else:
+            
+    if live_db.empty or len(live_db) == 0:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (No Columns/With Fix) ---
+    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
     csv_data = live_db.to_csv(index=False).encode('utf-8')
     st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:10px;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# यदि पासवर्ड खाली है या गलत है
-elif user_password != "":
-    
+        
