@@ -37,7 +37,6 @@ def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
-            # खाली या गलत कॉलम्स को ठीक करें
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
@@ -51,9 +50,6 @@ def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
 # फॉर्म खाली करने और ऑल-सेलेक्ट के लिए स्टेट्स सेट करें
-if "reset_trigger" not in st.session_state:
-    st.session_state.reset_trigger = False
-
 if "select_all_state" not in st.session_state:
     st.session_state.select_all_state = False
 
@@ -82,47 +78,29 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-v_adm = "" if st.session_state.reset_trigger else st.session_state.get("adm", "")
-v_app = "" if st.session_state.reset_trigger else st.session_state.get("app", "")
-v_m_nm = "" if st.session_state.reset_trigger else st.session_state.get("m_nm", "")
-v_dur = "" if st.session_state.reset_trigger else st.session_state.get("dur", "")
-v_elig = "" if st.session_state.reset_trigger else st.session_state.get("elig", "")
-v_enr = "" if st.session_state.reset_trigger else st.session_state.get("enr", "")
-v_dob = "" if st.session_state.reset_trigger else st.session_state.get("dob", "")
-v_mob = "" if st.session_state.reset_trigger else st.session_state.get("mob", "")
-v_uniq = "" if st.session_state.reset_trigger else st.session_state.get("uniq", "")
-v_st_nm = "" if st.session_state.reset_trigger else st.session_state.get("st_nm", "")
-v_cat = "" if st.session_state.reset_trigger else st.session_state.get("cat", "")
-v_eml = "" if st.session_state.reset_trigger else st.session_state.get("eml", "")
-v_roll = "" if st.session_state.reset_trigger else st.session_state.get("roll", "")
-v_f_nm = "" if st.session_state.reset_trigger else st.session_state.get("f_nm", "")
-v_sub = "" if st.session_state.reset_trigger else st.session_state.get("sub", "")
-v_adr = "" if st.session_state.reset_trigger else st.session_state.get("adr", "")
-
-st.session_state.reset_trigger = False
-
-with st.form(key="student_form", clear_on_submit=False):
+# clear_on_submit=True से बटन क्लिक होते ही सारे टेक्स्ट बॉक्स 100% खाली हो जाएंगे
+with st.form(key="student_form", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        adm_no = st.text_input("Admission No.", value=v_adm, key="adm")
-        app_no = st.text_input("Application No.", value=v_app, key="app")
-        m_name = st.text_input("Mother Name", value=v_m_nm, key="m_nm")
-        duration = st.text_input("Duration", value=v_dur, key="dur")
+        adm_no = st.text_input("Admission No.")
+        app_no = st.text_input("Application No.")
+        m_name = st.text_input("Mother Name")
+        duration = st.text_input("Duration")
     with col2:
-        eligibility = st.text_input("Eligibility", value=v_elig, key="elig")
-        enr_no = st.text_input("Enrollment No.", value=v_enr, key="enr")
-        dob = st.text_input("Date of Birth", value=v_dob, key="dob")
-        mobile = st.text_input("Mobile No.", value=v_mob, key="mob")
+        eligibility = st.text_input("Eligibility")
+        enr_no = st.text_input("Enrollment No.")
+        dob = st.text_input("Date of Birth")
+        mobile = st.text_input("Mobile No.")
     with col3:
-        unique_id = st.text_input("Unique ID", value=v_uniq, key="uniq")
-        s_name = st.text_input("Student Name", value=v_st_nm, key="st_nm")
-        category = st.text_input("Category", value=v_cat, key="cat")
-        email = st.text_input("Email ID", value=v_eml, key="eml")
+        unique_id = st.text_input("Unique ID")
+        s_name = st.text_input("Student Name")
+        category = st.text_input("Category")
+        email = st.text_input("Email ID")
     with col4:
-        roll_no = st.text_input("Roll No.", value=v_roll, key="roll")
-        f_name = st.text_input("Father Name", value=v_f_nm, key="f_nm")
-        subject = st.text_input("Subject", value=v_sub, key="sub")
-        address = st.text_input("Address", value=v_adr, key="adr")
+        roll_no = st.text_input("Roll No.")
+        f_name = st.text_input("Father Name")
+        subject = st.text_input("Subject")
+        address = st.text_input("Address")
 
     submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
 
@@ -141,27 +119,30 @@ if submit_button:
         updated_df = pd.concat([fresh_db, pd.DataFrame([new_row])], ignore_index=True)
         
         save_live_data(updated_df)
-        st.session_state.reset_trigger = True  # टाइपिंग बॉक्स खाली करें
-        st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है!")
+        st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है और टेक्स्ट बॉक्स खाली कर दिए गए हैं!")
         st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स लॉजिक ---
+# --- पासवर्ड इनपुट फॉर्म लॉजिक (Enter दबाने पर लॉक खोलने के लिए) ---
 st.markdown("---")
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-user_password = st.text_input("🔒 नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें:", type="password")
+st.subheader("🔒 Live Student Database Lock")
+
+with st.form(key="password_form", clear_on_submit=False):
+    user_password = st.text_input("नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", type="password")
+    unlock_button = st.form_submit_button("🔓 लाइव डेटाबेस अनलॉक करें", use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# गलत पासवर्ड होने पर तुरंत वार्निंग (बिना स्पेसिंग एरर वाले डायरेक्ट मोड में)
+# गलत पासवर्ड होने पर तुरंत वार्निंग
 if user_password != "" and user_password != CORRECT_PASSWORD:
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# यदि पासवर्ड बिल्कुल सही है, तो डेटाबेस और डाउनलोड सेक्शन अनलॉक करें
+# यदि पासवर्ड बिल्कुल सही दर्ज करके Enter दबाया गया है, तो नीचे का सारा हिस्सा खोलें
 if user_password == CORRECT_PASSWORD:
 
     # --- लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
@@ -216,4 +197,7 @@ if user_password == CORRECT_PASSWORD:
     
     csv_data = live_db.to_csv(index=False).encode('utf-8')
     st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-        
+    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-top:10px;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
