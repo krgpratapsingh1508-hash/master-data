@@ -178,7 +178,7 @@ if st.session_state.database_unlocked:
 
         if st.session_state.edit_mode:
             disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
+            st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
         else:
             disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
@@ -200,7 +200,7 @@ if st.session_state.database_unlocked:
                 st.rerun()
                     
         with col_ed2:
-            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
+            if st.button("💾 डेटा锁 और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 if st.session_state.edit_mode:
                     cleaned_edited_df = edited_df.drop(columns=["Delete स्टूडेंट"]).reset_index(drop=True)
                     save_live_data(cleaned_edited_df)
@@ -231,19 +231,21 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (Two Large Stacked Buttons) ---
+    # --- SECTION 5: प्रिंट और डाउनलोड विकल्प (नया परफेक्ट लेआउट) ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
-    # बटन 1: डाउनलोड करने के लिए (यह पूरी चौड़ाई में दिखाई देगा)
-    csv_data = live_db.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Database as CSV File", 
-        data=csv_data, 
-        file_name="student_database.csv", 
-        mime="text/csv", 
-        use_container_width=True
-    )
+    # डाउनलोड और प्रिंट बटन्स को अगल-बगल (Left-Right) करने के लिए कॉलम लेआउट
+    btn_col1, btn_col2 = st.columns(2)
     
-    # बटन 2: प्रिंट करने के लिए (यह भी पूरी चौड़ाई में नीचे दिखाई देगा)
-
+    with btn_col1:
+        # 1. डाउनलोड बटन
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Database as CSV", 
+            data=csv_data, 
+            file_name="student_database.csv", 
+            mime="text/csv", 
+            use_container_width=True
+        )
+        
