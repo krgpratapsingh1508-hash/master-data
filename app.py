@@ -70,19 +70,23 @@ ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
 DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
 STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 
-# फ़ाइल से डेटा लोड करने का फंक्शन
+# फ़ाइल से डेटा लोड करने का मजबूत फंक्शन
 def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
-            # सुनिश्चित करें कि सभी डिफ़ॉल्ट कॉलम्स मौजूद हों
+            # सुनिश्चित करें कि सभी डिफ़ॉल्ट कॉलम्स फ़ाइल में हों
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
+            # यदि फ़ाइल में कोई डेटा रो नहीं है, तो एक खाली रो जोड़ें ताकि टेबल गायब न हो
+            if df.empty:
+                empty_row = {c: "" for c in DEFAULT_COLUMNS}
+                df = pd.DataFrame([empty_row])
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
-    # यदि फाइल खाली है या उपलब्ध नहीं है, तो एक खाली डिफ़ॉल्ट रो (Row) के साथ ढांचा वापस भेजें ताकि टेबल हमेशा दिखे
+    # यदि फाइल उपलब्ध नहीं है, तो एक खाली डिफ़ॉल्ट रो के साथ नया ढांचा वापस भेजें
     empty_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
     empty_row = {c: "" for c in DEFAULT_COLUMNS}
     empty_df = pd.concat([empty_df, pd.DataFrame([empty_row])], ignore_index=True)
@@ -106,6 +110,7 @@ if "column_move_mode" not in st.session_state:
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
+# डेटा लोड करें
 live_db = load_live_data()
 
 # --- पहला लॉक: लॉगिन फॉर्म ---
@@ -144,7 +149,7 @@ if st.session_state.database_unlocked:
                 if "Admission No." in uploaded_df.columns:
                     uploaded_df = uploaded_df.drop(columns=["Admission No."])
                 # यदि मुख्य लाइव डेटाबेस अभी खाली स्ट्रक्चर में है, तो उसे रिप्लेस करें
-                if len(live_db) == 1 and "".join(live_db.iloc[0].values) == "":
+                if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
                     updated_df = uploaded_df
                 else:
                     updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
@@ -186,7 +191,7 @@ if st.session_state.database_unlocked:
                 "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
             }
             # यदि केवल खाली स्ट्रक्चर रो मौजूद है, तो उसे हटाकर फ्रेश एंट्री करें
-            if len(live_db) == 1 and "".join(live_db.iloc[0].values) == "":
+            if len(live_db) == 1 and "".join(live_db.iloc[0].values).strip() == "":
                 updated_df = pd.DataFrame([new_row])
             else:
                 updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
@@ -212,8 +217,13 @@ if st.session_state.database_unlocked:
     # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
     if st.session_state.list_unlocked:
         
-        # वर्तमान कॉलम आर्डर के आधार पर डेटा को फ़िल्टर करना
-        base_df = live_db[st.session_state.current_column_order].copy()
+        # 🛡️ क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
+        safe_order = [c for c in st.session_state.current_column_order if c in live_db.columns]
+        if len(safe_order) != len(DEFAULT_COLUMNS):
+            safe_order = DEFAULT_COLUMNS.copy()
+            st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
+            
+        base_df = live_db[safe_order].copy()
         
         # एक्शन बटन्स की सूची
         if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
@@ -223,25 +233,14 @@ if st.session_state.database_unlocked:
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
         
-        if st.button("🖨️传递 लिस्ट प्रिंट करें", use_container_width=True):
+        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
             st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # 🔄 "Column Move Mode" बटन को हमेशा "सिर्फ लिस्ट लॉक करें" बटन के ठीक ऊपर लाया गया
+        # 🔄 "Column Move Mode" बटन
         if not st.session_state.column_move_mode:
             if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
                 st.session_state.column_move_mode = True
                 st.rerun()
         else:
             if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
-                st.success("कॉलम की स्थिति को सफलतापूर्वक लॉक कर दिया गया है!")
-                st.rerun()
             
-        if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True):
-            st.session_state.list_unlocked = False
-            st.session_state.edit_mode = False
-            st.session_state.column_move_mode = False
-            st.rerun()
-
-        st.markdown("---")
-
