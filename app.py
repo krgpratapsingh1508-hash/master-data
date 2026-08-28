@@ -15,7 +15,7 @@ st.markdown("""
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
     
-    /* मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का अचूक कोड */
+    /* मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का कोड */
     .action-container {
         display: flex !important;
         flex-direction: row !important;
@@ -37,7 +37,7 @@ DB_FILE = "shared_student_database.csv"
 # 🔑 सुरक्षा क्रेडेंशियल्स सेटिंग्स
 CORRECT_USERNAME = "admin"
 CORRECT_PASSWORD = "admin123"
-LIST_PASSWORD = "list789"  # डेटा लिस्ट को अनलॉक करने का दूसरा नया पासवर्ड
+LIST_PASSWORD = "list789"  # डेटा लिस्ट को अनलॉक करने का दूसरा पासवर्ड
 
 DEFAULT_COLUMNS = [
     "Eligibility", "Unique ID", "Roll No.", 
@@ -51,7 +51,7 @@ ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
 DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
 STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 
-# फ़ाइल से डेटा लोड करने का मजबूत फंक्शन (सभी डिवाइसेज के लिए)
+# फ़ाइल से डेटा लोड करने का फंक्शन
 def load_live_data():
     if os.path.exists(DB_FILE):
         try:
@@ -85,7 +85,7 @@ if "edit_mode" not in st.session_state:
 live_db = load_live_data()
 
 
-# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
+# --- पहला锁: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.subheader("🔒 Admin Login Required")
@@ -112,13 +112,13 @@ if st.session_state.database_unlocked:
     st.header("📁 CSV File Se Bulk Data Upload Karein")
     
     # अपलोड बॉक्स और लॉगआउट बटन को अगल-बगल व्यवस्थित करने के लिए कॉलम
-    up_col1, up_col2 = st.columns([3, 1])
+    up_col1, up_col2 = st.columns()
     
     with up_col1:
         uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
     
     with up_col2:
-        st.write("##")  # बटन को नीचे अलाइन करने के लिए स्पेस
+        st.write("##")  # बटन को नीचे बराबर लाने के लिए स्पेस
         if st.button("🔒 मुख्य लॉगआउट (Exit File)", use_container_width=True, type="primary"):
             st.session_state.database_unlocked = False
             st.session_state.list_unlocked = False
@@ -196,21 +196,28 @@ if st.session_state.database_unlocked:
 
     if not st.session_state.list_unlocked:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        list_pass = st.text_input("⚠️ छात्र सूची (Data List) देखने के लिए विशेष पासवर्ड डालें:", type="password", key="list_pass_field")
-        if list_pass == LIST_PASSWORD:
-            st.session_state.list_unlocked = True
-            st.rerun()
-        elif list_pass != "":
-            st.error("❌ गलत लिस्ट पासवर्ड!")
+        
+        # पासवर्ड को हमेशा मेमोरी में सुरक्षित रखने के लिए Form लॉजिक का उपयोग
+        with st.form(key="list_lock_form"):
+            list_pass = st.text_input("⚠️ छात्र सूची (Data List) देखने के लिए विशेष पासवर्ड डालें:", type="password")
+            submit_list_pass = st.form_submit_button("डेटा लिस्ट अनलॉक करें", use_container_width=True)
+            
+        if submit_list_pass:
+            if list_pass == LIST_PASSWORD:
+                st.session_state.list_unlocked = True
+                st.success("✅ डेटा लिस्ट सफलतापूर्वक अनलॉक हो गई!")
+                st.rerun()
+            else:
+                st.error("❌ गलत लिस्ट पासवर्ड!")
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-    # --- यदि दूसरा लॉक भी खुल जाता है, तभी डेटा तालिका और उसके संबंधित ऐक्शन्स दिखेंगे ---
+    # --- यदि दूसरा लॉक खुल जाता है, तभी डेटा तालिका और बटन दिखेंगे ---
     if st.session_state.list_unlocked:
         if not live_db.empty and len(live_db) > 0:
             display_df = live_db.copy().reset_index(drop=True)
             
-            # --- एक्शन बटन रो (Row): अब इसमें 4 बटन्स हैं (मुख्य लॉगआउट ऊपर जा चुका है) ---
+            # --- एक्शन बटन रो (Row) ---
             st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
             act_col1, act_col2, act_col3, act_col4 = st.columns(4)
             
@@ -236,7 +243,4 @@ if st.session_state.database_unlocked:
                     st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
                 
             with act_col4:
-                if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True, type="secondary"):
-                    st.session_state.list_unlocked = False
-                    st.session_state.edit_mode = False
-                    
+                
