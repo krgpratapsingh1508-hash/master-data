@@ -70,7 +70,7 @@ ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
 DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
 STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 
-# डेटा लोड करने का फंक्शन
+# फ़ाइल से डेटा लोड करने का फंक्शन
 def load_live_data():
     if os.path.exists(DB_FILE):
         try:
@@ -81,9 +81,10 @@ def load_live_data():
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
+    # यदि फ़ाइल नहीं है, तो खाली ढांचा वापस भेजें ताकि टेबल हमेशा लोड हो सके
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# डेटा सेव करने का फंक्शन
+# फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
@@ -103,7 +104,7 @@ if "current_column_order" not in st.session_state:
 
 live_db = load_live_data()
 
-# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
+# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और密码 दोनों) ---
 if not st.session_state.database_unlocked:
     st.subheader("🔒 Admin Login")
     user_input = st.text_input("Username:")
@@ -197,48 +198,48 @@ if st.session_state.database_unlocked:
             else:
                 st.error("गलत लिस्ट पासवर्ड!")
 
-    # --- लिस्ट अनलॉक होने के बाद तालिका दृश्य ---
+    # --- लिस्ट अनलॉक होने के बाद तालिका और बटन दृश्य (हमेशा दिखाई देंगे) ---
     if st.session_state.list_unlocked:
-        if not live_db.empty and len(live_db) > 0:
+        
+        # वर्तमान कॉलम आर्डर के आधार पर डेटा को फ़िल्टर करना
+        display_df = live_db[st.session_state.current_column_order].copy().reset_index(drop=True)
+        
+        # एक्शन बटन्स की सूची
+        if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
+            st.session_state.select_all_state = not st.session_state.select_all_state
+            st.rerun()
             
-            # वर्तमान कॉलम आर्डर के आधार पर डेटा को फ़िल्टर करना
-            display_df = live_db[st.session_state.current_column_order].copy().reset_index(drop=True)
-            
-            # एक्शन बटन्स की सूची
-            if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
-                st.session_state.select_all_state = not st.session_state.select_all_state
-                st.rerun()
-                
-            csv_data = live_db.to_csv(index=False).encode('utf-8')
-            st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-            
-            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
+        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+        
+        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
+            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-            # 🔄 सिर्फ लिस्ट लॉक बटन के ठीक ऊपर "Column Move Mode" बटन
-            if not st.session_state.column_move_mode:
-                if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                    st.session_state.column_move_mode = True
-                    st.rerun()
-            else:
-                if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
-                    st.session_state.column_move_mode = False
-                    st.success("कॉलम की स्थिति को सफलतापूर्वक लॉक कर दिया गया है!")
-                    st.rerun()
-                
-            if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True):
-                st.session_state.list_unlocked = False
-                st.session_state.edit_mode = False
+        # 🔄 सिर्फ लिस्ट लॉक बटन के ठीक ऊपर "Column Move Mode" बटन
+        if not st.session_state.column_move_mode:
+            if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
+                st.session_state.column_move_mode = True
+                st.rerun()
+        else:
+            if st.button("🔒 Column Move मोड बंद और ऑर्डर लॉक करें", use_container_width=True, type="primary"):
                 st.session_state.column_move_mode = False
+                st.success("कॉलम की स्थिति को सफलतापूर्वक लॉक कर दिया गया है!")
                 st.rerun()
-
-            st.markdown("---")
-
-            # Column Move मोड ऑन होने पर लाइव इंडिकेटर टेक्स्ट बॉक्स दिखाना
-            if st.session_state.column_move_mode:
-                st.info("ℹ️ कॉलम री-ऑर्डर मोड एक्टिव है! नीचे टेबल में कॉलम के नाम पर टच/क्लिक करके उसे आगे-पीछे ड्रैग करें।")
-                cols_str = " | ".join([f" [{i+1}] {col}" for i, col in enumerate(st.session_state.current_column_order)])
-                st.text_input("वर्तमान कॉलम पोजीशन इंडिकेटर (Current Positions):", value=cols_str, disabled=True)
-
-            # 🛠️ "Delete स्टूडेंट" कॉलम को तालिका में सबसे पहले जोड़ा गया
             
+        if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True):
+            st.session_state.list_unlocked = False
+            st.session_state.edit_mode = False
+            st.session_state.column_move_mode = False
+            st.rerun()
+
+        st.markdown("---")
+
+        # Column Move मोड ऑन होने पर लाइव इंडिकेटर टेक्स्ट बॉक्स दिखाना
+        if st.session_state.column_move_mode:
+            st.info("ℹ️ कॉलम री-ऑर्डर मोड एक्टिव है! नीचे टेबल में कॉलम के नाम पर टच/क्लिक करके उसे आगे-पीछे ड्रैग करें।")
+            cols_str = " | ".join([f" [{i+1}] {col}" for i, col in enumerate(st.session_state.current_column_order)])
+            st.text_input("वर्तमान कॉलम पोजीशन इंडिकेटर (Current Positions):", value=cols_str, disabled=True)
+
+        # 🛠️ "Delete स्टूडेंट" कॉलम को तालिका में सबसे पहले जोड़ा गया
+        display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
+        
