@@ -38,7 +38,6 @@ DB_FILE = "shared_student_database.csv"
 # 🔑 यहाँ अपना मनपसंद पासवर्ड सेट करें (अभी 'admin123' है)
 CORRECT_PASSWORD = "admin123"
 
-# 🛑 "Admission No." कॉलम यहाँ से हटा दिया गया है
 DEFAULT_COLUMNS = [
     "Eligibility", "Unique ID", "Roll No.", 
     "Application No.", "Enrollment No.", "Student Name", "Father Name",
@@ -46,12 +45,16 @@ DEFAULT_COLUMNS = [
     "Duration", "Mobile No.", "Email ID", "Address", "Status"
 ]
 
+# ड्रॉपडाउन के लिए विकल्प (Options) डेफिनिशन
+ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
+DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
+STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
+
 # फ़ाइल से डेटा लोड करने का मजबूत फंक्शन (सभी डिवाइसेज के लिए)
 def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
-            # सुनिश्चित करें कि सभी जरूरी कॉलम्स मौजूद हों
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
@@ -74,9 +77,6 @@ if "database_unlocked" not in st.session_state:
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
 
-if "pwd_reset_key" not in st.session_state:
-    st.session_state.pwd_reset_key = 0
-
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
@@ -89,7 +89,6 @@ if uploaded_file is not None:
     try:
         uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
         if st.button("Upload CSV", type="primary"):
-            # अपलोड किए गए डेटा में से भी Admission No. हटा दें यदि वो मौजूद हो
             if "Admission No." in uploaded_df.columns:
                 uploaded_df = uploaded_df.drop(columns=["Admission No."])
             updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
@@ -108,10 +107,10 @@ st.header("➕ Naya Student Data Add Karein")
 with st.form(key="student_form", clear_on_submit=True):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        eligibility = st.text_input("Eligibility")
+        eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
         enr_no = st.text_input("Enrollment No.")
         m_name = st.text_input("Mother Name")
-        duration = st.text_input("Duration")
+        duration = st.selectbox("Duration", DURATION_OPTIONS)
     with col2:
         unique_id = st.text_input("Unique ID")
         dob = st.text_input("Date of Birth")
@@ -126,8 +125,7 @@ with st.form(key="student_form", clear_on_submit=True):
         application_no = st.text_input("Application No.")
         s_name = st.text_input("Student Name")
         f_name = st.text_input("Father Name")
-        # मैन्युअल इनपुट में भी Status के लिए ड्रॉपडाउन विकल्प दे दिया है
-        status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
+        status_input = st.selectbox("Status", STATUS_OPTIONS)
 
     submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
 
@@ -192,21 +190,32 @@ if st.session_state.database_unlocked:
         display_df.index = display_df.index + 1
         display_df.index.name = "S. No."
 
-        # कॉन्फ़िगरेशन तैयार करें जिसमें डिलीट चेकबॉक्स और Status ड्रॉपडाउन दोनों शामिल हैं
+        # तालिका (Data Editor) के लिए ड्रॉपडाउन कॉन्फ़िगरेशन तैयार करें
         column_configuration = {
             "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें"),
+            "Eligibility": st.column_config.SelectboxColumn(
+                "Eligibility",
+                help="एलिजिबिलिटी चुनें",
+                options=ELIGIBILITY_OPTIONS,
+                required=True
+            ),
+            "Duration": st.column_config.SelectboxColumn(
+                "Duration",
+                help="कोर्स की अवधि चुनें",
+                options=DURATION_OPTIONS,
+                required=True
+            ),
             "Status": st.column_config.SelectboxColumn(
                 "Status",
                 help="स्टूडेंट का स्टेटस चुनें",
-                options=["Active", "Pending", "Pass", "Inactive"],
+                options=STATUS_OPTIONS,
                 required=True
             )
         }
 
         if st.session_state.edit_mode:
-            # एडिट मोड में 'Delete स्टूडेंट' को छोड़कर सभी कॉलम्स एडिट हो सकते हैं, Status में स्क्रॉल लिस्ट दिखेगी
             disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं। Status कॉलम में स्क्रॉल लिस्ट उपलब्ध है।")
+            st.info("📝 एडमिट मोड एक्टिव है! तालिका में Eligibility, Duration और Status कॉलम में ड्रॉपडाउन लिस्ट उपलब्ध है।")
         else:
             disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
@@ -242,6 +251,3 @@ if st.session_state.database_unlocked:
         # --- डिलीट प्रक्रिया का लॉजिक ---
         selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
-        if len(selected_rows) > 0 and not st.session_state.edit_mode:
-            st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-            
