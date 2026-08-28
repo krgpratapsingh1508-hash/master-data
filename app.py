@@ -197,7 +197,6 @@ if st.session_state.database_unlocked:
     if not st.session_state.list_unlocked:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
         
-        # पासवर्ड को हमेशा मेमोरी में सुरक्षित रखने के लिए Form लॉजिक का उपयोग
         with st.form(key="list_lock_form"):
             list_pass = st.text_input("⚠️ छात्र सूची (Data List) देखने के लिए विशेष पासवर्ड डालें:", type="password")
             submit_list_pass = st.form_submit_button("डेटा लिस्ट अनलॉक करें", use_container_width=True)
