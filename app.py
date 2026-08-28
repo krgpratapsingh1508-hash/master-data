@@ -240,4 +240,19 @@ else:
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("📥 Actions")
 action_col1, action_col2 = st.columns(2)
+
 with action_col1:
+    csv_data = st.session_state.local_db.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Database as CSV", 
+        data=csv_data, 
+        file_name="student_database.csv", 
+        mime="text/csv", 
+        use_container_width=True
+    )
+
+with action_col2:
+    # सुधरा हुआ प्रिंट बटन जो सिर्फ डेटा टेबल को टारगेट करेगा
+    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
