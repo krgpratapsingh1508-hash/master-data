@@ -181,7 +181,7 @@ if st.session_state.database_unlocked:
             disabled_cols = ["Delete स्टूडेंट"]
             st.info("📝 एडमिट मोड एक्टिव है! आप तालिका में कहीं भी सीधे सुधार कर सकते हैं।")
         else:
-            disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
+            disabled_cols = [col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"]
 
         edited_df = st.data_editor(
             display_df,
@@ -232,7 +232,7 @@ if st.session_state.database_unlocked:
         st.info("डेटाबेस अभी खाली है। नया स्टूडेंट जोड़कर शुरुआत करें।")
 
 
-    # --- SECTION 5: प्रिंट, डाउनलोड और लॉगआउट बटन (परफेक्ट लेफ्ट-राइट कॉलम लेआउट) ---
+    # --- SECTION 5: प्रिंट, डाउनलोड और लॉगआउट बटन ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📥 Actions")
     
@@ -240,6 +240,6 @@ if st.session_state.database_unlocked:
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
-        # 1. डाउनलोड बटन (लेफ्ट कॉलम में)
+        # 1. डाउनलोड बटन (लेफ्ट साइड में)
         csv_data = live_db.to_csv(index=False).encode('utf-8')
-    
+        
