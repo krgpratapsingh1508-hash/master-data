@@ -208,19 +208,17 @@ if st.session_state.user_role is not None:
         st.markdown("---")
         st.header("📊 Live Student Database")
         
-        # सुरक्षित कॉलम सिंकिंग
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
             
-        # यदि डेटाबेस खाली है, तो ग्रिड दिखाने के लिए खाली रो बनाएँ
         if live_db.empty:
             base_df = pd.DataFrame([{c: "" for c in safe_order}])
         else:
             base_df = live_db[safe_order].copy()
         
-        # 💡 बदलाव: डाउनलोड और प्रिंट बटन केवल "Viewer" अकाउंट के लिए दिखेंगे (Admin के लिए छिपे रहेंगे)
+        # डाउनलोड और प्रिंट बटन केवल "Viewer" अकाउंट के लिए दिखेंगे
         if st.session_state.user_role == "list_viewer":
             csv_data = live_db.to_csv(index=False).encode('utf-8')
             st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
@@ -228,7 +226,7 @@ if st.session_state.user_role is not None:
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए)
+        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
                 st.session_state.select_all_state = not st.session_state.select_all_state
@@ -239,4 +237,8 @@ if st.session_state.user_role is not None:
                 st.rerun()
             
             if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
+                st.session_state.column_move_mode = False
+                st.rerun()
+
+            # बाएँ-दाएँ खिसकाने वाले बटन और लाइव इंडिकेटर
             
