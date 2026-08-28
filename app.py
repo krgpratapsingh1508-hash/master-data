@@ -248,5 +248,5 @@ if st.session_state.database_unlocked:
                 st.rerun()
                     
         with col_ed2:
-            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
+            if st.button("💾 डेटा锁 और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 
