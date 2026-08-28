@@ -62,7 +62,6 @@ if img_base64:
         </div>
     """, unsafe_allow_html=True)
 else:
-    # यदि इमेज फाइल नहीं मिलती है तो केवल टेक्स्ट दिखेगा
     st.markdown(f"""
         <div class="header-container">
             <div class="header-text">
@@ -222,23 +221,18 @@ if st.session_state.user_role is not None:
                 st.rerun()
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और एडमिन के लिए)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉग-इन यूज़र्स के लिए सुरक्षित रूप से दृश्यमान)
     # ==========================================
     if is_list_allowed:
         st.markdown("---")
-        st.header("📊 Live Student Database")
+        st.header("📊 Live Student Database Table")
         
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
-            
-        if live_db.empty:
-            base_df = pd.DataFrame([{c: "" for c in safe_order}])
-        else:
-            base_df = live_db[safe_order].copy()
         
-        # डाउनलोड और प्रिंट बटन केवल "Viewer" अकाउंट के लिए दिखेंगे
+        # यूटिलिटी बटन्स केवल "Viewer" अकाउंट के लिए
         if st.session_state.user_role == "list_viewer":
             csv_data = live_db.to_csv(index=False).encode('utf-8')
             st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
@@ -246,3 +240,8 @@ if st.session_state.user_role is not None:
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
+        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए)
+        if is_admin:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+            
