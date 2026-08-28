@@ -111,13 +111,12 @@ if uploaded_file is not None:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (परफेक्ट सिंक और ऑटो-रीसेट फिक्स) ---
+# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
 # रीसेट के लिए कॉलबैक फंक्शन - यह सबमिट होते ही बिना डेटा लॉक किए फॉर्म साफ करेगा
 def handle_form_submission():
-    # वैल्यूज़ सीधे सेशन स्टेट विजेट्स से निकालें
     s_name_val = st.session_state.get("st_nm", "").strip()
     
     if s_name_val == "":
@@ -143,7 +142,6 @@ def handle_form_submission():
         "Address": st.session_state.get("adr", "")
     }
     
-    # ताजा लाइव डेटा लाएं
     current_cloud_df = load_data()
     if current_cloud_df.empty:
         current_cloud_df = st.session_state.local_db.copy()
@@ -151,20 +149,15 @@ def handle_form_submission():
     df_current_clean = current_cloud_df.reset_index(drop=True)
     updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
     
-    # गूगल शीट पर पक्का सेव होने पर ही आगे का कदम उठाएं
     if save_to_google(updated_df):
         st.session_state.local_db = updated_df
-        
-        # फॉर्म खाली (Reset) करें
         form_keys = ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]
         for key in form_keys:
             st.session_state[key] = ""
-            
         st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
     else:
         st.error("डेटा सर्वर पर सेव नहीं हो पाया। कृपया नेटवर्क की जांच करें।")
 
-# फॉर्म बनाना
 with st.form(key="student_form", clear_on_submit=False):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -188,7 +181,6 @@ with st.form(key="student_form", clear_on_submit=False):
         st.text_input("Subject", key="sub")
         st.text_input("Address", key="adr")
 
-    # कॉलबैक अटैच किया गया ताकि एरर न आए
     st.form_submit_button("Save Student Data", use_container_width=True, type="primary", on_click=handle_form_submission)
 
 st.markdown('</div>', unsafe_allow_html=True)
@@ -202,15 +194,13 @@ if st.button("🔄 क्लाउड से डेटा रिफ्रेश 
     st.session_state.local_db = load_data()
     st.rerun()
 
+# बिना किसी 'else' एरर के सुरक्षित डेटा चेक
 if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     display_df = st.session_state.local_db.copy().reset_index(drop=True)
-    
-    # डिलीट टिक मार्क के लिए फॉल्स (False) वैल्यू वाला कॉलम बनाएं
     display_df.insert(0, "Delete स्टूडेंट", False)
     display_df.index = display_df.index + 1
     display_df.index.name = "S. No."
 
-    # डेटा एडिटर जिससे टिक मार्क बॉक्स इनेबल हो सके
     edited_df = st.data_editor(
         display_df,
         hide_index=False,
@@ -221,11 +211,10 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 default=False,
             )
         },
-        disabled=[col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"],
+        disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
         use_container_width=True
     )
 
-    # जिन रोज़ पर टिक लगा है उन्हें पहचानें
     selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
     if len(selected_rows) > 0:
@@ -234,7 +223,6 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
         if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
             indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
             
-            # ताजा लाइव क्लाउड डेटा पर एक्शन लें ताकि डेटा सिंक रहे
             current_cloud_df = load_data()
             if current_cloud_df.empty:
                 current_cloud_df = st.session_state.local_db.copy()
@@ -247,5 +235,18 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 st.success("चुने गए स्टूडेंट्स का डेटा सफलतापुर्वक डिलीट कर दिया गया है!")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-else:
+
+# डेटाबेस खाली होने पर मैसेज दिखाएं (बिना एरर वाले सेफ मोड में)
+if st.session_state.local_db.empty or len(st.session_state.local_db) == 0:
+    st.info("डेटाबेस अभी खाली है या क्लाउड से लोड हो रहा है...")
+
+
+# --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
+st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+st.header("📥 Actions")
+action_col1, action_col2 = st.columns(2)
+
+with action_col1:
+    csv_data = st.session_state.local_db.to_csv(index=False).encode('utf-8')
+    st.download_button(
     
