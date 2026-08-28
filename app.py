@@ -102,16 +102,26 @@ if uploaded_file is not None:
             uploaded_df_clean = uploaded_df.reset_index(drop=True)
             updated_df = pd.concat([df_current_clean, uploaded_df_clean], ignore_index=True)
             
-            # --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form Implementation Fix) ---
+            if save_to_google(updated_df):
+                st.session_state.local_db = updated_df
+                st.success("CSV डेटा सफलतापूर्वक क्लाउड डेटाबेस में जोड़ दिया गया है!")
+                st.rerun()
+    except Exception as e:
+        st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
+st.markdown('</div>', unsafe_allow_html=True)
+
+
+# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form & Reset Fixes) ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
 # रिसेट करने के लिए सेशन स्टेट में कुंजियाँ (keys) सेट करें
-for col_key in ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]:
+form_keys = ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]
+for col_key in form_keys:
     if col_key not in st.session_state:
         st.session_state[col_key] = ""
 
-# अब clear_on_submit को False रखेंगे ताकि सेव होने से पहले डेटा डिलीट न हो
+# clear_on_submit=False रखेंगे ताकि पहले डेटा पाइथन को मिल सके, फिर हम खुद खाली करेंगे
 with st.form(key="student_form", clear_on_submit=False):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -148,7 +158,7 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        # ताजा डेटा सर्वर से लाएं
+        # ताजा डेटा सर्वर से लाएं ताकि सिंक बना रहे
         current_cloud_df = load_data()
         if current_cloud_df.empty:
             current_cloud_df = st.session_state.local_db.copy()
@@ -160,32 +170,10 @@ if submit_button:
         if save_to_google(updated_df):
             st.session_state.local_db = updated_df
             
-            # सफलता पूर्वक सेव होने के बाद अब सभी इनपुट बॉक्स को खाली करें
-            for col_key in ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]:
+            # सफलतापूर्वक सेव होने के बाद अब सभी इनपुट बॉक्स को रीसेट (खाली) करें
+            for col_key in form_keys:
                 st.session_state[col_key] = ""
                 
-            st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
-            st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-
-        new_row = {
-            "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-            "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
-            "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
-        }
-        
-        # ताजा डेटा सर्वर से लाएं ताकि किसी और डिवाइस का डेटा डिलीट न हो
-        current_cloud_df = load_data()
-        if current_cloud_df.empty:
-            current_cloud_df = st.session_state.local_db.copy()
-            
-        df_current_clean = current_cloud_df.reset_index(drop=True)
-        updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
-        
-        # पहले गूगल शीट पर पक्का सेव करें, फिर ऐप रीलोड करें
-        if save_to_google(updated_df):
-            st.session_state.local_db = updated_df
             st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
             st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
@@ -194,7 +182,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # --- सेक्शन 3 और 4: लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
 st.header("📊 Live Student Database")
 
-# हर बार रिफ्रेश बटन के बिना भी पेज पर लाइव क्लाउड डेटा लोड रखने के लिए सहायता
+# डिवाइस सिंक के लिए मैनुअल रिफ्रेश बटन
 if st.button("🔄 क्लाउड से डेटा रिफ्रेश करें"):
     st.session_state.local_db = load_data()
     st.rerun()
@@ -202,11 +190,12 @@ if st.button("🔄 क्लाउड से डेटा रिफ्रेश 
 if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
     display_df = st.session_state.local_db.copy().reset_index(drop=True)
     
-    # प्रिंट व्यू में 'Delete स्टूडेंट' कॉलम न दिखे इसके लिए कंडीशन सेटअप
+    # डिलीट टिक मार्क के लिए फॉल्स (False) वैल्यू वाला कॉलम बनाएं
     display_df.insert(0, "Delete स्टूडेंट", False)
     display_df.index = display_df.index + 1
     display_df.index.name = "S. No."
 
+    # डेटा एडिटर जिससे टिक मार्क बॉक्स इनेबल हो सके
     edited_df = st.data_editor(
         display_df,
         hide_index=False,
@@ -217,10 +206,11 @@ if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
                 default=False,
             )
         },
-        disabled=[col for col in display_df.columns if col != "Delete student" and col != "Delete स्टूडेंट"],
+        disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
         use_container_width=True
     )
 
+    # जिन रोज़ पर टिक लगा है उन्हें पहचानें
     selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
 
     if len(selected_rows) > 0:
@@ -251,15 +241,3 @@ st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("📥 Actions")
 action_col1, action_col2 = st.columns(2)
 with action_col1:
-    csv_data = st.session_state.local_db.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Download Database as CSV", 
-        data=csv_data, 
-        file_name="student_database.csv", 
-        mime="text/csv", 
-        use_container_width=True
-    )
-with action_col2:
-    # सुधरा हुआ प्रिंट बटन जो सिर्फ डेटा टेबल को टारगेट करेगा
-    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
