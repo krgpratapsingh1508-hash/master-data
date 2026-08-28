@@ -104,24 +104,24 @@ if "current_column_order" not in st.session_state:
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे ---
+# --- मुख्य लॉगिन गेटवे (यहाँ टाइपिंग बॉक्स को हटाकर स्क्रॉल ड्रॉपडाउन लगा दिया गया है) ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
     
     with st.form(key="secure_login_form"):
-        user_input = st.text_input("Username दर्ज करें:")
+        # 🔄 यूज़रनेम के लिए स्क्रॉल ड्रॉपडाउन बॉक्स
+        user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(CREDENTIALS.keys()))
         password_input = st.text_input("Password दर्ज करें:", type="password")
         login_submit = st.form_submit_button("Secure Login", use_container_width=True, type="primary")
         
     if login_submit:
-        user_input = user_input.strip()
         if user_input in CREDENTIALS and CREDENTIALS[user_input]["password"] == password_input:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
-            st.error("❌ गलत यूज़रनेम या पासवर्ड!")
+            st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
 
 # --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
 if st.session_state.user_role is not None:
@@ -202,7 +202,7 @@ if st.session_state.user_role is not None:
                 st.rerun()
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2 और एडमिन के लिए)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (लेवल 2และ एडमिन के लिए)
     # ==========================================
     if is_list_allowed:
         st.markdown("---")
@@ -237,8 +237,4 @@ if st.session_state.user_role is not None:
                 st.rerun()
             
             if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
-                st.session_state.column_move_mode = False
-                st.rerun()
-
-            # बाएँ-दाएँ खिसकाने वाले बटन और लाइव इंडिकेटर
             
