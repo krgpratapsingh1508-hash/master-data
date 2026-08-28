@@ -90,7 +90,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# 메모리 स्टेट्स सेटअप (Session States)
+# मेमोरी स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "select_all_state" not in st.session_state:
@@ -209,15 +209,15 @@ if st.session_state.user_role is not None:
         st.markdown("---")
         st.header("📊 Live Student Database")
         
-        # क्रैश से बचाने के लिए सुरक्षित कॉलम ऑर्डरिंग लॉजिक
+        # सुरक्षित कॉलम सिंकिंग
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
             
-        # डेटाबेस खाली होने पर भी खाली स्ट्रक्चर ढांचा तैयार रखें ताकि एरर न आए
+        # 💡 सुधार: यदि डेटाबेस पूरी तरह खाली है, तो ग्रिड दिखाने के लिए 1 खाली रो (Blank row) जबरदस्ती जोड़ें ताकि स्ट्रक्चर कभी न छिपे
         if live_db.empty:
-            base_df = pd.DataFrame(columns=safe_order)
+            base_df = pd.DataFrame([{c: "" for c in safe_order}])
         else:
             base_df = live_db[safe_order].copy()
         
@@ -239,6 +239,4 @@ if st.session_state.user_role is not None:
             
             if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
                 st.session_state.column_move_mode = False
-                st.rerun()
-
-
+                
