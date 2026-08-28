@@ -15,7 +15,7 @@ st.markdown("""
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
     
-    /* 🛠️ मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का अचूक कोड */
+    /* मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का अचूक कोड */
     .action-container {
         display: flex !important;
         flex-direction: row !important;
@@ -34,9 +34,10 @@ st.title("Permanent Shared Live Database")
 # डेटा को सुरक्षित रखने के लिए लोकल फ़ाइल पाथ
 DB_FILE = "shared_student_database.csv"
 
-# 🔑 यहाँ अपना मनपसंद यूज़रनेम और पासवर्ड सेट करें
+# 🔑 सुरक्षा क्रेडेंशियल्स सेटिंग्स
 CORRECT_USERNAME = "admin"
 CORRECT_PASSWORD = "admin123"
+LIST_PASSWORD = "list789"  # डेटा लिस्ट को अनलॉक करने का दूसरा नया पासवर्ड
 
 DEFAULT_COLUMNS = [
     "Eligibility", "Unique ID", "Roll No.", 
@@ -74,6 +75,9 @@ if "select_all_state" not in st.session_state:
 if "database_unlocked" not in st.session_state:
     st.session_state.database_unlocked = False
 
+if "list_unlocked" not in st.session_state:
+    st.session_state.list_unlocked = False
+
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = False
 
@@ -81,7 +85,7 @@ if "edit_mode" not in st.session_state:
 live_db = load_live_data()
 
 
-# --- लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
+# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.subheader("🔒 Admin Login Required")
@@ -94,19 +98,33 @@ if not st.session_state.database_unlocked:
     if login_submit:
         if user_input == CORRECT_USERNAME and password_input == CORRECT_PASSWORD:
             st.session_state.database_unlocked = True
-            st.success("✅ लॉगिन सफल! डेटाबेस अनलॉक हो गया है।")
+            st.success("✅ लॉगिन सफल! डेटाबेस सिस्टम अनलॉक हो गया है।")
             st.rerun()
         else:
-            st.error("❌ गलत यूज़रनेम या पासवर्ड! कृपया सही क्रेडेंशियल्स दर्ज करें।")
+            st.error("❌ गलत यूज़रनेम या पासवर्ड!")
 
 
-# --- यदि डेटाबेस अनलॉक है, तभी नीचे का पूरा सिस्टम (अपलोड, फॉर्म, टेबल) दिखेगा ---
+# --- यदि पहला डेटाबेस अनलॉक है, तभी अंदर का सिस्टम खुलेगा ---
 if st.session_state.database_unlocked:
 
-    # --- सेक्शन 1: CSV फ़ाइल से बल्क डेटा अपलोड करें ---
+    # --- सेक्शन 1: CSV फ़ाइल से बल्क डेटा अपलोड करें और दाहिने कोने में मुख्य लॉगआउट ---
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
     st.header("📁 CSV File Se Bulk Data Upload Karein")
-    uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+    
+    # अपलोड बॉक्स और लॉगआउट बटन को अगल-बगल व्यवस्थित करने के लिए कॉलम
+    up_col1, up_col2 = st.columns([3, 1])
+    
+    with up_col1:
+        uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+    
+    with up_col2:
+        st.write("##")  # बटन को नीचे अलाइन करने के लिए स्पेस
+        if st.button("🔒 मुख्य लॉगआउट (Exit File)", use_container_width=True, type="primary"):
+            st.session_state.database_unlocked = False
+            st.session_state.list_unlocked = False
+            st.session_state.edit_mode = False
+            st.session_state.select_all_state = False
+            st.rerun()
 
     if uploaded_file is not None:
         try:
@@ -172,73 +190,53 @@ if st.session_state.database_unlocked:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-    # --- सेक्शन 3: लाइव स्टूडेंट डेटाबेस तालिका ---
+    # --- दूसरा लॉक: सिर्फ मुख्य डेटा लिस्ट को पासवर्ड से सुरक्षित करने के लिए ---
+    st.markdown("---")
     st.header("📊 Live Student Database")
 
-    if not live_db.empty and len(live_db) > 0:
-        display_df = live_db.copy().reset_index(drop=True)
-        
-        # --- एक्शन बटन रो (Row): 4 बटन्स बिल्कुल सटीक स्पेसिंग के साथ ---
+    if not st.session_state.list_unlocked:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
-        
-        with act_col1:
-            btn_label = "⬜ सब सेलेक्ट करें" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें"
-            if st.button(btn_label, use_container_width=True):
-                st.session_state.select_all_state = not st.session_state.select_all_state
-                st.rerun()
-                
-        with act_col2:
-            csv_data = live_db.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="💾 CSV डाउनलोड करें",
-                data=csv_data,
-                file_name="student_database_export.csv",
-                mime="text/csv",
-                use_container_width=True,
-                type="secondary"
-            )
-            
-        with act_col3:
-            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
-                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
-            
-        with act_col4:
-            if st.button("🔒 लॉगआउट करें", use_container_width=True, type="primary"):
-                st.session_state.database_unlocked = False
-                st.session_state.edit_mode = False
-                st.session_state.select_all_state = False
-                st.rerun()
-                
+        list_pass = st.text_input("⚠️ छात्र सूची (Data List) देखने के लिए विशेष पासवर्ड डालें:", type="password", key="list_pass_field")
+        if list_pass == LIST_PASSWORD:
+            st.session_state.list_unlocked = True
+            st.rerun()
+        elif list_pass != "":
+            st.error("❌ गलत लिस्ट पासवर्ड!")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # तालिका सेटअप
-        display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
-        display_df.index = display_df.index + 1
-        display_df.index.name = "S. No."
 
-        column_configuration = {
-            "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें"),
-            "Eligibility": st.column_config.SelectboxColumn("Eligibility", options=ELIGIBILITY_OPTIONS, required=True),
-            "Duration": st.column_config.SelectboxColumn("Duration", options=DURATION_OPTIONS, required=True),
-            "Status": st.column_config.SelectboxColumn("Status", options=STATUS_OPTIONS, required=True)
-        }
-
-        if st.session_state.edit_mode:
-            disabled_cols = ["Delete स्टूडेंट"]
-            st.info("📝 एडमिट मोड एक्टिव है! तालिका में सीधे बदलाव कर सकते हैं।")
-        else:
-            disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
-
-        edited_df = st.data_editor(
-            display_df,
-            hide_index=False,
-            column_config=column_configuration,
-            disabled=disabled_cols,
-            use_container_width=True
-        )
-
-        # --- एडिट और सेव बटन्स ---
-        st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        col_ed1, col_ed2 = st.columns(2)
-                 
+    # --- यदि दूसरा लॉक भी खुल जाता है, तभी डेटा तालिका और उसके संबंधित ऐक्शन्स दिखेंगे ---
+    if st.session_state.list_unlocked:
+        if not live_db.empty and len(live_db) > 0:
+            display_df = live_db.copy().reset_index(drop=True)
+            
+            # --- एक्शन बटन रो (Row): अब इसमें 4 बटन्स हैं (मुख्य लॉगआउट ऊपर जा चुका है) ---
+            st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+            act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+            
+            with act_col1:
+                btn_label = "⬜ सब सेलेक्ट करें" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें"
+                if st.button(btn_label, use_container_width=True):
+                    st.session_state.select_all_state = not st.session_state.select_all_state
+                    st.rerun()
+                    
+            with act_col2:
+                csv_data = live_db.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="💾 CSV डाउनलोड करें",
+                    data=csv_data,
+                    file_name="student_database_export.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    type="secondary"
+                )
+                
+            with act_col3:
+                if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
+                    st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+                
+            with act_col4:
+                if st.button("🔒 सिर्फ लिस्ट लॉक करें", use_container_width=True, type="secondary"):
+                    st.session_state.list_unlocked = False
+                    st.session_state.edit_mode = False
+                    
