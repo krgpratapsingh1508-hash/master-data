@@ -93,7 +93,7 @@ def save_live_data(df_to_save):
 
 # मेमोरी स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
-    st.session_state.user_role = None  # लॉगिन रोल स्टोर करने के लिए
+    st.session_state.user_role = None  
 if "select_all_state" not in st.session_state:
     st.session_state.select_all_state = False
 if "edit_mode" not in st.session_state:
@@ -106,8 +106,7 @@ if "current_column_order" not in st.session_state:
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-
-# --- मुख्य लॉगिन गेटवे (यदि लॉगिन नहीं है तो फॉर्म दिखाएं) ---
+# --- मुख्य लॉगिन गेटवे ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
@@ -124,8 +123,7 @@ if st.session_state.user_role is None:
             st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
-            st.error("❌ गलत यूज़रनेम या पासवर्ड! कृपया पुनः प्रयास करें।")
-
+            st.error("❌ गलत यूज़रनेम या पासवर्ड!")
 
 # --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
 if st.session_state.user_role is not None:
@@ -140,7 +138,7 @@ if st.session_state.user_role is not None:
 
     st.markdown("---")
     
-    # 🎯 भूमिका क्रेडेंशियल वेरिएबल्स
+    # भूमिका क्रेडेंशियल वेरिएबल्स
     is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
     is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
     is_admin = st.session_state.user_role == "full_admin"
@@ -212,7 +210,6 @@ if st.session_state.user_role is not None:
         st.markdown("---")
         st.header("📊 Live Student Database")
         
-        # सुरक्षित कॉलम सिंकिंग
         safe_order = [c for c in st.session_state.current_column_order if c in live_db.columns]
         if len(safe_order) != len(DEFAULT_COLUMNS):
             safe_order = DEFAULT_COLUMNS.copy()
@@ -220,23 +217,26 @@ if st.session_state.user_role is not None:
             
         base_df = live_db[safe_order].copy()
         
-        # डाउनलोड और प्रिंट विकल्प
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
         
         if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
             st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन - लेवल 3 के लिए)
+        # कॉलम मूव मोड और डिलीट बटन (केवल एडमिन के लिए)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट करें", use_container_width=True):
                 st.session_state.select_all_state = not st.session_state.select_all_state
                 st.rerun()
 
-            if not st.session_state.column_move_mode:
-                if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
-                    st.session_state.column_move_mode = True
-                    st.rerun()
+            # सरल बना दिया गया: दो सीधे बटन बिना किसी एक्स्ट्रा इफ कंडीशन के
+            if st.button("🔄 Column Move Mode ऑन करें", use_container_width=True, type="secondary"):
+                st.session_state.column_move_mode = True
+                st.rerun()
             
-            if st.session_state.column_move_mode:
+            if st.button("🔒 Column Move मोड बंद करें", use_container_width=True, type="primary"):
+                st.session_state.column_move_mode = False
+                st.rerun()
+
+            # बाएँ-दाएँ खिसकाने वाले बटन (जब स्टेट True हो)
             
