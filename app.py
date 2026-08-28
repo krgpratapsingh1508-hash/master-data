@@ -140,7 +140,7 @@ if not st.session_state.local_db.empty and "Student Name" in st.session_state.lo
     student_list = df_current_clean.apply(lambda row: f"Index {row.name} | {row['Student Name']} (Roll: {row['Roll No.']})", axis=1).tolist()
     selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", student_list)
 
-        if selected_student_string != "-- चुनें --":
+    if selected_student_string != "-- चुनें --":
             
             # सुरक्षित तरीके से इंडेक्स (ID) निकालना
             if " | " in selected_student_string:
