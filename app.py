@@ -9,7 +9,7 @@ st.set_page_config(layout="wide")
 st.title("Permanent Google Sheets Linked Database")
 
 # आपका बिल्कुल सही Google Script Web App URL
-API_URL = "https://script.google.com/macros/s/AKfycbzzYnmbIQIxtsqAJDu2RhqjP5JP6UxKu61CSAgBQaAlDvjGnFZFE8K7r-aXd61IexgWCQ/exec"
+API_URL = "https://google.com"
 
 # डिफ़ॉल्ट कॉलम सूची जो हमारी शीट में होनी चाहिए
 DEFAULT_COLUMNS = [
@@ -133,41 +133,54 @@ if st.button("Save Student Data", use_container_width=True):
         st.rerun()
 
 
-# --- सेक्शन 3: डेटा डिलीट करने का विकल्प ---
-st.header("🗑️ Delete Student Data")
-if not st.session_state.local_db.empty and "Student Name" in st.session_state.local_db.columns and len(st.session_state.local_db) > 0:
-    df_current_clean = st.session_state.local_db.reset_index(drop=True)
-    student_list = df_current_clean.apply(lambda row: f"Index {row.name} | {row['Student Name']} (Roll: {row['Roll No.']})", axis=1).tolist()
-    selected_student_string = st.selectbox("डिलीट करने के लिए स्टूडेंट चुनें:", student_list)
-
-    if selected_student_string != "-- चुनें --":
-            
-            # सुरक्षित तरीके से इंडेक्स (ID) निकालना
-            if " | " in selected_student_string:
-                parts = selected_student_string.split(" | ")
-                selected_idx = int(parts[0].strip())
-            else:
-                selected_idx = 0
-
-            # डिलीट बटन (यह बटन मुख्य इफ ब्लॉक के सीधे नीचे होना चाहिए)
-            if st.button("चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
-                updated_df = df_current_clean.drop(index=selected_idx)
-                
-                # लोकल और गूगल दोनों जगह से हटाएं
-                st.session_state.local_db = updated_df
-                save_google(updated_df)
-                st.success("डेटा हमेशा के लिए डेटाबेस से डिलीट कर दिया गया है!")
-                st.rerun()
-
-    st.info("डेटाबेस अभी खाली है।")
-
-
-# --- सेक्शन 4: लाइव स्टूडेंट डेटाबेस तालिका ---
+# --- सेक्शन 3 और 4: लाइव स्टूडेंट डेटाबेस तालिका और डिलीट सिस्टम ---
 st.header("📊 Live Student Database")
-display_df = st.session_state.local_db.copy().reset_index(drop=True)
-display_df.index = display_df.index + 1
-display_df.index.name = "S. No."
-st.dataframe(display_df, use_container_width=True)
+
+if not st.session_state.local_db.empty and len(st.session_state.local_db) > 0:
+    # रेंडरिंग के लिए डेटा तैयार करें
+    display_df = st.session_state.local_db.copy().reset_index(drop=True)
+    
+    # शुरुआत में डिलीट टिक मार्क के लिए फॉल्स (False) वैल्यू वाला कॉलम बनाएं
+    display_df.insert(0, "Delete स्टूडेंट", False)
+    display_df.index = display_df.index + 1
+    display_df.index.name = "S. No."
+
+    # डेटा एडिटर जिससे टिक मार्क बॉक्स इनेबल हो सके
+    edited_df = st.data_editor(
+        display_df,
+        hide_index=False,
+        column_config={
+            "Delete स्टूडेंट": st.column_config.CheckboxColumn(
+                "Delete स्टूडेंट",
+                help="डेटा डिलीट करने के लिए टिक करें",
+                default=False,
+            )
+        },
+        disabled=[col for col in display_df.columns if col != "Delete स्टूडेंट"],
+        use_container_width=True
+    )
+
+    # जिन रोज़ पर टिक लगा है उन्हें पहचानें
+    selected_rows = edited_df[edited_df["Delete स्टूडेंट"] == True]
+
+    # डिलीट प्रक्रिया के लिए बटन
+    if len(selected_rows) > 0:
+        st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
+        if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
+            # जिन S. No. पर टिक है, उनके ओरिजिनल इंडेक्स (S. No. - 1) निकालें
+            indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
+            
+            # ओरिजिनल डेटा फ्रेम से डिलीट करें
+            df_current_clean = st.session_state.local_db.reset_index(drop=True)
+            updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
+            
+            # लोकल स्टेट और क्लाउड अपडेट करें
+            st.session_state.local_db = updated_df
+            save_to_google(updated_df)
+            st.success("चुने गए स्टूडेंट्स का डेटा सफलतापुर्वक डिलीट कर दिया गया है!")
+            st.rerun()
+else:
+    st.info("डेटाबेस अभी खाली है।")
 
 
 # --- SECTION 5: प्रिंट और डाउनलोड विकल्प ---
@@ -184,3 +197,4 @@ with action_col1:
     )
 with action_col2:
     st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT PAGE / SAVE AS PDF</button>', unsafe_allow_html=True)
+    
