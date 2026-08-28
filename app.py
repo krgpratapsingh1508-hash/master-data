@@ -85,7 +85,7 @@ if "edit_mode" not in st.session_state:
 live_db = load_live_data()
 
 
-# --- पहला锁: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
+# --- पहला लॉक: लॉगिन फॉर्म (यूज़रनेम और पासवर्ड दोनों) ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.subheader("🔒 Admin Login Required")
