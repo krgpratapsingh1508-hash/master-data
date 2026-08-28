@@ -102,42 +102,38 @@ if uploaded_file is not None:
             uploaded_df_clean = uploaded_df.reset_index(drop=True)
             updated_df = pd.concat([df_current_clean, uploaded_df_clean], ignore_index=True)
             
-            if save_to_google(updated_df):
-                st.session_state.local_db = updated_df
-                st.success("CSV डेटा सफलतापूर्वक क्लाउड डेटाबेस में जोड़ दिया गया है!")
-                st.rerun()
-    except Exception as e:
-        st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
-st.markdown('</div>', unsafe_allow_html=True)
-
-
-# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form Implementation) ---
+            # --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें (Form Implementation Fix) ---
 st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
 st.header("➕ Naya Student Data Add Karein")
 
-# clear_on_submit=True से बटन दबाते ही फॉर्म अपने आप खाली हो जाएगा
-with st.form(key="student_form", clear_on_submit=True):
+# रिसेट करने के लिए सेशन स्टेट में कुंजियाँ (keys) सेट करें
+for col_key in ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]:
+    if col_key not in st.session_state:
+        st.session_state[col_key] = ""
+
+# अब clear_on_submit को False रखेंगे ताकि सेव होने से पहले डेटा डिलीट न हो
+with st.form(key="student_form", clear_on_submit=False):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        adm_no = st.text_input("Admission No.")
-        app_no = st.text_input("Application No.")
-        m_name = st.text_input("Mother Name")
-        duration = st.text_input("Duration")
+        adm_no = st.text_input("Admission No.", key="adm")
+        app_no = st.text_input("Application No.", key="app")
+        m_name = st.text_input("Mother Name", key="m_nm")
+        duration = st.text_input("Duration", key="dur")
     with col2:
-        eligibility = st.text_input("Eligibility")
-        enr_no = st.text_input("Enrollment No.")
-        dob = st.text_input("Date of Birth")
-        mobile = st.text_input("Mobile No.")
+        eligibility = st.text_input("Eligibility", key="elig")
+        enr_no = st.text_input("Enrollment No.", key="enr")
+        dob = st.text_input("Date of Birth", key="dob")
+        mobile = st.text_input("Mobile No.", key="mob")
     with col3:
-        unique_id = st.text_input("Unique ID")
-        s_name = st.text_input("Student Name")
-        category = st.text_input("Category")
-        email = st.text_input("Email ID")
+        unique_id = st.text_input("Unique ID", key="uniq")
+        s_name = st.text_input("Student Name", key="st_nm")
+        category = st.text_input("Category", key="cat")
+        email = st.text_input("Email ID", key="eml")
     with col4:
-        roll_no = st.text_input("Roll No.")
-        f_name = st.text_input("Father Name")
-        subject = st.text_input("Subject")
-        address = st.text_input("Address")
+        roll_no = st.text_input("Roll No.", key="roll")
+        f_name = st.text_input("Father Name", key="f_nm")
+        subject = st.text_input("Subject", key="sub")
+        address = st.text_input("Address", key="adr")
 
     submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
 
@@ -145,6 +141,33 @@ if submit_button:
     if s_name.strip() == "":
         st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
     else:
+        new_row = {
+            "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+            "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
+            "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
+            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
+        }
+        
+        # ताजा डेटा सर्वर से लाएं
+        current_cloud_df = load_data()
+        if current_cloud_df.empty:
+            current_cloud_df = st.session_state.local_db.copy()
+            
+        df_current_clean = current_cloud_df.reset_index(drop=True)
+        updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
+        
+        # पहले गूगल शीट पर पक्का सेव करें, फिर स्टेट साफ करें
+        if save_to_google(updated_df):
+            st.session_state.local_db = updated_df
+            
+            # सफलता पूर्वक सेव होने के बाद अब सभी इनपुट बॉक्स को खाली करें
+            for col_key in ["adm", "app", "m_nm", "dur", "elig", "enr", "dob", "mob", "uniq", "st_nm", "cat", "eml", "roll", "f_nm", "sub", "adr"]:
+                st.session_state[col_key] = ""
+                
+            st.success("डेटा सफलतापूर्वक क्लाउड डेटाबेस (Google Sheets) में सुरक्षित हो गया है!")
+            st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
         new_row = {
             "Admission No.": adm_no, "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
             "Application No.": app_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
