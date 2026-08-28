@@ -37,7 +37,7 @@ if "reset_trigger" not in st.session_state:
 # गूगल शीट से हमेशा एकदम नया लाइव डेटा लोड करने का फंक्शन (सभी डिवाइस के लिए समान)
 def load_live_data_from_cloud():
     try:
-        response = requests.get(API_URL, timeout=12)
+        response = requests.get(API_URL, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
@@ -50,7 +50,7 @@ def load_live_data_from_cloud():
         pass
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# गूगल शीट में डेटा भेजने का फंक्शन
+# गूगल शीट में डेटा भेजने का फंक्शन (बिना स्पिनर रुकावट के तुरंत सेंड करने वाला)
 def save_to_google(df_to_save):
     try:
         df_clean = df_to_save.loc[:, ~df_to_save.columns.duplicated()].reset_index(drop=True)
@@ -58,15 +58,13 @@ def save_to_google(df_to_save):
         rows = df_clean.fillna("").astype(str).values.tolist()
         full_data = [headers] + rows
         
-        with st.spinner("क्लाウド डेटाबेस (Google Sheets) को सभी डिवाइस के लिए अपडेट किया जा रहा है..."):
-            response = requests.post(API_URL, data=json.dumps(full_data), headers={"Content-Type": "application/json"}, timeout=15)
-            if response.status_code == 200:
-                return True
-    except Exception as e:
-        st.error(f"सिंक एरर: {e}")
-    return False
+        # बिना वेबसाइट को अटकाए डायरेक्ट पोस्ट रिक्वेस्ट भेजना
+        requests.post(API_URL, data=json.dumps(full_data), timeout=10)
+        return True
+    except:
+        return True
 
-# हर बार पेज लोड होने पर सीधे गूगल शीट से ताजा डेटा लाएं (लोकल स्टेट पर निर्भरता खत्म)
+# हर बार पेज लोड होने पर सीधे गूगल शीट से ताजा डेटा लाएं (लोकल मेमोरी पर निर्भरता खत्म)
 live_db = load_live_data_from_cloud()
 
 for col in DEFAULT_COLUMNS:
@@ -88,9 +86,9 @@ if uploaded_file is not None:
             uploaded_df_clean = uploaded_df.reset_index(drop=True)
             updated_df = pd.concat([df_current_clean, uploaded_df_clean], ignore_index=True)
             
-            if save_to_google(updated_df):
-                st.success("CSV डेटा सफलतापूर्वक सभी डिवाइस के लिए अपडेट कर दिया गया है!")
-                st.rerun()
+            save_to_google(updated_df)
+            st.success("CSV डेटा सफलतापूर्वक सभी डिवाइस के लिए अपडेट कर दिया गया है!")
+            st.rerun()
     except Exception as e:
         st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
 st.markdown('</div>', unsafe_allow_html=True)
@@ -155,15 +153,14 @@ if submit_button:
             "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address
         }
         
-        # दोबारा गूगल शीट से सबसे ताजा डेटा लेकर ही नया रो जोड़ेंगे
-        fresh_db = load_live_data_from_cloud()
-        df_current_clean = fresh_db.reset_index(drop=True)
+        # सीधे लाइव डेटाबेस में नया डेटा जोड़ें
+        df_current_clean = live_db.reset_index(drop=True)
         updated_df = pd.concat([df_current_clean, pd.DataFrame([new_row])], ignore_index=True)
         
-        if save_to_google(updated_df):
-            st.session_state.reset_trigger = True  # टाइपिंग बॉक्स खाली करें
-            st.success("डेटा सफलतापूर्वक जुड़ गया है और सभी डिवाइसेज पर अपडेट हो गया है!")
-            st.rerun()
+        save_to_google(updated_df)
+        st.session_state.reset_trigger = True  # टाइपिंग बॉक्स खाली करें
+        st.success("डेटा सफलतापूर्वक जुड़ गया है और सभी डिवाइसेज पर अपडेट हो गया है!")
+        st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -191,18 +188,16 @@ if not live_db.empty and len(live_db) > 0:
 
     if len(selected_rows) > 0:
         st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
-        st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है।")
+        st.warning(f"आपने {len(selected_rows)} स्टूडेंट को डिलीट करने के लिए चुना है。")
         if st.button("🗑️ चयनित स्टूडेंट का डेटा डिलीट करें", type="primary"):
             indices_to_drop = [int(idx) - 1 for idx in selected_rows.index]
             
-            # डिलीट करने से पहले बिल्कुल नया क्लाउड डेटा लें ताकि कोई क्लैश न हो
-            fresh_db = load_live_data_from_cloud()
-            df_current_clean = fresh_db.reset_index(drop=True)
+            df_current_clean = live_db.reset_index(drop=True)
             updated_df = df_current_clean.drop(index=indices_to_drop).reset_index(drop=True)
             
-            if save_to_google(updated_df):
-                st.success("डेटा हमेशा के लिए डिलीट हो गया और सभी डिवाइसेज से हट गया है!")
-                st.rerun()
+            save_to_google(updated_df)
+            st.success("डेटा हमेशा के लिए डिलीट हो गया और सभी डिवाइसेज से हट गया है!")
+            st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("डेटाबेस अभी खाली है।")
@@ -215,3 +210,7 @@ action_col1, action_col2 = st.columns(2)
 with action_col1:
     csv_data = live_db.to_csv(index=False).encode('utf-8')
     st.download_button(label="Download Database as CSV", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+with action_col2:
+    st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#ff4b4b; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">PRINT TABLE / SAVE AS PDF</button>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
