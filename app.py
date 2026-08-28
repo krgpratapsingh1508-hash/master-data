@@ -135,7 +135,7 @@ if submit_button:
 st.markdown('</div>', unsafe_allow_html=True)
 
 
-# --- पासवर्ड इनपुट बॉक्स (केवल लॉक होने पर ही दिखाई देगा) ---
+# --- पासवर्ड इनपुट बॉक्स (केवल लॉक होने पर ही दिखाई देगा, अनलॉक होते ही गायब) ---
 if not st.session_state.database_unlocked:
     st.markdown("---")
     st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
@@ -240,6 +240,6 @@ if st.session_state.database_unlocked:
     btn_col1, btn_col2 = st.columns(2)
     
     with btn_col1:
-        # 1. डाउनलोड बटन (सिंगल-लाइन फिक्स ताकि ब्रैकेट कभी मिस न हो)
+        # 1. डाउनलोड बटन (लेफ्ट साइड में) - सिंगल लाइन फिक्स
         csv_data = live_db.to_csv(index=False).encode('utf-8')
         
