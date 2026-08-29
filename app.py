@@ -193,32 +193,34 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # 🎯 सीरियल नंबर को 1 से शुरू करने का लॉजिक (Index shifted to 1)
+            # सीरियल नंबर को 1 से शुरू करने का लॉजिक
             filtered_db.index = filtered_db.index + 1
+            
+            # डाउनलोड के लिए डेटा फ्रेम पहले से ही तैयार कर लें ताकि एरर न आए
+            download_df = filtered_db.copy()
             
             # केवल Admin के लिए एडवांस्ड 'All Select' और 'Bulk Action' फीचर
             if role == "full_admin":
                 st.markdown("### 🛠️ Admin Control Panel")
                 select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
                 
-                # प्रत्येक रो के लिए सिलेक्शन स्टेट्स तय करना
                 if select_all:
                     filtered_db.insert(0, "Select", True)
                 else:
                     filtered_db.insert(0, "Select", False)
                 
-                # स्ट्रीमलिट डेटा एडिटर का उपयोग
+                # स्ट्रीमलिट डेटा एडिटर रेंडर करें
                 edited_df = st.data_editor(filtered_db, use_container_width=True, disabled=[col for col in filtered_db.columns if col != "Select"])
                 
-                # चुने गए छात्रों की संख्या देखना
+                # डाउनलोड के लिए 'Select' कॉलम को क्लीन करें
+                if "Select" in edited_df.columns:
+                    download_df = edited_df.drop(columns=["Select"])
+                
                 selected_rows = edited_df[edited_df["Select"] == True]
                 st.info(f"🎯 चुने गए छात्र रिकॉर्ड्स की संख्या: **{len(selected_rows)}**")
                 
-                # बल्क एक्शन परफॉर्म करने के टूल्स
                 if len(selected_rows) > 0:
                     col1, col2 = st.columns(2)
                     with col1:
                         new_status = st.selectbox("चयनित छात्रों का नया Status बदलें:", ["Active", "Pending", "Pass", "Inactive"])
-                        if st.button("🔄 Apply New Status to Selected", type="secondary", use_container_width=True):
-                            # सिलेक्टेड रो के इंडेक्स को वापस 0-बेस्ड में बदलकर ओरिजिनल डेटाबेस को अपडेट करना
-                
+                        
