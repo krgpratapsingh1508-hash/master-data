@@ -158,7 +158,6 @@ if st.session_state.user_role is not None:
     # भूमिका क्रेडेंशियल वेरिएबल्स
     is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
     is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
-    is_admin = st.session_state.user_role == "full_admin"
 
     # ==========================================
     # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (लेवल 1 और एडमिन के लिए)
@@ -232,15 +231,17 @@ if st.session_state.user_role is not None:
             safe_order = DEFAULT_COLUMNS.copy()
             st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
         
-        # यूटिलिटी बटन्स (केवल "Viewer" अकाउंट के लिए)
-        if st.session_state.user_role == "list_viewer":
-            csv_data = live_db.to_csv(index=False).encode('utf-8')
-            st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-            
-            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+        # यूटिलिटी बटन्स (सभी रोल के लिए उपलब्ध ताकि एरर न आए)
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
+        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+        
+        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
+            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए - अब यह अंदर से पूरी तरह इंडेंटेड है)
-        if is_admin:
-            if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट", use_container_width=True):
-            
+        # डेटा लोड करने और दिखाने की पुख्ता व्यवस्था
+        if live_db.empty:
+            st.info("💡 वर्तमान में डेटाबेस खाली है। कृपया ऊपर फॉर्म से या CSV अपलोड करके डेटा जोड़ें।")
+            empty_structure = pd.DataFrame(columns=safe_order)
+            st.dataframe(empty_structure, use_container_width=True, hide_index=True)
+        else:
+        
