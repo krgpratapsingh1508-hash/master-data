@@ -177,7 +177,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES (यहाँ लिस्ट दिखेगी)
+    # VIEWER & ADMIN ROLES
     # ==========================================
     if role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
@@ -193,15 +193,31 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            st.dataframe(filtered_db, use_container_width=True)
-            csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 डाउनलोड छात्र सूची (Download as CSV)",
-                data=csv_buffer,
-                file_name="student_database_list.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-        else:
-            st.warning("⚠️ डेटाबेस अभी खाली है या सर्च रिकॉर्ड मैच नहीं हुआ।")
-            
+            # केवल Admin के लिए एडवांस्ड 'All Select' और 'Bulk Action' फीचर
+            if role == "full_admin":
+                st.markdown("### 🛠️ Admin Control Panel")
+                select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
+                
+                # प्रत्येक रो के लिए सिलेक्शन स्टेट्स तय करना
+                if select_all:
+                    filtered_db.insert(0, "Select", True)
+                else:
+                    # यूजर मैन्युअली डेटाग्रिड या नीचे दिए गए एक्शन से सिलेक्ट कर सकता है
+                    filtered_db.insert(0, "Select", False)
+                
+                # स्ट्रीमलिट डेटा एडिटर का उपयोग जिससे चेकबॉक्स लाइव काम करें
+                edited_df = st.data_editor(filtered_db, use_container_width=True, disabled=[col for col in filtered_db.columns if col != "Select"])
+                
+                # चुने गए छात्रों की संख्या देखना
+                selected_rows = edited_df[edited_df["Select"] == True]
+                st.info(f"🎯 चुने गए छात्र रिकॉर्ड्स की संख्या: **{len(selected_rows)}**")
+                
+                # बल्क एक्शन परफॉर्म करने के टूल्स
+                if len(selected_rows) > 0:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        new_status = st.selectbox("चयनित छात्रों का नया Status बदलें:", ["Active", "Pending", "Pass", "Inactive"])
+                        if st.button("🔄 Apply New Status to Selected", type="secondary", use_container_width=True):
+                            # ओरिजिनल डेटाबेस इंडेक्स ढूंढकर अपडेट करना
+                            selected_indices = selected_rows.index
+                            
