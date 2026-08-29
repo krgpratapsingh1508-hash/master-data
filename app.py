@@ -15,8 +15,6 @@ st.markdown("""
         }
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
-    
-    /* इमेज और टेक्स्ट को एक सीध में रखने के लिए स्टाइल */
     .header-container {
         display: flex;
         align-items: center;
@@ -112,16 +110,6 @@ def save_live_data(df_to_save):
 # मेमोरी स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
-if "select_all_state" not in st.session_state:
-    st.session_state.select_all_state = False
-if "edit_mode" not in st.session_state:
-    st.session_state.edit_mode = False
-if "column_move_mode" not in st.session_state:
-    st.session_state.column_move_mode = False
-if "current_column_order" not in st.session_state:
-    st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
-
-# मैसेज दिखाने के लिए सेशन स्टेट्स
 if "upload_success" not in st.session_state:
     st.session_state.upload_success = False
 if "save_success" not in st.session_state:
@@ -130,7 +118,7 @@ if "save_success" not in st.session_state:
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे (स्क्रॉल ड्रॉपडाउन बॉक्स) ---
+# --- मुख्य लॉगिन गेटवे ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
@@ -150,24 +138,20 @@ if st.session_state.user_role is None:
         else:
             st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
 
-# --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
+# --- यदि लॉगिन सफल हो चुका है, तो सिस्टम खोलें ---
 if st.session_state.user_role is not None:
     
     # यूनिवर्सल लॉगआउट बटन
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
-        st.session_state.edit_mode = False
-        st.session_state.select_all_state = False
-        st.session_state.column_move_mode = False
         st.session_state.upload_success = False
         st.session_state.save_success = False
         st.rerun()
 
     st.markdown("---")
     
-    # भूमिका क्रेडेंशियल वेरिएबल्स
+    # केवल डेटा एंट्री की अनुमति चेक करने के लिए
     is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
-    is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
 
     # ==========================================
     # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry और admin के लिए)
@@ -192,15 +176,12 @@ if st.session_state.user_role is not None:
             except Exception as e:
                 st.error(f"त्रुटि: {e}")
 
-        # फाइल लोड होने के बाद मैसेज यहाँ दिखेगा
         if st.session_state.upload_success:
             st.success("✅ Data Complete upload")
 
         st.markdown("---")
 
-        # फॉर्म के डिफ़ॉल्ट मान सेट करने और टेक्स्ट बॉक्स को क्लियर करने के लिए फॉर्म स्टेट का इस्तेमाल
         st.header("➕ Naya Student Data Add Karein")
-        
         with st.form(key="student_add_form", clear_on_submit=True):
             eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
             unique_id = st.text_input("Unique ID")
@@ -218,7 +199,6 @@ if st.session_state.user_role is not None:
             email = st.text_input("Email ID")
             address = st.text_input("Address")
             status_input = st.selectbox("Status", STATUS_OPTIONS)
-
             submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
         if submit_student:
@@ -231,7 +211,7 @@ if st.session_state.user_role is not None:
                     "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
-                live_db = load_live_data() # ताज़ा डेटा लोड करें
+                live_db = load_live_data()
                 if live_db.empty:
                     updated_df = pd.DataFrame([new_row])
                 else:
@@ -241,12 +221,29 @@ if st.session_state.user_role is not None:
                 st.session_state.upload_success = False
                 st.rerun()
 
-        # डेटा सेव होने के बाद का मैसेज फॉर्म के बाहर यहाँ दिखेगा
         if st.session_state.save_success:
             st.success("✅ data save successfully")
             st.session_state.save_success = False
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin के लिए)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉगिन यूज़र्स को हमेशा दिखेगी)
     # ==========================================
+    st.markdown("---")
+    st.header("📊 Live Student Database Table")
     
+    # डाउनलोड और प्रिंट बटन्स को खुली जगह पर रखा है ताकि ये सबको मिलें
+    csv_data = live_db.to_csv(index=False).encode('utf-8')
+    st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+    
+    if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
+        st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+
+    # 🔢 स्वचालित क्रमिक संख्या (S. No. / Serial Number) जोड़कर लिस्ट दिखाना
+    if live_db.empty:
+        st.info("💡 वर्तमान में डेटाबेस खाली है।")
+        empty_df = pd.DataFrame(columns=["S. No."] + DEFAULT_COLUMNS)
+        st.dataframe(empty_df, use_container_width=True, hide_index=True)
+    else:
+        display_df = live_db[DEFAULT_COLUMNS].copy()
+        display_df.insert(0, "S. No.", range(1, len(display_df) + 1))
+        
