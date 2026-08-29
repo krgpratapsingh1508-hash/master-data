@@ -83,7 +83,7 @@ if "save_success" not in st.session_state:
 if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
-    st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक (🔒 True) रहेगा
+    st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक रहेगा
 
 live_db = load_live_data()
 
@@ -185,7 +185,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES
+    # VIEWER & ADMIN ROLES (डेटा प्रदर्शन)
     # ==========================================
     elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
@@ -206,13 +206,13 @@ else:
         if not filtered_db.empty:
             
             # ----------------------------------------
-            # 🛠️ केस ए: FULL ADMIN मोड
+            # 🛠️ केस ए: FULL ADMIN मोड लॉजिक
             # ----------------------------------------
             if role == "full_admin":
                 st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                # मास्टर लॉक/अनलॉक बटन (यह हमेशा सबसे ऊपर दिखेगा)
+                # मास्टर लॉक / अनलॉक बटन
                 if st.session_state.admin_lock_state:
                     if st.button("🔓 Unlock List (एडमिन बटन और एडिटिंग चालू करें)", type="primary", use_container_width=True):
                         st.session_state.admin_lock_state = False
@@ -221,4 +221,4 @@ else:
                     if st.button("🔒 Lock List (सभी एडमिन बटन्स को छुपाएं और सुरक्षित करें)", type="secondary", use_container_width=True):
                         st.session_state.admin_lock_state = True
                         st.rerun()
-    
+                        
