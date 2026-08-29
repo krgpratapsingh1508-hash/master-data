@@ -94,12 +94,14 @@ def load_live_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE, dtype=str)
+            # सुनिश्चित करें कि सभी कॉलम मौजूद हैं
             for col in DEFAULT_COLUMNS:
                 if col not in df.columns:
                     df[col] = ""
             return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
         except:
             pass
+    # यदि फ़ाइल नहीं है, तो डिफ़ॉल्ट कॉलम के साथ खाली डेटाफ़्रेम बनाएँ
     return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
@@ -244,8 +246,5 @@ if st.session_state.user_role is not None:
     # ==========================================
     if is_viewer_only or is_admin:
         st.header("📊 Live Student Database Table")
-        
-        # ताज़ा लाइव डेटा लोड सुनिश्चित करें
-        fresh_db = load_live_data()
 
         
