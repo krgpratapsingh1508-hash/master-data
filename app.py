@@ -55,7 +55,6 @@ DEFAULT_COLUMNS = [
     "Subject", "Duration", "Mobile No.", "Email ID", "Address", "Status"
 ]
 
-# डेटा लोड फंक्शन
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -89,7 +88,117 @@ if "list_visibility_state" not in st.session_state:
 
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे ---
+# ==========================================
+# 🛠️ फ़ंक्शन: डेटा टेबल और बटन रेंडरर (एरर-फ्री क्लोजर)
+# ==========================================
+def render_data_table(filtered_db, role):
+    filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
+    download_df = filtered_db.copy()
+    global live_db
+    
+    # --- FULL ADMIN मोड लॉजिक ---
+    if role == "full_admin":
+        st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        if st.session_state.admin_lock_state:
+            if st.button("🔓 Unlock List (एडमिन बटन और एडिटिंग चालू करें)", type="primary", use_container_width=True):
+                st.session_state.admin_lock_state = False
+                st.rerun()
+        else:
+            if st.button("🔒 Lock List (सभी एडमिन बटन्स को छुपाएं और सुरक्षित करें)", type="secondary", use_container_width=True):
+                st.session_state.admin_lock_state = True
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if not st.session_state.admin_lock_state:
+            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+            target_col = st.selectbox("आगे-पीछे खिसकाने के लिए कॉलम चुनें (Select Column):", options=st.session_state.admin_columns_order)
+            
+            c_left, c_right = st.columns(2)
+            if c_left.button("⬅️ Column Shift Left", use_container_width=True):
+                idx = st.session_state.admin_columns_order.index(target_col)
+                if idx > 0:
+                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                    st.rerun()
+            if c_right.button("➡️ Column Shift Right", use_container_width=True):
+                idx = st.session_state.admin_columns_order.index(target_col)
+                if idx < len(st.session_state.admin_columns_order) - 1:
+                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                    st.rerun()
+            
+            select_all = st.checkbox("✅ Select All Rows (सभी रो को एक साथ चुनें)")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            ordered_db = filtered_db[st.session_state.admin_columns_order].copy()
+            ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+            ordered_db.insert(0, "Select", select_all)
+            
+            edited_df = st.data_editor(
+                ordered_db,
+                use_container_width=True,
+                disabled=[col for col in ordered_db.columns if col == "Select"],
+                key="advanced_admin_unlocked_editor",
+                hide_index=True
+            )
+            
+            clean_edited = edited_df.drop(columns=["Select", "S.No."])
+            for col in clean_edited.columns:
+                live_db.loc[filtered_db.index - 1, col] = clean_edited[col].values
+            save_live_data(live_db)
+            
+            selected_rows = edited_df[edited_df["Select"] == True]
+            
+            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+            st.info(f"🎯 चयनित रो की संख्या: **{len(selected_rows)}**")
+            if len(selected_rows) > 0:
+                if st.button("🗑️ Delete Selected Rows (चयनित रो डिलीट करें)", type="primary", use_container_width=True):
+                    indices_to_drop = filtered_db.index[[int(s_no) - 1 for s_no in selected_rows["S.No."]]] - 1
+                    live_db = live_db.drop(indices_to_drop).reset_index(drop=True)
+                    save_live_data(live_db)
+                    st.success("🗑️ चयनित रो सफलतापूर्वक हटा दी गई हैं!")
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            download_df = edited_df.drop(columns=["Select", "S.No."]) if "Select" in edited_df.columns else edited_df.drop(columns=["S.No."])
+        else:
+            locked_admin_db = filtered_db[st.session_state.admin_columns_order].copy()
+            locked_admin_db.insert(0, "S.No.", range(1, len(locked_admin_db) + 1))
+            st.dataframe(locked_admin_db, use_container_width=True, hide_index=True)
+            download_df = filtered_db.copy()
+            
+    # --- LIST VIEWER मोड ---
+    else:
+        viewer_db = filtered_db.copy()
+        viewer_db.insert(0, "S.No.", range(1, len(viewer_db) + 1))
+        st.dataframe(viewer_db, use_container_width=True, hide_index=True)
+        download_df = filtered_db.copy()
+        
+    # --- एक्शन बटन्स पैनल ---
+    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if "S.No." in download_df.columns:
+            download_df = download_df.drop(columns=["S.No."])
+        csv_buffer = download_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 डाउनलोड छात्र सूची (Download as CSV)",
+            data=csv_buffer,
+            file_name="student_database_list.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    with col_btn2:
+        st.markdown("""
+            <button onclick="window.print()" style="
+                width: 100%; background-color: #FF5733; color: white; border: none;
+                padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;
+                font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;
+            ">🖨️ प्रिंट या PDF बनाएं (Print / Save as PDF)</button>
+        """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# --- लॉगिन गेटवे चेक ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
@@ -105,121 +214,5 @@ if st.session_state.user_role is None:
             st.session_state.list_visibility_state = True  
             st.success("✅ लॉगिन सफल!")
             st.rerun()
-        else:
-            st.error("❌ गलत पासवर्ड!")
-
-# --- लॉगिन के बाद का सिस्टम ---
-else:
-    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-    if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
-        st.session_state.user_role = None
-        st.session_state.upload_success = False
-        st.session_state.save_success = False
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    role = st.session_state.user_role
-
-    # ==========================================
-    # DATA ENTRY ROLE
-    # ==========================================
-    if role == "data_entry":
-        st.header("📁 CSV File Bulk Upload")
-        uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-        if uploaded_file is not None:
-            try:
-                uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                if st.button("Upload CSV Now"):
-                    if "Admission No." in uploaded_df.columns:
-                        uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                    current_db = load_live_data()
-                    updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
-                    save_live_data(updated_df)
-                    st.session_state.upload_success = True
-                    st.session_state.save_success = False
-                    st.rerun()
-            except Exception as e:
-                st.error(f"त्रुटि: {e}")
-
-        if st.session_state.upload_success:
-            st.success("✅ Data Complete upload")
-
-        st.markdown("---")
-        st.header("➕ Naya Student Data Add Karein")
-        with st.form(key="student_add_form", clear_on_submit=True):
-            eligibility = st.selectbox("Eligibility", ["None", "U.G.", "P.G."])
-            unique_id = st.text_input("Unique ID")
-            roll_no = st.text_input("Roll No.")
-            application_no = st.text_input("Application No.")
-            enr_no = st.text_input("Enrollment No.")
-            s_name = st.text_input("Student Name")
-            f_name = st.text_input("Father Name")
-            m_name = st.text_input("Mother Name")
-            dob = st.text_input("Date of Birth")
-            category = st.text_input("Category")
-            subject = st.text_input("Subject")
-            duration = st.selectbox("Duration", ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"])
-            mobile = st.text_input("Mobile No.")
-            email = st.text_input("Email ID")
-            address = st.text_input("Address")
-            status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
-            submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
-
-        if submit_student:
-            if s_name.strip() == "":
-                st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
             else:
-                new_row = {
-                    "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-                    "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
-                    "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-                    "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
-                }
-                current_db = load_live_data()
-                updated_df = pd.DataFrame([new_row]) if current_db.empty else pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
-                save_live_data(updated_df)
-                st.session_state.save_success = True
-                st.session_state.upload_success = False
-                st.rerun()
-
-        if st.session_state.save_success:
-            st.success("✅ data save successfully")
-            st.session_state.save_success = False
-
-    # ==========================================
-    # VIEWER & ADMIN ROLES (डेटा प्रदर्शन ब्लॉक)
-    # ==========================================
-    elif role in ["list_viewer", "full_admin"]:
-        st.header("📊 Student Live Database List")
-        
-        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-        # 👁️ वैश्विक हाइड / अनहाइड बटन पैनल (दोनों रोल के लिए उपलब्ध)
-        visibility_label = "👁️ Unhide Student List (सूची वापस दिखाएं)" if not st.session_state.list_visibility_state else "🙈 Hide Student List (सूची को पूरी तरह छुपाएं)"
-        if st.button(visibility_label, use_container_width=True, type="secondary"):
-            st.session_state.list_visibility_state = not st.session_state.list_visibility_state
-            st.rerun()
             
-        search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        filtered_db = live_db.copy()
-        if search_query:
-            filtered_db = filtered_db[
-                filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
-                filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
-            ]
-            
-        st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
-        
-        # 🎯 कंडीशन 1: अगर लिस्ट को पूरी तरह से छुपाया (Hide) गया है
-        if not st.session_state.list_visibility_state:
-            st.info("🔒 छात्र सूची को वर्तमान में छुपाया (Hide) गया है। देखने के लिए ऊपर 'Unhide' बटन दबाएं।")
-            
-        # 🎯 कंडीशन 2: अगर डेटा खाली है
-        elif filtered_db.empty:
-            st.warning("⚠️ डेटाबेस अभी खाली है या सर्च रिकॉर्ड मैच नहीं हुआ।")
-            
-        # 🎯 कंडीशन 3: लिस्ट अनहाइड है और डेटा उपलब्ध है (मुख्य डेटा रेंडरर)
-    else:
-        
