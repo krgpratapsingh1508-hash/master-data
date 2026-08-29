@@ -167,7 +167,7 @@ if st.session_state.user_role is not None:
     is_admin = (st.session_state.user_role == "full_admin")
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin से पूरी तरह बंद)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin और Viewer से बंद)
     # ==========================================
     if is_entry_only:
         st.header("📁 CSV File Bulk Upload")
