@@ -138,7 +138,7 @@ if st.session_state.user_role is None:
         else:
             st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
 
-# --- यदि लॉगिन सफल हो चुका है, तो सिस्टम खोलें ---
+# --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
 if st.session_state.user_role is not None:
     
     # यूनिवर्सल लॉगआउट बटन
@@ -150,8 +150,9 @@ if st.session_state.user_role is not None:
 
     st.markdown("---")
     
-    # केवल डेटा एंट्री की अनुमति चेक करने के लिए
+    # क्रेडेंशियल कंडीशन्स वेरिएबल्स
     is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
+    is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
 
     # ==========================================
     # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry और admin के लिए)
@@ -226,24 +227,23 @@ if st.session_state.user_role is not None:
             st.session_state.save_success = False
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉगिन यूज़र्स को हमेशा दिखेगी)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin पासवर्ड में ही खुलेगा)
     # ==========================================
-    st.markdown("---")
-    st.header("📊 Live Student Database Table")
-    
-    # डाउनलोड और प्रिंट बटन्स को खुली जगह पर रखा है ताकि ये सबको मिलें
-    csv_data = live_db.to_csv(index=False).encode('utf-8')
-    st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-    
-    if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-        st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+    if is_list_allowed:
+        st.markdown("---")
+        st.header("📊 Live Student Database Table")
+        
+        # डाउनलोड और प्रिंट बटन्स केवल लिस्ट अलाउड यूजर्स को ही दिखेंगे
+        csv_data = live_db.to_csv(index=False).encode('utf-8')
+        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
+        
+        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
+            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-    # 🔢 स्वचालित क्रमिक संख्या (S. No. / Serial Number) जोड़कर लिस्ट दिखाना
-    if live_db.empty:
-        st.info("💡 वर्तमान में डेटाबेस खाली है।")
-        empty_df = pd.DataFrame(columns=["S. No."] + DEFAULT_COLUMNS)
-        st.dataframe(empty_df, use_container_width=True, hide_index=True)
-    else:
-        display_df = live_db[DEFAULT_COLUMNS].copy()
-        display_df.insert(0, "S. No.", range(1, len(display_df) + 1))
+        # 🔢 स्वचालित क्रमिक संख्या (S. No.) सेटअप
+        if live_db.empty:
+            st.info("💡 वर्तमान में डेटाबेस खाली है।")
+            empty_df = pd.DataFrame(columns=["S. No."] + DEFAULT_COLUMNS)
+            st.dataframe(empty_df, use_container_width=True, hide_index=True)
+        else:
         
