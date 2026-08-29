@@ -83,9 +83,9 @@ if "save_success" not in st.session_state:
 if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
-    st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक रहेगा
+    st.session_state.admin_lock_state = True  
 if "list_visibility_state" not in st.session_state:
-    st.session_state.list_visibility_state = True  # डिफ़ॉल्ट रूप से लिस्ट अनहाइड (दिखेगी) रहेगी
+    st.session_state.list_visibility_state = True  
 
 live_db = load_live_data()
 
@@ -188,7 +188,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES (डेटा प्रदर्शन)
+    # VIEWER & ADMIN ROLES (डेटा प्रदर्शन ब्लॉक)
     # ==========================================
     elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
@@ -212,10 +212,14 @@ else:
             
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
-        # 🎯 यदि लिस्ट छुपा रखी है (False है), तो यही रोक दें और आगे का तालिका कोड न चलाएं
+        # 🎯 कंडीशन 1: अगर लिस्ट को पूरी तरह से छुपाया (Hide) गया है
         if not st.session_state.list_visibility_state:
             st.info("🔒 छात्र सूची को वर्तमान में छुपाया (Hide) गया है। देखने के लिए ऊपर 'Unhide' बटन दबाएं।")
-        
-        # 🎯 यदि लिस्ट अनहाइड (True) है और खाली नहीं है, तो ही तालिका रेंडर करें (एरर फ्री समाधान)
-        elif not filtered_db.empty:
             
+        # 🎯 कंडीशन 2: अगर डेटा खाली है
+        elif filtered_db.empty:
+            st.warning("⚠️ डेटाबेस अभी खाली है या सर्च रिकॉर्ड मैच नहीं हुआ।")
+            
+        # 🎯 कंडीशन 3: लिस्ट अनहाइड है और डेटा उपलब्ध है (मुख्य डेटा रेंडरर)
+    else:
+        
