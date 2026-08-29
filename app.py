@@ -32,7 +32,6 @@ st.markdown("""
     }
     .header-text h1 {
         margin: 0 !important;
-        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -247,4 +246,6 @@ if st.session_state.user_role is not None:
         
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
-        
+            safe_order = DEFAULT_COLUMNS.copy()
+
+
