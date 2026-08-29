@@ -15,63 +15,34 @@ st.markdown("""
         }
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
-    .header-container {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-    .header-text {
-        display: flex;
-        flex-direction: column;
-    }
-    .header-text h3 {
-        margin: 0 !important;
-        padding: 0 !important;
-        color: #FF5733;
-    }
-    .header-text h1 {
-        margin: 0 !important;
-    }
+    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .header-text { display: flex; flex-direction: column; }
+    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
+    .header-text h1 { margin: 0 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- लोगो/इमेज को लोड करने के लिए फंक्शन (Base64 रूपांतरण) ---
+# लोगो लोड करने का फंक्शन
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as image_file:
-            encoded = base64.b64encode(image_file.read()).decode()
-            return f"data:image/png;base64,{encoded}"
+            return f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
     return ""
 
-IMAGE_PATH = "logo pratap.png"
-img_base64 = get_image_base64(IMAGE_PATH)
+img_base64 = get_image_base64("logo pratap.png")
+logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
 
-# --- शीर्ष अनुभाग (Header Section) ---
-if img_base64:
-    st.markdown(f"""
-        <div class="header-container">
-            <img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>
-            <div class="header-text">
-                <h3>ॐ गुरुवर्य नमः</h3>
-                <h1>Permanent Shared Live Database</h1>
-            </div>
+st.markdown(f"""
+    <div class="header-container">
+        {logo_html}
+        <div class="header-text">
+            <h3>ॐ गुरुवर्य नमः</h3>
+            <h1>Permanent Shared Live Database</h1>
         </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
-        <div class="header-container">
-            <div class="header-text">
-                <h3>ॐ गुरुवर्य नमः</h3>
-                <h1>Permanent Shared Live Database</h1>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    </div>
+""", unsafe_allow_html=True)
 
-# डेटाबेस फ़ाइल पाथ
 DB_FILE = "shared_student_database.csv"
-
-# 🔑 3-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स
 CREDENTIALS = {
     "entry": {"password": "entry123", "role": "data_entry"},
     "viewer": {"password": "viewer123", "role": "list_viewer"},
@@ -79,17 +50,12 @@ CREDENTIALS = {
 }
 
 DEFAULT_COLUMNS = [
-    "Eligibility", "Unique ID", "Roll No.", 
-    "Application No.", "Enrollment No.", "Student Name", "Father Name",
-    "Mother Name", "Date of Birth", "Category", "Subject", 
-    "Duration", "Mobile No.", "Email ID", "Address", "Status"
+    "Eligibility", "Unique ID", "Roll No.", "Application No.", "Enrollment No.", 
+    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", 
+    "Subject", "Duration", "Mobile No.", "Email ID", "Address", "Status"
 ]
 
-ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
-DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
-STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
-
-# फ़ाइल से डेटा लोड करने का फंक्शन (ऑटो-फ़ाइल क्रिएशन के साथ)
+# डेटा लोड फंक्शन
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -104,11 +70,9 @@ def load_live_data():
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
-# फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# मेमोरी स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -116,32 +80,27 @@ if "upload_success" not in st.session_state:
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
 
-# सीधे स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
 # --- मुख्य लॉगिन गेटवे ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
-    
     user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(CREDENTIALS.keys()))
     password_input = st.text_input("Password दर्ज करें:", type="password")
-    login_submit = st.button("Secure Login", use_container_width=True, type="primary")
-        
-    if login_submit:
+    
+    if st.button("Secure Login", use_container_width=True, type="primary"):
         if user_input in CREDENTIALS and CREDENTIALS[user_input]["password"] == password_input:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.session_state.upload_success = False
             st.session_state.save_success = False
-            st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
+            st.success("✅ लॉगिन सफल!")
             st.rerun()
         else:
-            st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
+            st.error("❌ गलत पासवर्ड!")
 
-# --- यदि लॉगिन सफल हो चुका है, तो रोल के हिसाब से सिस्टम खोलें ---
-if st.session_state.user_role is not None:
-    
-    # यूनिवर्सल लॉगआउट बटन
+# --- लॉगिन के बाद का सिस्टम ---
+else:
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
         st.session_state.upload_success = False
@@ -149,16 +108,12 @@ if st.session_state.user_role is not None:
         st.rerun()
 
     st.markdown("---")
-    
-    # क्रेडेंशियल कंडीशन्स वेरिएबल्स की जांच
-    is_entry_only = (st.session_state.user_role == "data_entry")
-    is_viewer_only = (st.session_state.user_role == "list_viewer")
-    is_admin = (st.session_state.user_role == "full_admin")
+    role = st.session_state.user_role
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए)
+    # DATA ENTRY ROLE
     # ==========================================
-    if is_entry_only:
+    if role == "data_entry":
         st.header("📁 CSV File Bulk Upload")
         uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
         if uploaded_file is not None:
@@ -168,10 +123,7 @@ if st.session_state.user_role is not None:
                     if "Admission No." in uploaded_df.columns:
                         uploaded_df = uploaded_df.drop(columns=["Admission No."])
                     current_db = load_live_data()
-                    if current_db.empty:
-                        updated_df = uploaded_df
-                    else:
-                        updated_df = pd.concat([current_db, uploaded_df], ignore_index=True)
+                    updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
                     save_live_data(updated_df)
                     st.session_state.upload_success = True
                     st.session_state.save_success = False
@@ -183,10 +135,9 @@ if st.session_state.user_role is not None:
             st.success("✅ Data Complete upload")
 
         st.markdown("---")
-
         st.header("➕ Naya Student Data Add Karein")
         with st.form(key="student_add_form", clear_on_submit=True):
-            eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
+            eligibility = st.selectbox("Eligibility", ["None", "U.G.", "P.G."])
             unique_id = st.text_input("Unique ID")
             roll_no = st.text_input("Roll No.")
             application_no = st.text_input("Application No.")
@@ -197,11 +148,11 @@ if st.session_state.user_role is not None:
             dob = st.text_input("Date of Birth")
             category = st.text_input("Category")
             subject = st.text_input("Subject")
-            duration = st.selectbox("Duration", DURATION_OPTIONS)
+            duration = st.selectbox("Duration", ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"])
             mobile = st.text_input("Mobile No.")
             email = st.text_input("Email ID")
             address = st.text_input("Address")
-            status_input = st.selectbox("Status", STATUS_OPTIONS)
+            status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
             submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
         if submit_student:
@@ -215,10 +166,7 @@ if st.session_state.user_role is not None:
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
                 current_db = load_live_data()
-                if current_db.empty:
-                    updated_df = pd.DataFrame([new_row])
-                else:
-                    updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
+                updated_df = pd.DataFrame([new_row]) if current_db.empty else pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
                 save_live_data(updated_df)
                 st.session_state.save_success = True
                 st.session_state.upload_success = False
@@ -229,15 +177,12 @@ if st.session_state.user_role is not None:
             st.session_state.save_success = False
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin लॉगिन में दिखेगा)
+    # VIEWER & ADMIN ROLES (यहाँ लिस्ट दिखेगी)
     # ==========================================
-    if is_viewer_only or is_admin:
+    if role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
-        
-        # सर्च बॉक्स फ़िल्टर
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         
-        # लाइव डेटाबेस को फ़िल्टर करना
         filtered_db = live_db.copy()
         if search_query:
             filtered_db = filtered_db[
@@ -248,5 +193,15 @@ if st.session_state.user_role is not None:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # पूरी लिस्ट ग्रिड रेंडर करना
+            st.dataframe(filtered_db, use_container_width=True)
+            csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 डाउनलोड छात्र सूची (Download as CSV)",
+                data=csv_buffer,
+                file_name="student_database_list.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.warning("⚠️ डेटाबेस अभी खाली है या सर्च रिकॉर्ड मैच नहीं हुआ।")
             
