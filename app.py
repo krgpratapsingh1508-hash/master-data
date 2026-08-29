@@ -74,6 +74,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
+# स्टेट मैनेजमेंट ट्रिगर्स
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -102,7 +103,6 @@ if st.session_state.user_role is None:
 
 # --- लॉगिन के बाद का सिस्टम ---
 else:
-    # लॉगआउट बटन को प्रिंट करते समय छुपाने के लिए कंटेनर क्लास दी गई है
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
@@ -186,7 +186,6 @@ else:
     elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
         
-        # सर्च बार को प्रिंट के समय छुपाने के लिए कंटेनर क्लास
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -210,6 +209,7 @@ else:
                 st.markdown('<div class="print-hide">### 🛠️ Admin Control Panel</div>', unsafe_allow_html=True)
                 
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                # Select All बटन का मूल ट्रिगर लॉजिक
                 select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
@@ -218,9 +218,11 @@ else:
                 else:
                     filtered_db.insert(0, "Select", False)
                 
-                edited_df = st.data_editor(filtered_db, use_container_width=True, disabled=[col for col in filtered_db.columns if col != "Select"])
-                
-                if "Select" in edited_df.columns:
-                    download_df = edited_df.drop(columns=["Select"])
-
+                # डेटा एडिटर के रूप में लोड करना
+                edited_df = st.data_editor(
+                    filtered_db, 
+                    use_container_width=True, 
+                    disabled=[col for col in filtered_db.columns if col != "Select"],
+                    key="admin_table_editor"
+                )
 
