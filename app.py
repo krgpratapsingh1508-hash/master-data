@@ -245,7 +245,7 @@ if st.session_state.user_role is not None:
     if is_viewer_only or is_admin:
         st.header("📊 Live Student Database Table")
         
-        # ताज़ा लाइव डेटा लोड सुनिश्चित करें
         fresh_db = load_live_data()
-
+        
+        safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         
