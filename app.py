@@ -200,8 +200,8 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # सीरियल नंबर को 1 से शुरू करना
-            filtered_db.index = filtered_db.index + 1
+            # 🎯 रो (Rows) को बिना आगे-पीछे किए 1 से सीरियल नंबर देने का सबसे सुरक्षित तरीका:
+            filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
             download_df = filtered_db.copy()
             
             # केवल Full Admin के लिए 'All Select' और 'Bulk Tools'
@@ -209,7 +209,6 @@ else:
                 st.markdown('<div class="print-hide">### 🛠️ Admin Control Panel</div>', unsafe_allow_html=True)
                 
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                # Select All बटन का मूल ट्रिगर लॉजिक
                 select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
@@ -218,11 +217,9 @@ else:
                 else:
                     filtered_db.insert(0, "Select", False)
                 
-                # डेटा एडिटर के रूप में लोड करना
                 edited_df = st.data_editor(
                     filtered_db, 
                     use_container_width=True, 
                     disabled=[col for col in filtered_db.columns if col != "Select"],
-                    key="admin_table_editor"
-                )
-
+                    key="admin_table_editor",
+                
