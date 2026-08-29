@@ -114,6 +114,12 @@ if "upload_success" not in st.session_state:
     st.session_state.upload_success = False
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
+if "edit_mode" not in st.session_state:
+    st.session_state.edit_mode = False
+if "column_move_mode" not in st.session_state:
+    st.session_state.column_move_mode = False
+if "current_column_order" not in st.session_state:
+    st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -133,6 +139,8 @@ if st.session_state.user_role is None:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.session_state.upload_success = False
             st.session_state.save_success = False
+            st.session_state.edit_mode = False
+            st.session_state.column_move_mode = False
             st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
@@ -146,18 +154,21 @@ if st.session_state.user_role is not None:
         st.session_state.user_role = None
         st.session_state.upload_success = False
         st.session_state.save_success = False
+        st.session_state.edit_mode = False
+        st.session_state.column_move_mode = False
         st.rerun()
 
     st.markdown("---")
     
     # क्रेडेंशियल कंडीशन्स वेरिएबल्स
-    is_entry_allowed = st.session_state.user_role in ["data_entry", "full_admin"]
+    is_entry_only = st.session_state.user_role == "data_entry"
     is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
+    is_admin = st.session_state.user_role == "full_admin"
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry और admin के लिए)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin से हटाया गया)
     # ==========================================
-    if is_entry_allowed:
+    if is_entry_only:
         st.header("📁 CSV File Bulk Upload")
         uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
         if uploaded_file is not None:
@@ -233,17 +244,9 @@ if st.session_state.user_role is not None:
         st.markdown("---")
         st.header("📊 Live Student Database Table")
         
-        # डाउनलोड और प्रिंट बटन्स केवल लिस्ट अलाउड यूजर्स को ही दिखेंगे
-        csv_data = live_db.to_csv(index=False).encode('utf-8')
-        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-        
-        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+        # सुरक्षित कॉलम क्रम सेटअप
+        safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
+        if len(safe_order) != len(DEFAULT_COLUMNS):
+            safe_order = DEFAULT_COLUMNS.copy()
 
-        # 🔢 स्वचालित क्रमिक संख्या (S. No.) सेटअप
-        if live_db.empty:
-            st.info("💡 वर्तमान में डेटाबेस खाली है।")
-            empty_df = pd.DataFrame(columns=["S. No."] + DEFAULT_COLUMNS)
-            st.dataframe(empty_df, use_container_width=True, hide_index=True)
-        else:
-        
+
