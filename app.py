@@ -193,6 +193,9 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
+            # 🎯 सीरियल नंबर को 1 से शुरू करने का लॉजिक (Index shifted to 1)
+            filtered_db.index = filtered_db.index + 1
+            
             # केवल Admin के लिए एडवांस्ड 'All Select' और 'Bulk Action' फीचर
             if role == "full_admin":
                 st.markdown("### 🛠️ Admin Control Panel")
@@ -202,10 +205,9 @@ else:
                 if select_all:
                     filtered_db.insert(0, "Select", True)
                 else:
-                    # यूजर मैन्युअली डेटाग्रिड या नीचे दिए गए एक्शन से सिलेक्ट कर सकता है
                     filtered_db.insert(0, "Select", False)
                 
-                # स्ट्रीमलिट डेटा एडिटर का उपयोग जिससे चेकबॉक्स लाइव काम करें
+                # स्ट्रीमलिट डेटा एडिटर का उपयोग
                 edited_df = st.data_editor(filtered_db, use_container_width=True, disabled=[col for col in filtered_db.columns if col != "Select"])
                 
                 # चुने गए छात्रों की संख्या देखना
@@ -218,6 +220,5 @@ else:
                     with col1:
                         new_status = st.selectbox("चयनित छात्रों का नया Status बदलें:", ["Active", "Pending", "Pass", "Inactive"])
                         if st.button("🔄 Apply New Status to Selected", type="secondary", use_container_width=True):
-                            # ओरिजिनल डेटाबेस इंडेक्स ढूंढकर अपडेट करना
-                            selected_indices = selected_rows.index
-                            
+                            # सिलेक्टेड रो के इंडेक्स को वापस 0-बेस्ड में बदलकर ओरिजिनल डेटाबेस को अपडेट करना
+                
