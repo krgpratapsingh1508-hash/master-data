@@ -200,7 +200,7 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # 🎯 रो (Rows) को बिना आगे-पीछे किए 1 से सीरियल नंबर देने का सबसे सुरक्षित तरीका:
+            # 1 से सीरियल नंबर असाइन करना
             filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
             download_df = filtered_db.copy()
             
@@ -222,4 +222,8 @@ else:
                     use_container_width=True, 
                     disabled=[col for col in filtered_db.columns if col != "Select"],
                     key="admin_table_editor",
+                    hide_index=True
+                )
                 
+                if "Select" in edited_df.columns:
+                    
