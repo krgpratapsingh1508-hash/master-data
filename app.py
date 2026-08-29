@@ -6,11 +6,12 @@ import base64
 # पेज का लेआउट सेट करें
 st.set_page_config(layout="wide")
 
-# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए CSS
+# प्रिंट फ़ॉर्मेटिंग, लेआउट और बटन को व्यवस्थित करने के लिए सीएसएस (CSS)
 st.markdown("""
     <style>
     @media print {
-        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"] {
+        /* प्रिंट करते समय लॉगिन, हेडर, बटन और साइडबार जैसी फालतू चीज़ों को छुपाने के लिए */
+        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"], .print-hide {
             display: none !important;
         }
         .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
@@ -101,11 +102,14 @@ if st.session_state.user_role is None:
 
 # --- लॉगिन के बाद का सिस्टम ---
 else:
+    # लॉगआउट बटन को प्रिंट करते समय छुपाने के लिए कंटेनर क्लास दी गई है
+    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
         st.session_state.upload_success = False
         st.session_state.save_success = False
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     role = st.session_state.user_role
@@ -181,7 +185,11 @@ else:
     # ==========================================
     elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
+        
+        # सर्च बार को प्रिंट के समय छुपाने के लिए कंटेनर क्लास
+        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         filtered_db = live_db.copy()
         if search_query:
@@ -199,8 +207,11 @@ else:
             
             # केवल Full Admin के लिए 'All Select' और 'Bulk Tools'
             if role == "full_admin":
-                st.markdown("### 🛠️ Admin Control Panel")
+                st.markdown('<div class="print-hide">### 🛠️ Admin Control Panel</div>', unsafe_allow_html=True)
+                
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 if select_all:
                     filtered_db.insert(0, "Select", True)
@@ -211,14 +222,5 @@ else:
                 
                 if "Select" in edited_df.columns:
                     download_df = edited_df.drop(columns=["Select"])
-                
-                selected_rows = edited_df[edited_df["Select"] == True]
-                st.info(f"🎯 चुने गए छात्र रिकॉर्ड्स की संख्या: **{len(selected_rows)}**")
-                
-                if len(selected_rows) > 0:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        new_status = st.selectbox("चयनित छात्रों का नया Status बदलें:", ["Active", "Pending", "Pass", "Inactive"])
-                        if st.button("🔄 Apply New Status to Selected", type="secondary", use_container_width=True):
-                            selected_original_indices = [idx - 1 for idx in selected_rows.index]
-                            
+
+
