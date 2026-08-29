@@ -121,6 +121,12 @@ if "column_move_mode" not in st.session_state:
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
 
+# मैसेज दिखाने के लिए सेशन स्टेट्स
+if "upload_success" not in st.session_state:
+    st.session_state.upload_success = False
+if "save_success" not in st.session_state:
+    st.session_state.save_success = False
+
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
@@ -137,6 +143,8 @@ if st.session_state.user_role is None:
     if login_submit:
         if user_input in CREDENTIALS and CREDENTIALS[user_input]["password"] == password_input:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
+            st.session_state.upload_success = False
+            st.session_state.save_success = False
             st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
@@ -151,6 +159,8 @@ if st.session_state.user_role is not None:
         st.session_state.edit_mode = False
         st.session_state.select_all_state = False
         st.session_state.column_move_mode = False
+        st.session_state.upload_success = False
+        st.session_state.save_success = False
         st.rerun()
 
     st.markdown("---")
@@ -160,7 +170,7 @@ if st.session_state.user_role is not None:
     is_list_allowed = st.session_state.user_role in ["list_viewer", "full_admin"]
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (लेवल 1 और एडमिन के लिए)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry और admin के लिए)
     # ==========================================
     if is_entry_allowed:
         st.header("📁 CSV File Bulk Upload")
@@ -176,32 +186,42 @@ if st.session_state.user_role is not None:
                     else:
                         updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
                     save_live_data(updated_df)
-                    st.success("CSV डेटा सफलतापूर्वक डेटाबेस में जोड़ दिया गया है!")
+                    st.session_state.upload_success = True
+                    st.session_state.save_success = False
                     st.rerun()
             except Exception as e:
                 st.error(f"त्रुटि: {e}")
 
+        # फाइल लोड होने के बाद मैसेज यहाँ दिखेगा
+        if st.session_state.upload_success:
+            st.success("✅ Data Complete upload")
+
         st.markdown("---")
 
+        # फॉर्म के डिफ़ॉल्ट मान सेट करने और टेक्स्ट बॉक्स को क्लियर करने के लिए फॉर्म स्टेट का इस्तेमाल
         st.header("➕ Naya Student Data Add Karein")
-        eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
-        unique_id = st.text_input("Unique ID")
-        roll_no = st.text_input("Roll No.")
-        application_no = st.text_input("Application No.")
-        enr_no = st.text_input("Enrollment No.")
-        s_name = st.text_input("Student Name")
-        f_name = st.text_input("Father Name")
-        m_name = st.text_input("Mother Name")
-        dob = st.text_input("Date of Birth")
-        category = st.text_input("Category")
-        subject = st.text_input("Subject")
-        duration = st.selectbox("Duration", DURATION_OPTIONS)
-        mobile = st.text_input("Mobile No.")
-        email = st.text_input("Email ID")
-        address = st.text_input("Address")
-        status_input = st.selectbox("Status", STATUS_OPTIONS)
+        
+        with st.form(key="student_add_form", clear_on_submit=True):
+            eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
+            unique_id = st.text_input("Unique ID")
+            roll_no = st.text_input("Roll No.")
+            application_no = st.text_input("Application No.")
+            enr_no = st.text_input("Enrollment No.")
+            s_name = st.text_input("Student Name")
+            f_name = st.text_input("Father Name")
+            m_name = st.text_input("Mother Name")
+            dob = st.text_input("Date of Birth")
+            category = st.text_input("Category")
+            subject = st.text_input("Subject")
+            duration = st.selectbox("Duration", DURATION_OPTIONS)
+            mobile = st.text_input("Mobile No.")
+            email = st.text_input("Email ID")
+            address = st.text_input("Address")
+            status_input = st.selectbox("Status", STATUS_OPTIONS)
 
-        if st.button("Save Student Data", type="primary", use_container_width=True):
+            submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
+
+        if submit_student:
             if s_name.strip() == "":
                 st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
             else:
@@ -211,28 +231,21 @@ if st.session_state.user_role is not None:
                     "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
+                live_db = load_live_data() # ताज़ा डेटा लोड करें
                 if live_db.empty:
                     updated_df = pd.DataFrame([new_row])
                 else:
                     updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
                 save_live_data(updated_df)
-                st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है!")
+                st.session_state.save_success = True
+                st.session_state.upload_success = False
                 st.rerun()
 
-    # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (सभी लॉगिन यूज़र्स के लिए)
-    # ==========================================
-    if is_list_allowed:
-        st.markdown("---")
-        st.header("📊 Live Student Database Table")
-        
-        # यूटिलिटी डाउनलोड बटन्स
-        csv_data = live_db.to_csv(index=False).encode('utf-8')
-        st.download_button(label="💾 CSV डाउनलोड करें", data=csv_data, file_name="student_database.csv", mime="text/csv", use_container_width=True)
-        
-        if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
-            st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+        # डेटा सेव होने के बाद का मैसेज फॉर्म के बाहर यहाँ दिखेगा
+        if st.session_state.save_success:
+            st.success("✅ data save successfully")
+            # मैसेज दिखने के बाद स्टेट को रीसेट करें ताकि दोबारा लोड पर बार-बार न दिखे
+            st.session_state.save_success = False
 
-        # लिस्ट दिखाने के लिए सुरक्षित सिंगल-लाइन कोड (बिना किसी जटिल if/else के)
-        st.dataframe(live_db, use_container_width=True, hide_index=True)
-        
+    # ==========================================
+    
