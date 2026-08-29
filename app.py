@@ -108,7 +108,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# मेमोरी स्टेट्स सेटअप (Session States - स्टेट लॉक रखने के लिए ज़रूरी)
+# मेमोरी स्टेट्स सेटअप (Session States)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -119,7 +119,7 @@ if "save_success" not in st.session_state:
 # सीधे स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे (स्टेटस लीक रोकने के लिए फिक्स्ड विदाउट st.form) ---
+# --- मुख्य लॉगिन गेटवे (बिना फॉर्म के फिक्स्ड स्टेबल लॉगिन) ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
@@ -248,4 +248,5 @@ if st.session_state.user_role is not None:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-        
+            # पूरी लिस्ट ग्रिड रेंडर करना
+            
