@@ -244,8 +244,9 @@ if st.session_state.user_role is not None:
         # डेटा सेव होने के बाद का मैसेज फॉर्म के बाहर यहाँ दिखेगा
         if st.session_state.save_success:
             st.success("✅ data save successfully")
-            # मैसेज दिखने के बाद स्टेट को रीसेट करें ताकि दोबारा लोड पर बार-बार न दिखे
             st.session_state.save_success = False
 
+    # ==========================================
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin के लिए)
     # ==========================================
     
