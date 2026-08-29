@@ -63,7 +63,6 @@ def load_live_data():
         return df_empty
     try:
         df = pd.read_csv(DB_FILE, dtype=str)
-        # सुनिश्चित करें कि सभी कॉलम मौजूद हैं
         for col in DEFAULT_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
@@ -84,7 +83,7 @@ if "save_success" not in st.session_state:
 if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
-    st.session_state.admin_lock_state = False # False मतलब अनलॉक (एडिट चालू)
+    st.session_state.admin_lock_state = False
 
 live_db = load_live_data()
 
@@ -194,7 +193,6 @@ else:
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # ओरिजिनल डेटा फ़िल्टर करना
         filtered_db = live_db.copy()
         if search_query:
             filtered_db = filtered_db[
@@ -206,20 +204,21 @@ else:
         
         if not filtered_db.empty:
             
-            # ----------------------------------------
-            # 🛠️ केस ए: FULL ADMIN मोड लॉग इन है
-            # ----------------------------------------
+            # --- FULL ADMIN मोड ---
             if role == "full_admin":
                 st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
-                # कॉलम आगे-पीछे (Left/Right Shift) और लॉक करने के बटन्स का पैनल
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                c1, c2, c3, c4 = st.columns([2, 2, 2, 3])
                 
-                with c1:
-                    target_col = st.selectbox("कॉलम चुनें (Select Column):", options=st.session_state.admin_columns_order)
-                with c2:
+                # कॉलम लॉक/अनलॉक और शिफ्ट करने का सबसे सुरक्षित वन-लाइन पैनल
+                target_col = st.selectbox("कॉलम चुनें (Select Column):", options=st.session_state.admin_columns_order)
+                
+                col_actions = st.columns(3)
+                with col_actions[0]:
                     if st.button("⬅️ Column Shift Left", use_container_width=True):
                         idx = st.session_state.admin_columns_order.index(target_col)
                         if idx > 0:
-                            
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                            st.rerun()
+                with col_actions[1]:
+                    
