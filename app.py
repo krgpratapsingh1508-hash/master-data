@@ -119,7 +119,7 @@ if "save_success" not in st.session_state:
 # सीधे स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे (बिना फॉर्म के फिक्स्ड स्टेबल लॉगिन) ---
+# --- मुख्य लॉगिन गेटवे ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
