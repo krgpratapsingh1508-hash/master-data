@@ -179,7 +179,7 @@ else:
     # ==========================================
     # VIEWER & ADMIN ROLES (दोनों के लिए लिस्ट ओपन)
     # ==========================================
-    if role in ["list_viewer", "full_admin"]:
+    elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         
