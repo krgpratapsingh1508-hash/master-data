@@ -6,11 +6,10 @@ import base64
 # पेज का लेआउट सेट करें
 st.set_page_config(layout="wide")
 
-# प्रिंट फ़ॉर्मेटिंग, लेआउट और बटन को व्यवस्थित करने के लिए सीएसएस (CSS)
+# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
 st.markdown("""
     <style>
     @media print {
-        /* प्रिंट करते समय लॉगिन, हेडर, बटन और साइडबार जैसी फालतू चीज़ों को छुपाने के लिए */
         [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"], .print-hide {
             display: none !important;
         }
@@ -64,23 +63,28 @@ def load_live_data():
         return df_empty
     try:
         df = pd.read_csv(DB_FILE, dtype=str)
+        # सुनिश्चित करें कि सभी कॉलम मौजूद हैं
         for col in DEFAULT_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
-        return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
+        return df.fillna("").reset_index(drop=True)
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट ट्रिगर्स
+# स्टेट मैनेजमेंट सेटअप
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
     st.session_state.upload_success = False
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
+if "admin_columns_order" not in st.session_state:
+    st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
+if "admin_lock_state" not in st.session_state:
+    st.session_state.admin_lock_state = False # False मतलब अनलॉक (एडिट चालू)
 
 live_db = load_live_data()
 
@@ -190,6 +194,7 @@ else:
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
         
+        # ओरिजिनल डेटा फ़िल्टर करना
         filtered_db = live_db.copy()
         if search_query:
             filtered_db = filtered_db[
@@ -200,30 +205,21 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # S.No. कॉलम को व्यवस्थित रूप से जोड़ना ताकि रो आगे-पीछे न हों
-            filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
-            download_df = filtered_db.copy()
             
-            # --- केवल FULL ADMIN के लिए कंट्रोल पैनल ---
+            # ----------------------------------------
+            # 🛠️ केस ए: FULL ADMIN मोड लॉग इन है
+            # ----------------------------------------
             if role == "full_admin":
-                st.markdown('<div class="print-hide">### 🛠️ Admin Control Panel</div>', unsafe_allow_html=True)
+                st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
+                # कॉलम आगे-पीछे (Left/Right Shift) और लॉक करने के बटन्स का पैनल
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
-                st.markdown('</div>', unsafe_allow_html=True)
+                c1, c2, c3, c4 = st.columns([2, 2, 2, 3])
                 
-                if select_all:
-                    filtered_db.insert(0, "Select", True)
-                else:
-                    filtered_db.insert(0, "Select", False)
-                
-                # डेटा एडिटर पैनल
-                edited_df = st.data_editor(
-                    filtered_db, 
-                    use_container_width=True, 
-                    disabled=[col for col in filtered_db.columns if col != "Select"],
-                    key="admin_table_editor",
-                    hide_index=True
-                )
-
-
+                with c1:
+                    target_col = st.selectbox("कॉलम चुनें (Select Column):", options=st.session_state.admin_columns_order)
+                with c2:
+                    if st.button("⬅️ Column Shift Left", use_container_width=True):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx > 0:
+                            
