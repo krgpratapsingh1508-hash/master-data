@@ -85,7 +85,7 @@ if "admin_columns_order" not in st.session_state:
 if "admin_lock_state" not in st.session_state:
     st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक रहेगा
 if "list_visibility_state" not in st.session_state:
-    st.session_state.list_visibility_state = True  # डिफ़ॉल्ट रूप से लिस्ट हमेशा दिखेगी (Unhide)
+    st.session_state.list_visibility_state = True  # डिफ़ॉल्ट रूप से लिस्ट अनहाइड (दिखेगी) रहेगी
 
 live_db = load_live_data()
 
@@ -101,8 +101,8 @@ if st.session_state.user_role is None:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.session_state.upload_success = False
             st.session_state.save_success = False
-            st.session_state.admin_lock_state = True  # लॉगिन करते ही लॉक चालू रहेगा
-            st.session_state.list_visibility_state = True  # लॉगिन करते ही लिस्ट दिखेगी
+            st.session_state.admin_lock_state = True  
+            st.session_state.list_visibility_state = True  
             st.success("✅ लॉगिन सफल!")
             st.rerun()
         else:
@@ -194,7 +194,7 @@ else:
         st.header("📊 Student Live Database List")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-        # 👁️ वैश्विक हाइड / अनहाइड बटन पैनल (दोनों रोल के लिए सबसे ऊपर दिखेगा)
+        # 👁️ वैश्विक हाइड / अनहाइड बटन पैनल (दोनों रोल के लिए उपलब्ध)
         visibility_label = "👁️ Unhide Student List (सूची वापस दिखाएं)" if not st.session_state.list_visibility_state else "🙈 Hide Student List (सूची को पूरी तरह छुपाएं)"
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
@@ -212,11 +212,12 @@ else:
             
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
-        # 🎯 यदि लिस्ट 'Unhide' स्टेट (True) में है, तभी डेटा टेबल और बटन्स रेंडर करें
+        # 🎯 यदि लिस्ट 'Unhide' (True) है, तभी पूरा टेबल स्ट्रक्चर लोड करें
         if st.session_state.list_visibility_state:
             if not filtered_db.empty:
                 
                 # ----------------------------------------
                 # 🛠️ केस ए: FULL ADMIN मोड लॉजिक
                 # ----------------------------------------
-                
+                if role == "full_admin":
+                    
