@@ -120,6 +120,8 @@ if "column_move_mode" not in st.session_state:
     st.session_state.column_move_mode = False
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
+if "select_all_checked" not in st.session_state:
+    st.session_state.select_all_checked = False
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -245,5 +247,4 @@ if st.session_state.user_role is not None:
         
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
-            safe_order = DEFAULT_COLUMNS.copy()
-
+        
