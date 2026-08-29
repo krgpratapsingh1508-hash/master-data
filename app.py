@@ -240,7 +240,7 @@ if st.session_state.user_role is not None:
             if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True):
                 st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
 
-        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए)
+        # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए - अब यह अंदर से पूरी तरह इंडेंटेड है)
         if is_admin:
             if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट", use_container_width=True):
             
