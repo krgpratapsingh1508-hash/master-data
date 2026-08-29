@@ -242,6 +242,5 @@ if st.session_state.user_role is not None:
 
         # कॉलम मूव मोड और कंट्रोल बटन्स (केवल एडमिन के लिए)
         if is_admin:
-            col1, col2, col3 = st.columns(3)
-            with col1:
+            if st.button("⬜ सब सेलेक्ट / अन-सेलेक्ट", use_container_width=True):
             
