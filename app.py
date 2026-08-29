@@ -89,18 +89,21 @@ ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
 DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
 STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 
-# फ़ाइल से डेटा लोड करने का मजबूत फंक्शन
+# फ़ाइल से डेटा लोड करने का फंक्शन (ऑटो-फ़ाइल क्रिएशन के साथ)
 def load_live_data():
-    if os.path.exists(DB_FILE):
-        try:
-            df = pd.read_csv(DB_FILE, dtype=str)
-            for col in DEFAULT_COLUMNS:
-                if col not in df.columns:
-                    df[col] = ""
-            return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
-        except:
-            pass
-    return pd.DataFrame(columns=DEFAULT_COLUMNS)
+    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
+        # अगर फ़ाइल नहीं है या खाली है, तो डिफ़ॉल्ट रूप से एक साफ फ़ाइल बना लें
+        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
+        df_empty.to_csv(DB_FILE, index=False)
+        return df_empty
+    try:
+        df = pd.read_csv(DB_FILE, dtype=str)
+        for col in DEFAULT_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
+    except:
+        return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 # फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
@@ -122,7 +125,7 @@ if "current_column_order" not in st.session_state:
 if "select_all_checked" not in st.session_state:
     st.session_state.select_all_checked = False
 
-# सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
+# सीधे स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
 # --- मुख्य लॉगिन गेटवे ---
@@ -242,10 +245,4 @@ if st.session_state.user_role is not None:
     # ==========================================
     # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin पासवर्ड में ही खुलेगा)
     # ==========================================
-    if is_viewer_only or is_admin:
-        st.header("📊 Live Student Database Table")
-        
-        fresh_db = load_live_data()
-        
-        safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
-        
+    
