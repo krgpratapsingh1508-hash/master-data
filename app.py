@@ -84,6 +84,8 @@ if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
     st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक रहेगा
+if "list_visibility_state" not in st.session_state:
+    st.session_state.list_visibility_state = True  # डिफ़ॉल्ट रूप से लिस्ट हमेशा दिखेगी (Unhide)
 
 live_db = load_live_data()
 
@@ -100,6 +102,7 @@ if st.session_state.user_role is None:
             st.session_state.upload_success = False
             st.session_state.save_success = False
             st.session_state.admin_lock_state = True  # लॉगिन करते ही लॉक चालू रहेगा
+            st.session_state.list_visibility_state = True  # लॉगिन करते ही लिस्ट दिखेगी
             st.success("✅ लॉगिन सफल!")
             st.rerun()
         else:
@@ -191,6 +194,12 @@ else:
         st.header("📊 Student Live Database List")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        # 👁️ वैश्विक हाइड / अनहाइड बटन पैनल (दोनों रोल के लिए सबसे ऊपर दिखेगा)
+        visibility_label = "👁️ Unhide Student List (सूची वापस दिखाएं)" if not st.session_state.list_visibility_state else "🙈 Hide Student List (सूची को पूरी तरह छुपाएं)"
+        if st.button(visibility_label, use_container_width=True, type="secondary"):
+            st.session_state.list_visibility_state = not st.session_state.list_visibility_state
+            st.rerun()
+            
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -203,22 +212,11 @@ else:
             
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
-        if not filtered_db.empty:
-            
-            # ----------------------------------------
-            # 🛠️ केस ए: FULL ADMIN मोड लॉजिक
-            # ----------------------------------------
-            if role == "full_admin":
-                st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
+        # 🎯 यदि लिस्ट 'Unhide' स्टेट (True) में है, तभी डेटा टेबल और बटन्स रेंडर करें
+        if st.session_state.list_visibility_state:
+            if not filtered_db.empty:
                 
-                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                # मास्टर लॉक / अनलॉक बटन
-                if st.session_state.admin_lock_state:
-                    if st.button("🔓 Unlock List (एडमिन बटन और एडिटिंग चालू करें)", type="primary", use_container_width=True):
-                        st.session_state.admin_lock_state = False
-                        st.rerun()
-                else:
-                    if st.button("🔒 Lock List (सभी एडमिन बटन्स को छुपाएं और सुरक्षित करें)", type="secondary", use_container_width=True):
-                        st.session_state.admin_lock_state = True
-                        st.rerun()
-                        
+                # ----------------------------------------
+                # 🛠️ केस ए: FULL ADMIN मोड लॉजिक
+                # ----------------------------------------
+                
