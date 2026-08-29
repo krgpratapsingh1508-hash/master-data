@@ -178,10 +178,11 @@ if st.session_state.user_role is not None:
                 if st.button("Upload CSV Now"):
                     if "Admission No." in uploaded_df.columns:
                         uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                    if live_db.empty:
+                    current_db = load_live_data()
+                    if current_db.empty:
                         updated_df = uploaded_df
                     else:
-                        updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
+                        updated_df = pd.concat([current_db, uploaded_df], ignore_index=True)
                     save_live_data(updated_df)
                     st.session_state.upload_success = True
                     st.session_state.save_success = False
@@ -224,11 +225,11 @@ if st.session_state.user_role is not None:
                     "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
                     "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
                 }
-                live_db = load_live_data()
-                if live_db.empty:
+                current_db = load_live_data()
+                if current_db.empty:
                     updated_df = pd.DataFrame([new_row])
                 else:
-                    updated_df = pd.concat([live_db, pd.DataFrame([new_row])], ignore_index=True)
+                    updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
                 save_live_data(updated_df)
                 st.session_state.save_success = True
                 st.session_state.upload_success = False
@@ -244,8 +245,7 @@ if st.session_state.user_role is not None:
     if is_viewer_only or is_admin:
         st.header("📊 Live Student Database Table")
         
-        safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
-        if len(safe_order) != len(DEFAULT_COLUMNS):
-            safe_order = DEFAULT_COLUMNS.copy()
+        # ताज़ा लाइव डेटा लोड सुनिश्चित करें
+        fresh_db = load_live_data()
 
-
+        
