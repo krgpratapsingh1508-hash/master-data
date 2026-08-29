@@ -92,7 +92,6 @@ STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 # फ़ाइल से डेटा लोड करने का फंक्शन (ऑटो-फ़ाइल क्रिएशन के साथ)
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
-        # अगर फ़ाइल नहीं है या खाली है, तो डिफ़ॉल्ट रूप से एक साफ फ़ाइल बना लें
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
         df_empty.to_csv(DB_FILE, index=False)
         return df_empty
@@ -170,7 +169,7 @@ if st.session_state.user_role is not None:
     is_admin = (st.session_state.user_role == "full_admin")
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin और Viewer से बंद)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए)
     # ==========================================
     if is_entry_only:
         st.header("📁 CSV File Bulk Upload")
@@ -243,6 +242,9 @@ if st.session_state.user_role is not None:
             st.session_state.save_success = False
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin पासवर्ड में ही खुलेगा)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin क्रेडेंशियल्स में ही दिखेगा)
     # ==========================================
-    
+    if is_viewer_only or is_admin:
+        st.header("📊 Student Live Database List")
+
+        
