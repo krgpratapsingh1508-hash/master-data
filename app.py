@@ -212,12 +212,10 @@ else:
             
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
-        # 🎯 यदि लिस्ट 'Unhide' (True) है, तभी पूरा टेबल स्ट्रक्चर लोड करें
-        if st.session_state.list_visibility_state:
-            if not filtered_db.empty:
-                
-                # ----------------------------------------
-                # 🛠️ केस ए: FULL ADMIN मोड लॉजिक
-                # ----------------------------------------
-                if role == "full_admin":
-                    
+        # 🎯 यदि लिस्ट छुपा रखी है (False है), तो यही रोक दें और आगे का तालिका कोड न चलाएं
+        if not st.session_state.list_visibility_state:
+            st.info("🔒 छात्र सूची को वर्तमान में छुपाया (Hide) गया है। देखने के लिए ऊपर 'Unhide' बटन दबाएं।")
+        
+        # 🎯 यदि लिस्ट अनहाइड (True) है और खाली नहीं है, तो ही तालिका रेंडर करें (एरर फ्री समाधान)
+        elif not filtered_db.empty:
+            
