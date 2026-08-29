@@ -1,4 +1,5 @@
-import streamlit as st
+            
+        # 🎯import streamlit as st
 import pandas as pd
 import os
 import base64
@@ -73,7 +74,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट सेटअप
+# स्टेट延प्रबंधन सेटअप
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -122,7 +123,7 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # DATA ENTRY ROLE
+    # 📁 1. DATA ENTRY ROLE
     # ==========================================
     if role == "data_entry":
         st.header("📁 CSV File Bulk Upload")
@@ -188,38 +189,38 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES (डेटा प्रदर्शन ब्लॉक)
+    # 👁️ 2. LIST VIEWER ROLE
     # ==========================================
-    elif role in ["list_viewer", "full_admin"]:
-        st.header("📊 Student Live Database List")
+    elif role == "list_viewer":
+        st.header("📊 Student Live Database List (Viewer)")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-        # 👁️ वैश्विक हाइड / अनहाइड बटन पैनल (दोनों रोल के लिए उपलब्ध)
-        visibility_label = "👁️ Unhide Student List (सूची वापस दिखाएं)" if not st.session_state.list_visibility_state else "🙈 Hide Student List (सूची को पूरी तरह छुपाएं)"
+        visibility_label = "👁️ Unhide Student List" if not st.session_state.list_visibility_state else "🙈 Hide Student List"
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
             st.rerun()
-            
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        filtered_db = live_db.copy()
-        if search_query:
-            filtered_db = filtered_db[
-                filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
-                filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
-            ]
-            
-        st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
-        
-        # 🎯 कंडीशन 1: अगर लिस्ट को छुपाया (Hide) गया है
         if not st.session_state.list_visibility_state:
             st.info("🔒 छात्र सूची को वर्तमान में छुपाया (Hide) गया है। देखने के लिए ऊपर 'Unhide' बटन दबाएं।")
+        else:
+            filtered_db = live_db.copy()
+            if search_query:
+                filtered_db = filtered_db[
+                    filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
+                    filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
+                ]
+            st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
             
-        # 🎯 कंडीशन 2: अगर डेटा खाली है
-        elif filtered_db.empty:
-            st.warning("⚠️ डेटाबेस अभी खाली है या सर्च रिकॉर्ड मैच नहीं हुआ।")
-            
-        # 🎯 कंडीशन 3: लिस्ट अनहाइड है और डेटा उपलब्ध है (मुख्य डेटा रेंडरर)
+            if not filtered_db.empty:
+                filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
+                st.dataframe(filtered_db, use_container_width=True, hide_index=True)
+                
+                # बटन्स अनुभाग
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+ कंडीशन 3: लिस्ट अनहाइड है और डेटा उपलब्ध है (मुख्य डेटा रेंडरर)
             else:
             
