@@ -83,7 +83,7 @@ if "save_success" not in st.session_state:
 if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
-    st.session_state.admin_lock_state = False
+    st.session_state.admin_lock_state = True  # डिफ़ॉल्ट रूप से पूरी तरह लॉक (🔒 True) रहेगा
 
 live_db = load_live_data()
 
@@ -99,6 +99,7 @@ if st.session_state.user_role is None:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.session_state.upload_success = False
             st.session_state.save_success = False
+            st.session_state.admin_lock_state = True  # लॉगिन करते ही लॉक चालू रहेगा
             st.success("✅ लॉगिन सफल!")
             st.rerun()
         else:
@@ -204,21 +205,20 @@ else:
         
         if not filtered_db.empty:
             
-            # --- FULL ADMIN मोड ---
+            # ----------------------------------------
+            # 🛠️ केस ए: FULL ADMIN मोड
+            # ----------------------------------------
             if role == "full_admin":
                 st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                
-                # कॉलम लॉक/अनलॉक और शिफ्ट करने का सबसे सुरक्षित वन-लाइन पैनल
-                target_col = st.selectbox("कॉलम चुनें (Select Column):", options=st.session_state.admin_columns_order)
-                
-                col_actions = st.columns(3)
-                with col_actions[0]:
-                    if st.button("⬅️ Column Shift Left", use_container_width=True):
-                        idx = st.session_state.admin_columns_order.index(target_col)
-                        if idx > 0:
-                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                            st.rerun()
-                with col_actions[1]:
-                    
+                # मास्टर लॉक/अनलॉक बटन (यह हमेशा सबसे ऊपर दिखेगा)
+                if st.session_state.admin_lock_state:
+                    if st.button("🔓 Unlock List (एडमिन बटन और एडिटिंग चालू करें)", type="primary", use_container_width=True):
+                        st.session_state.admin_lock_state = False
+                        st.rerun()
+                else:
+                    if st.button("🔒 Lock List (सभी एडमिन बटन्स को छुपाएं और सुरक्षित करें)", type="secondary", use_container_width=True):
+                        st.session_state.admin_lock_state = True
+                        st.rerun()
+    
