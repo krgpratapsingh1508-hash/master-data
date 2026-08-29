@@ -177,7 +177,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES
+    # VIEWER & ADMIN ROLES (दोनों के लिए लिस्ट ओपन)
     # ==========================================
     if role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
@@ -193,13 +193,11 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # सीरियल नंबर को 1 से शुरू करने का लॉजिक
+            # सीरियल नंबर को 1 से शुरू करना
             filtered_db.index = filtered_db.index + 1
-            
-            # डाउनलोड के लिए डेटा फ्रेम पहले से ही तैयार कर लें ताकि एरर न आए
             download_df = filtered_db.copy()
             
-            # केवल Admin के लिए एडवांस्ड 'All Select' और 'Bulk Action' फीचर
+            # केवल Full Admin के लिए 'All Select' और 'Bulk Tools'
             if role == "full_admin":
                 st.markdown("### 🛠️ Admin Control Panel")
                 select_all = st.checkbox("✅ Select All Students (सभी छात्रों को एक साथ चुनें)")
@@ -209,10 +207,8 @@ else:
                 else:
                     filtered_db.insert(0, "Select", False)
                 
-                # स्ट्रीमलिट डेटा एडिटर रेंडर करें
                 edited_df = st.data_editor(filtered_db, use_container_width=True, disabled=[col for col in filtered_db.columns if col != "Select"])
                 
-                # डाउनलोड के लिए 'Select' कॉलम को क्लीन करें
                 if "Select" in edited_df.columns:
                     download_df = edited_df.drop(columns=["Select"])
                 
@@ -223,4 +219,6 @@ else:
                     col1, col2 = st.columns(2)
                     with col1:
                         new_status = st.selectbox("चयनित छात्रों का नया Status बदलें:", ["Active", "Pending", "Pass", "Inactive"])
-                        
+                        if st.button("🔄 Apply New Status to Selected", type="secondary", use_container_width=True):
+                            selected_original_indices = [idx - 1 for idx in selected_rows.index]
+                            
