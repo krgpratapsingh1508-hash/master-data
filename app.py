@@ -120,8 +120,6 @@ if "column_move_mode" not in st.session_state:
     st.session_state.column_move_mode = False
 if "current_column_order" not in st.session_state:
     st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
-if "selected_rows" not in st.session_state:
-    st.session_state.selected_rows = []
 
 # सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
@@ -163,12 +161,12 @@ if st.session_state.user_role is not None:
     st.markdown("---")
     
     # क्रेडेंशियल कंडीशन्स वेरिएबल्स
-    is_entry_only = st.session_state.user_role == "data_entry"
-    is_viewer_only = st.session_state.user_role == "list_viewer"
-    is_admin = st.session_state.user_role == "full_admin"
+    is_entry_only = (st.session_state.user_role == "data_entry")
+    is_viewer_only = (st.session_state.user_role == "list_viewer")
+    is_admin = (st.session_state.user_role == "full_admin")
 
     # ==========================================
-    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin से पूरी तरह गायब)
+    # 🛠️ भाग 1: डेटा एंट्री और फ़ाइल अपलोड (केवल entry के लिए - Admin से पूरी तरह बंद)
     # ==========================================
     if is_entry_only:
         st.header("📁 CSV File Bulk Upload")
@@ -245,7 +243,7 @@ if st.session_state.user_role is not None:
     if is_viewer_only or is_admin:
         st.header("📊 Live Student Database Table")
         
-        # सुरक्षित कॉलम क्रम सेटअप
         safe_order = [c for c in st.session_state.current_column_order if c in DEFAULT_COLUMNS]
         if len(safe_order) != len(DEFAULT_COLUMNS):
-        
+            safe_order = DEFAULT_COLUMNS.copy()
+
