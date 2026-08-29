@@ -108,42 +108,31 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# मेमोरी स्टेट्स सेटअप (Session States)
+# मेमोरी स्टेट्स सेटअप (Session States - स्टेट लॉक रखने के लिए ज़रूरी)
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
     st.session_state.upload_success = False
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
-if "edit_mode" not in st.session_state:
-    st.session_state.edit_mode = False
-if "column_move_mode" not in st.session_state:
-    st.session_state.column_move_mode = False
-if "current_column_order" not in st.session_state:
-    st.session_state.current_column_order = DEFAULT_COLUMNS.copy()
-if "select_all_checked" not in st.session_state:
-    st.session_state.select_all_checked = False
 
 # सीधे स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# --- मुख्य लॉगिन गेटवे ---
+# --- मुख्य लॉगिन गेटवे (स्टेटस लीक रोकने के लिए फिक्स्ड विदाउट st.form) ---
 if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("🔒 Multi-User Secure Login Gateway")
     
-    with st.form(key="secure_login_form"):
-        user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(CREDENTIALS.keys()))
-        password_input = st.text_input("Password दर्ज करें:", type="password")
-        login_submit = st.form_submit_button("Secure Login", use_container_width=True, type="primary")
+    user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(CREDENTIALS.keys()))
+    password_input = st.text_input("Password दर्ज करें:", type="password")
+    login_submit = st.button("Secure Login", use_container_width=True, type="primary")
         
     if login_submit:
         if user_input in CREDENTIALS and CREDENTIALS[user_input]["password"] == password_input:
             st.session_state.user_role = CREDENTIALS[user_input]["role"]
             st.session_state.upload_success = False
             st.session_state.save_success = False
-            st.session_state.edit_mode = False
-            st.session_state.column_move_mode = False
             st.success(f"✅ लॉगिन सफल! भूमिका: {st.session_state.user_role.upper()}")
             st.rerun()
         else:
@@ -157,13 +146,11 @@ if st.session_state.user_role is not None:
         st.session_state.user_role = None
         st.session_state.upload_success = False
         st.session_state.save_success = False
-        st.session_state.edit_mode = False
-        st.session_state.column_move_mode = False
         st.rerun()
 
     st.markdown("---")
     
-    # क्रेडेंशियल कंडीशन्स वेरिएबल्स
+    # क्रेडेंशियल कंडीशन्स वेरिएबल्स की जांच
     is_entry_only = (st.session_state.user_role == "data_entry")
     is_viewer_only = (st.session_state.user_role == "list_viewer")
     is_admin = (st.session_state.user_role == "full_admin")
@@ -242,9 +229,23 @@ if st.session_state.user_role is not None:
             st.session_state.save_success = False
 
     # ==========================================
-    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin क्रेडेंशियल्स में ही दिखेगा)
+    # 📊 भाग 2: छात्र सूची प्रदर्शन (केवल viewer और admin लॉगिन में दिखेगा)
     # ==========================================
     if is_viewer_only or is_admin:
         st.header("📊 Student Live Database List")
-
+        
+        # सर्च बॉक्स फ़िल्टर
+        search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
+        
+        # लाइव डेटाबेस को फ़िल्टर करना
+        filtered_db = live_db.copy()
+        if search_query:
+            filtered_db = filtered_db[
+                filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
+                filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
+            ]
+            
+        st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
+        
+        if not filtered_db.empty:
         
