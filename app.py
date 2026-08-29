@@ -181,7 +181,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # VIEWER & ADMIN ROLES (दोनों के लिए लिस्ट ओपन)
+    # VIEWER & ADMIN ROLES
     # ==========================================
     elif role in ["list_viewer", "full_admin"]:
         st.header("📊 Student Live Database List")
@@ -200,11 +200,11 @@ else:
         st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # 1 से सीरियल नंबर असाइन करना
+            # S.No. कॉलम को व्यवस्थित रूप से जोड़ना ताकि रो आगे-पीछे न हों
             filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
             download_df = filtered_db.copy()
             
-            # केवल Full Admin के लिए 'All Select' और 'Bulk Tools'
+            # --- केवल FULL ADMIN के लिए कंट्रोल पैनल ---
             if role == "full_admin":
                 st.markdown('<div class="print-hide">### 🛠️ Admin Control Panel</div>', unsafe_allow_html=True)
                 
@@ -217,6 +217,7 @@ else:
                 else:
                     filtered_db.insert(0, "Select", False)
                 
+                # डेटा एडिटर पैनल
                 edited_df = st.data_editor(
                     filtered_db, 
                     use_container_width=True, 
@@ -224,6 +225,5 @@ else:
                     key="admin_table_editor",
                     hide_index=True
                 )
-                
-                if "Select" in edited_df.columns:
-                    
+
+
