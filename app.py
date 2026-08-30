@@ -122,7 +122,7 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE (स्मार्ट ऑटो-हाइड स्विचिंग के साथ)
+    # 📁 1. DATA ENTRY ROLE (स्मार्ट ऑटो-क्लियर और ऑटो-हाइड के साथ)
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
@@ -139,7 +139,17 @@ else:
         # ----------------------------------------
         if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
             st.subheader("📁 CSV File Bulk Upload")
-            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+            
+            # 🎯 ऑटो-क्लियर के लिए डायनामिक की (Key) का उपयोग
+            if "csv_uploader_id" not in st.session_state:
+                st.session_state.csv_uploader_id = 100
+
+            uploaded_file = st.file_uploader(
+                "CSV फ़ाइल चुनें", 
+                type=["csv"], 
+                key=f"csv_uploader_{st.session_state.csv_uploader_id}"
+            )
+            
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
@@ -149,8 +159,11 @@ else:
                         current_db = load_live_data()
                         updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
                         save_live_data(updated_df)
+                        
+                        # 🎯 फ़ाइल को डैशबोर्ड से तुरंत हटाने और स्क्रीन साफ करने का लॉजिक
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
+                        st.session_state.csv_uploader_id += 1  # आईडी बदलते ही पुराना अपलोडर स्वतः रीसेट हो जाएगा
                         st.rerun()
                 except Exception as e:
                     st.error(f"त्रुटि: {e}")
@@ -203,7 +216,6 @@ else:
             if st.session_state.save_success:
                 st.success("✅ Student data save successfully")
                 st.session_state.save_success = False
-
     # ==========================================
     # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
     # ==========================================
