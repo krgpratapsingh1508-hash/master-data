@@ -1,5 +1,4 @@
-            
-        # 🎯import streamlit as st
+import streamlit as st
 import pandas as pd
 import os
 import base64
@@ -221,6 +220,4 @@ else:
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
- कंडीशन 3: लिस्ट अनहाइड है और डेटा उपलब्ध है (मुख्य डेटा रेंडरर)
-            else:
-            
+                            
