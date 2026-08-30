@@ -61,7 +61,7 @@ CREDENTIALS = {
     "admin": {"password": "admin123", "role": "full_admin"}
 }
 
-# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची (Status के राइट में Current Year जोड़ा गया)
+# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची
 DEFAULT_COLUMNS = [
     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
@@ -84,106 +84,11 @@ def load_live_data():
             if col not in df.columns:
                 df[col] = ""
                 
-        # 🎯 ऑटोमैटिक करंट ईयर कैलकुलेशन एल्गोरिथ्म
+        # 🎯 ऑटोमैटिक करंट ईयर कैलकुलेशन एल्गोरिथ्म (यहाँ फिक्स किया गया है)
         years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
         if not years_series.dropna().empty:
             max_year = int(years_series.max())
             
-            # आपकी शर्त के अनुसार डायनामिक मैपिंग डिक्शनरी
-            mapping = {
-                max_year: "1 year",
-                max_import streamlit as st
-import pandas as pd
-import os
-import base64
-
-# पेज का लेआउट सेट करें
-st.set_page_config(layout="wide")
-
-# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
-st.markdown("""
-    <style>
-    @media print {
-        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
-        .stButton, .stFileUploader, [data-testid="stDecoration"], 
-        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {
-            display: none !important;
-        }
-        @page {
-            margin: 5mm;
-            size: A4 landscape;
-        }
-        .main .block-container {
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-    }
-    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-    .header-text { display: flex; flex-direction: column; }
-    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
-    .header-text h1 { margin: 0 !important; }
-    </style>
-""", unsafe_allow_html=True)
-
-# लोगो लोड करने का फंक्शन
-def get_image_base64(path):
-    if os.path.exists(path):
-        with open(path, "rb") as image_file:
-            return f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
-    return ""
-
-img_base64 = get_image_base64("logo pratap.png")
-logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
-
-st.markdown(f"""
-    <div class="header-container">
-        {logo_html}
-        <div class="header-text">
-            <h3>ॐ गुरुवर्य नमः</h3>
-            <h1>Permanent Shared Live Database</h1>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-DB_FILE = "shared_student_database.csv"
-
-# 🔑 4-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स
-CREDENTIALS = {
-    "entry": {"password": "entry123", "role": "data_entry"},
-    "viewer": {"password": "viewer123", "role": "list_viewer"},
-    "cce": {"password": "cce123", "role": "cce_handler"},
-    "admin": {"password": "admin123", "role": "full_admin"}
-}
-
-# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची (Status के राइट में Current Year जोड़ा गया)
-DEFAULT_COLUMNS = [
-    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
-    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
-    "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
-    "Category", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
-    "Current Year"
-]
-
-# डेटा लोड फंक्शन (ऑटोमैटिक करंट ईयर कैलकुलेशन लॉजिक के साथ)
-def load_live_data():
-    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
-        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
-        df_empty.to_csv(DB_FILE, index=False)
-        return df_empty
-    try:
-        df = pd.read_csv(DB_FILE, dtype=str)
-        
-        # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हैं
-        for col in DEFAULT_COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
-                
-        # 🎯 ऑटोमैटिक करंट ईयर कैलकुलेशन एल्गोरिथ्म
-        years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
-        if not years_series.dropna().empty:
-            max_year = int(years_series.max())
-            
-            # आपकी शर्त के अनुसार डायनामिक मैपिंग डिक्शनरी
             mapping = {
                 max_year: "1 year",
                 max_year - 1: "2 year",
@@ -203,7 +108,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट MANAGEMENT सेटअप
+# स्टेट मैनेजमेंट सेटअप
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -253,82 +158,6 @@ else:
 
     st.markdown("---")
     role = st.session_state.user_role
-
-# ==========================================
-# 📁 1. DATA ENTRY PANEL
-# ==========================================
-st.header("📝 Student Data Entry Panel")
-
-entry_method = st.selectbox(
-    "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
-    options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
-)
-st.markdown("---")
-
-if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-    st.subheader("📁 CSV File Bulk Upload")
-    if "csv_uploader_id" not in st.session_state:
-        st.session_state.csv_uploader_id = 100
-
-    uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"], key=f"csv_uploader_{st.session_state.csv_uploader_id}")
-    if uploaded_file is not None:
-        try:
-            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-            if st.button("Upload CSV Now", use_container_width=True, type="primary"):
-                for col in DEFAULT_COLUMNS:
-                    if col not in uploaded_df.columns:
-                        uploaded_df[col] = ""
-                cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                current_db = load_live_data()
-                if current_db.empty:
-                    updated_df = cleaned_uploaded_df
-                else:
-                    updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
-                save_live_data(updated_df)
-                st.session_state.upload_success = True
-                st.session_state.save_success = False
-                st.session_state.csv_uploader_id += 1
-                st.rerun()
-        except Exception as e:
-            st.error(f"त्रुटि: {e}")
-
-    if st.session_state.upload_success:
-        st.success("✅ CSV Data Filtered & Successfully Uploaded!")
-        st.session_state.upload_success = False
-
-elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
-    st.subheader("➕ Naya Student Data Add Karein")
-    with st.form(key="student_add_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
-            eligibility_name = st.text_input("Eligibility Name (योग योग्यता का नाम)")
-            admission_date = st.text_input("Admission Date (प्रवेश तिथि)")
-            roll_no = st.text_input("Roll No. (रोल नंबर)")
-            enrollment_no = st.text_input("Enrollment No. (स्थायी नामांकन संख्या)")
-            f_name = st.text_input("Father Name (पिता का नाम)")
-            dob = st.text_input("Date of Birth (जन्म तिथि)")
-            subject = st.text_input("Subject (विषय/स्ट्रीम)")
-            mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
-            address = st.text_input("Address (पता)")
-        with col2:
-            admission_session = st.text_input("Admission Session (सत्र)")
-            admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
-            unique_id = st.text_input("Unique ID (आधार या स्कॉलर नंबर)")
-            app_enroll_no = st.text_input("Application Enrollment No. (एप्लिकेशन नामांकन संख्या)")
-            s_name = st.text_input("Student Name (छात्र का नाम)")
-            m_name = st.text_input("Mother Name (माता का नाम)")
-            category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
-            duration = st.text_input("Duration (कोर्स की अवधि)")
-            email = st.text_input("Email ID (ईमेल आईडी)")
-            status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
-        submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
-
-    if submit_student:
-        if s_name.strip() == "":
-            st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
-        else:
-            new_row = {
 
 # ==========================================
 # 📁 1. DATA ENTRY PANEL
@@ -432,15 +261,29 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
         if s_name.strip() == "":
             st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
         else:
+            # 🔑 डिक्शनरी कीज़ और कोलन (:) के सिंटैक्स को पूरी तरह अलाइन किया गया है
             new_row = {
-                "Admission Year": admission_year, "Admission Session": admission_session, 
-                "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no,
-                "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
-                "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
-                "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
-                "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                "Email ID": email, "Address": address, "Status": status_input,
-                "Current Year": ""  # लोड होते समय ऑटो-फिल होगा
+                "Admission Year": admission_year, 
+                "Admission Session": admission_session, 
+                "Eligibility Name": eligibility_name, 
+                "Admission Application Number": admission_app_no,
+                "Admission Date": admission_date, 
+                "Unique ID": unique_id, 
+                "Roll No.": roll_no, 
+                "Application Enrollment No.": app_enroll_no, 
+                "Enrollment No.": enrollment_no, 
+                "Student Name": s_name, 
+                "Father Name": f_name, 
+                "Mother Name": m_name, 
+                "Date of Birth": dob, 
+                "Category": category, 
+                "Subject": subject, 
+                "Duration": duration, 
+                "Mobile Number": mobile, 
+                "Email ID": email, 
+                "Address": address, 
+                "Status": status_input,
+                "Current Year": ""  # बैकएंड गणना के लिए खाली स्ट्रिंग
             }
             current_db = load_live_data()
             if current_db.empty:
@@ -456,7 +299,7 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
     if st.session_state.save_success:
         st.success("✅ Student data saved successfully")
         st.session_state.save_success = False
-        
+
 # ==========================================
 # 👁️ LIST VIEWER PANEL (सुरक्षित व्यूअर मोड)
 # ==========================================
@@ -466,11 +309,11 @@ st.markdown('<div class="print-hide">', unsafe_allow_html=True)
 
 # लिस्ट को छुपाने या दिखाने का बटन (Toggle Button)
 visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
-if st.button(visibility_label, use_container_width=True, type="secondary"):
+if st.button(visibility_label, use_container_width=True, type="secondary", key="viewer_panel_toggle_btn"):
     st.session_state.list_visibility_state = not st.session_state.list_visibility_state
     st.rerun()
     
-search_query = st.text_input("Student Name ya Roll No. darj karke khojein:")
+search_query = st.text_input("Student Name ya Roll No. darj karke khojein:", key="viewer_panel_search_input")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # यदि लिस्ट को हाइड (Hide) किया गया है
@@ -509,11 +352,12 @@ else:
                 data=csv_buffer, 
                 file_name="student_database_list.csv", 
                 mime="text/csv", 
-                use_container_width=True
+                use_container_width=True,
+                key="viewer_panel_csv_download_btn"
             )
             
         with col_btn2:
-            # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर
+            # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर (फिक्स्ड CDN लिंक्स के साथ)
             columns_json = list(filtered_db.columns)
             rows_json = filtered_db.values.tolist()
             
@@ -585,17 +429,11 @@ else:
 st.header("College CCE Foil Sheet Generator & Live Database")
 st.markdown("---")
 
-def click_foil_button():
-    st.session_state.cce_foil_generated = True
-
 # ==========================================================
 # 📝 CCE PART 1: COLLEGE CCE FOIL SHEETS GENERATOR
 # ==========================================================
 st.subheader("Part 1: College CCE Foil Sheets (Landscape View)")
 st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
-
-def click_foil_button():
-    st.session_state.cce_foil_generated = True
 
 if not live_db.empty:
     semesters = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
@@ -618,7 +456,8 @@ if not live_db.empty:
     college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
     exam_info = f"Examination :- CCE                                             B.A. LL.B. {target_sem}th SEMESTER"
 
-    st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn", on_click=click_foil_button)
+    if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn"):
+        st.session_state.cce_foil_generated = True
 
     if st.session_state.cce_foil_generated:
         roll_numbers = []
@@ -658,7 +497,7 @@ if not live_db.empty:
                     <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                     <div class="foil-title">{foil_label}</div>
                     <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                        <tr><th style="border:1px solid black; padding:4px;" class="col-header-num" style="width: 8%;">1</th><th style="border:1px solid black; padding:4px;" class="col-header-num" style="width: 30%;" colspan="3">2</th></tr>
+                        <tr><th style="border:1px solid black; padding:4px;" style="width: 8%;">1</th><th style="border:1px solid black; padding:4px;" style="width: 30%;" colspan="3">2</th></tr>
                         <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">Roll No.</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                         <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                 """
@@ -687,53 +526,41 @@ if not live_db.empty:
             left_block_html = generate_cce_html_block(left_side_rolls, 1, "FOIL", True)
             right_block_html = generate_cce_html_block(right_side_rolls, 31, "FOIL", len(right_side_rolls) > 0)
 
-            # CSS को अलग ब्लॉक में रखा गया है ताकि पायथन कंपाइलर सिंटैक्स एरर न दे
             html_style = """
             <style>
                 body { font-family: Arial, sans-serif; background: white; margin: 0; padding: 5px; width: 100%; max-width: 1100px; margin: auto; }
-                .print-action-area { text-align: center; margin-bottom: 20px; }
-                .action-btn { background-color: #2e7d32; border: none; color: white; padding: 12px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-                .action-btn:hover { background-color: #1b5e20; }
                 .flex-container { display: flex; justify-content: space-between; gap: 20px; width: 100%; }
                 .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-shadow: none; box-sizing: border-box; background: white; page-break-inside: avoid; }
                 .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
                 .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
                 .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
                 .exam-right { text-align: right; }
-                .marks-info { display: flex; justify-content: space-
-                between; padding: 5px 0; font-weight: bold; 
-                border-bottom: 2px solid black; font-size: 12px; }
-                .foil-title { text-align: center; font-weight: bold; 
-                font-size: 16px; margin: 10px 0; letter-spacing: 
-                2px; }
-                .footer-fields { margin-top: 15px; font-size: 12px; 
-                font-weight: bold; line-height: 1.8; }
-                @media print { body { max-width: 100%; padding: 
-                0; } .flex-container { gap: 10px; } .print-action-area 
-                { display: none !important; } }
-                
-                """full_html = f"""
-                
-                
-                {html_style
-                 
-                 
-                 Print Only Foils (Landscape)
-                 
-                 {left_block_html}
-                 {right_block_html}
-                 
-                 
-                 """
-            
-            
-            st.components.v1.html(full_html, height=1550, 
-                                       scrolling=False)
+                .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
+                .foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; letter-spacing: 2px; }
+                .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; line-height: 1.8; }
+                @media print { body { max-width: 100%; padding: 0; } .flex-container { gap: 10px; } }
+            </style>
+            """
+
+            full_html = f"""
+            <html>
+            <head>
+                {html_style}
+                <title>Print Only Foils (Landscape)</title>
+            </head>
+            <body>
+                <div class="flex-container">
+                    {left_block_html}
+                    {right_block_html}
+                </div>
+            </body>
+            </html>
+            """
+            st.components.v1.html(full_html, height=1550, scrolling=False)
         else:
-            st.error("Is Semester ka koi data live list me nahi 
-            mila.")
-            else:
-            st.error("Live database file khali hai.")
+            st.error("Is Semester ka koi data live list me nahi mila.")
+else:
+    st.error("Live database file khali hai.")
                 
 # ==========================================================
 # 📝 CCE PART 2: STUDENTS LIVE DATABASE & DOWNLOADS
@@ -741,13 +568,14 @@ if not live_db.empty:
 st.subheader("Part 2: Students Live Database & Downloads")
 
 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-# लिस्ट को छुपाने या दिखाने का बटन (Toggle Button)
-visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
-if st.button(visibility_label, use_container_width=True, type="secondary", key="cce_hide_btn"):
+
+# लिस्ट को छुपाने या दिखाने का मास्टर बटन (Toggle Button)
+visibility_label_cce = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
+if st.button(visibility_label_cce, use_container_width=True, type="secondary", key="cce_part2_hide_btn"):
     st.session_state.list_visibility_state = not st.session_state.list_visibility_state
     st.rerun()
 
-cce_search = st.text_input("Student Name ya Roll No. darj karke khojein:", key="cce_search_box")
+cce_search = st.text_input("Student Name ya Roll No. darj karke khojein:", key="cce_part2_search_box")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if not st.session_state.list_visibility_state:
@@ -786,7 +614,7 @@ else:
             )
             
         with col_btn2:
-            # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर
+            # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर (फिक्स्ड CDN के साथ)
             columns_json = list(filtered_cce_db.columns)
             rows_json = filtered_cce_db.values.tolist()
             
@@ -800,18 +628,48 @@ else:
                 doc.text("Permanent Shared Live Database - Student List", 14, 15);
                 const columns = {columns_json};
                 const rows = {rows_json};
-                doc.autoTable({{ head: [columns], body: rows, startY: 22, styles: {{ fontSize: 6, cellPadding: 1.2 }}, theme: 'grid' }});
+                doc.autoTable({{ 
+                    head: [columns], 
+                    body: rows, 
+                    startY: 22, 
+                    styles: {{ fontSize: 6, cellPadding: 1.2 }}, 
+                    theme: 'grid' 
+                }});
                 doc.save('student_list_landscape.pdf');
             }}
             </script>
-            <button onclick="generateLandscapePDF()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Landscape PDF Download</button>
+            <button onclick="generateLandscapePDF()" style="
+                width: 100%; 
+                background-color: #4CAF50; 
+                color: white; 
+                border: none; 
+                padding: 0.5rem 1rem; 
+                border-radius: 0.5rem; 
+                cursor: pointer; 
+                font-weight: 500; 
+                line-height: 1.6; 
+                text-align: center; 
+                box-sizing: border-box;
+            ">Direct Landscape PDF Download</button>
             """
             st.markdown(pdf_script, unsafe_allow_html=True)
             
         with col_btn3:
             # बटन 3: सीधे हार्डवेयर प्रिंटर पर प्रिंट भेजने का बटन
             st.markdown("""
-                <button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Print</button>
+                <button onclick="window.print()" style="
+                    width: 100%; 
+                    background-color: #FF5733; 
+                    color: white; 
+                    border: none; 
+                    padding: 0.5rem 1rem; 
+                    border-radius: 0.5rem; 
+                    cursor: pointer; 
+                    font-weight: 500; 
+                    line-height: 1.6; 
+                    text-align: center; 
+                    box-sizing: border-box;
+                ">Direct Print</button>
             """, unsafe_allow_html=True)
             
         st.markdown('</div>', unsafe_allow_html=True)
@@ -824,12 +682,14 @@ else:
 st.header("Student Live Database List (Admin)")
 
 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+
 # लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
-visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
-if st.button(visibility_label, use_container_width=True, type="secondary", key="admin_visibility_btn"):
+visibility_label_admin = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
+if st.button(visibility_label_admin, use_container_width=True, type="secondary", key="admin_panel_visibility_btn"):
     st.session_state.list_visibility_state = not st.session_state.list_visibility_state
     st.rerun()
-search_query = st.text_input("Student Name ya Roll No. darj karke khojein:", key="admin_search_box")
+
+search_query_admin = st.text_input("Student Name ya Roll No. darj karke khojein:", key="admin_panel_search_box")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # यदि लिस्ट को हाइड (Hide) किया गया है
@@ -838,10 +698,10 @@ if not st.session_state.list_visibility_state:
     
 else:
     filtered_db = live_db.copy()
-    if search_query:
+    if search_query_admin:
         filtered_db = filtered_db[
-            filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
-            filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
+            filtered_db["Student Name"].str.contains(search_query_admin, case=False, na=False) |
+            filtered_db["Roll No."].str.contains(search_query_admin, case=False, na=False)
         ]
     st.write(f"Kul Student Record: **{len(filtered_db)}**")
     
@@ -851,11 +711,11 @@ else:
         # मास्टर लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         if st.session_state.admin_lock_state:
-            if st.button("Unlock List (Admin button aur editing chalu karein)", type="primary", use_container_width=True, key="unlock_btn"):
+            if st.button("Unlock List (Admin button aur editing chalu karein)", type="primary", use_container_width=True, key="admin_panel_unlock_btn"):
                 st.session_state.admin_lock_state = False
                 st.rerun()
         else:
-            if st.button("Lock List (Sabhi admin buttons ko chhupayein aur surakshit karein)", type="secondary", use_container_width=True, key="lock_btn"):
+            if st.button("Lock List (Sabhi admin buttons ko chhupayein aur surakshit karein)", type="secondary", use_container_width=True, key="admin_panel_lock_btn"):
                 st.session_state.admin_lock_state = True
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -867,23 +727,59 @@ else:
         # यदि एडमिन पैनल UNLOCK है, तो ही कंट्रोल्स और ऑल सिलेक्ट दिखाएं
         if not st.session_state.admin_lock_state:
             st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-            target_col = st.selectbox("Aage-piche khiskane ke liye column chunein:", options=st.session_state.admin_columns_order, key="admin_col_select")
+            target_col = st.selectbox("Aage-piche khiskane ke liye column chunein:", options=st.session_state.admin_columns_order, key="admin_panel_col_select")
             
             c_left, c_right = st.columns(2)
-            if c_left.button("Column Shift Left", use_container_width=True, key="shift_left_btn"):
+            if c_left.button("Column Shift Left", use_container_width=True, key="admin_panel_shift_left_btn"):
                 idx = st.session_state.admin_columns_order.index(target_col)
                 if idx > 0:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                     st.rerun()
-            if c_right.button("Column Shift Right", use_container_width=True, key="shift_right_btn"):
+            if c_right.button("Column Shift Right", use_container_width=True, key="admin_panel_shift_right_btn"):
                 idx = st.session_state.admin_columns_order.index(target_col)
                 if idx < len(st.session_state.admin_columns_order) - 1:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
                     st.rerun()
             
-            select_all = st.checkbox("Select All Rows (Sabhi row ko ek sath chunein)", key="select_all_checkbox")
+            select_all = st.checkbox("Select All Rows (Sabhi row ko ek sath chunein)", key="admin_panel_select_all_checkbox")
             st.markdown('</div>', unsafe_allow_html=True)
             
             # सिलेक्ट कॉलम इन्सर्ट करें
             ordered_db.insert(0, "Select", select_all)
             
+            # डेटा एडिटर (टेक्स्ट डायरेक्ट एडिट हो सकता है यहाँ)
+            edited_df = st.data_editor(
+                ordered_db,
+                use_container_width=True,
+                disabled=[col for col in ordered_db.columns if col == "Select" or col == "Current Year"],
+                key="advanced_admin_unlocked_editor",
+                hide_index=True
+            )
+            
+            # लाइव एडिटर टेक्स्ट मॉडिफिकेशन सिंक करना (ओरिजिनल इंडेक्स के आधार पर सुरक्षित मैपिंग)
+            clean_edited = edited_df.drop(columns=["Select", "S.No."])
+            for col in clean_edited.columns:
+                if col != "Current Year":  # Current Year को छोड़कर बाकी सब सिंक करें
+                    live_db.loc[filtered_db.index, col] = clean_edited[col].values
+            save_live_data(live_db)
+            
+            selected_rows = edited_df[edited_df["Select"] == True]
+            
+            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+            st.info(f"Chayanit row ki sankhya: **{len(selected_rows)}**")
+            if len(selected_rows) > 0:
+                if st.button("Delete Selected Rows (Chayanit row delete karein)", type="primary", use_container_width=True, key="admin_panel_delete_rows_btn"):
+                    # फ़िल्टर्ड डेटा फ़्रेम के पोजीशनल इंडेक्स के आधार पर ओरिजिनल कतारों को डिलीट करना
+                    indices_to_drop = filtered_db.index[[int(s_no) - 1 for s_no in selected_rows["S.No."]]]
+                    live_db = live_db.drop(indices_to_drop).reset_index(drop=True)
+                    save_live_data(live_db)
+                    st.success("Chayanit row safaltapurvak hata di gayi hain!")
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
+        else:
+            st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+    else:
+        st.warning("Record match nahi hua.")
+        
