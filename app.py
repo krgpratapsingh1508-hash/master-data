@@ -499,23 +499,23 @@ else:
                             body { max-width: 100%; padding: 0; }
                             
     # ==========================================
-    # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और एरर-फ्री एडवांस कमांड सेंटर)
+    # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और सुरक्षित एडमिन कमांड सेंटर)
     # ==========================================
     elif role == "full_admin":
-        st.header("📊 Student Live Database List (Admin)")
+        st.header("Student Live Database List (Admin)")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-        # 👁️ लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
-        visibility_label = "👁️ Unhide Student List" if not st.session_state.list_visibility_state else "🙈 Hide Student List"
+        # लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
+        visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
             st.rerun()
-        search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
+        search_query = st.text_input("Student Name ya Roll No. darj karke khojein:")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # 🎯 यदि लिस्ट को हाइड (Hide) किया गया है
+        # यदि लिस्ट को हाइड (Hide) किया गया है
         if not st.session_state.list_visibility_state:
-            st.info("🔒 छात्र सूची को वर्तमान में छुपाया (Hide) गया है। देखने के लिए ऊपर 'Unhide' बटन दबाएं।")
+            st.info("Student list ko varpamaan me chhupaya gaya hai. Dekhne ke liye upar Unhide button dabayein.")
             
         else:
             filtered_db = live_db.copy()
@@ -524,19 +524,19 @@ else:
                     filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
                     filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
                 ]
-            st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
+            st.write(f"Kul Student Record: **{len(filtered_db)}**")
             
             if not filtered_db.empty:
-                st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
+                st.markdown('<div class="print-hide">### Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
-                # 🔒 मास्टर लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
+                # मास्टर锁 लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 if st.session_state.admin_lock_state:
-                    if st.button("🔓 Unlock List (एडमिन बटन और एडिटिंग चालू करें)", type="primary", use_container_width=True):
+                    if st.button("Unlock List (Admin button aur editing chalu karein)", type="primary", use_container_width=True):
                         st.session_state.admin_lock_state = False
                         st.rerun()
                 else:
-                    if st.button("🔒 Lock List (सभी एडमिन बटन्स को छुपाएं और सुरक्षित करें)", type="secondary", use_container_width=True):
+                    if st.button("Lock List (Sabhi admin buttons ko chhupayein aur surakshit karein)", type="secondary", use_container_width=True):
                         st.session_state.admin_lock_state = True
                         st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -544,26 +544,25 @@ else:
                 # वर्तमान निर्धारित कॉलम ऑर्डर के अनुसार डेटा तैयार करें
                 ordered_db = filtered_db[st.session_state.admin_columns_order].copy()
                 ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
-                download_df = filtered_db.copy()
                 
-                # 🎯 यदि एडमिन पैनल UNLOCK है, तो ही कंट्रोल्स और ऑल सिलेक्ट दिखाएं
+                # यदि एडमिन पैनल UNLOCK है, तो ही कंट्रोल्स और ऑल सिलेक्ट दिखाएं
                 if not st.session_state.admin_lock_state:
                     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                    target_col = st.selectbox("आगे-पीछे खिसकाने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
+                    target_col = st.selectbox("Aage-piche khiskane ke liye column chunein:", options=st.session_state.admin_columns_order)
                     
                     c_left, c_right = st.columns(2)
-                    if c_left.button("⬅️ Column Shift Left", use_container_width=True):
+                    if c_left.button("Column Shift Left", use_container_width=True):
                         idx = st.session_state.admin_columns_order.index(target_col)
                         if idx > 0:
                             st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                             st.rerun()
-                    if c_right.button("➡️ Column Shift Right", use_container_width=True):
+                    if c_right.button("Column Shift Right", use_container_width=True):
                         idx = st.session_state.admin_columns_order.index(target_col)
                         if idx < len(st.session_state.admin_columns_order) - 1:
                             st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
                             st.rerun()
                     
-                    select_all = st.checkbox("✅ Select All Rows (सभी रो को एक साथ चुनें)")
+                    select_all = st.checkbox("Select All Rows (Sabhi row ko ek sath chunein)")
                     st.markdown('</div>', unsafe_allow_html=True)
                     
                     # सिलेक्ट कॉलम इन्सर्ट करें
@@ -587,63 +586,18 @@ else:
                     selected_rows = edited_df[edited_df["Select"] == True]
                     
                     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                    st.info(f"🎯 चयनित रो की संख्या: **{len(selected_rows)}**")
+                    st.info(f"Chayanit row ki sankhya: **{len(selected_rows)}**")
                     if len(selected_rows) > 0:
-                        if st.button("🗑️ Delete Selected Rows (चयनित रो डिलीट करें)", type="primary", use_container_width=True):
+                        if st.button("Delete Selected Rows (Chayanit row delete karein)", type="primary", use_container_width=True):
                             indices_to_drop = filtered_db.index[[int(s_no) - 1 for s_no in selected_rows["S.No."]]]
                             live_db = live_db.drop(indices_to_drop).reset_index(drop=True)
                             save_live_data(live_db)
-                            st.success("🗑️ चयनित रो सफलतापूर्वक हटा दी गई हैं!")
+                            st.success("Chayanit row safaltapurvak hata di gayi hain!")
                             st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
-                    download_df = edited_df.drop(columns=["Select", "S.No."]) if "Select" in edited_df.columns else edited_df.drop(columns=["S.No."])
                 
-                # 🎯 यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
+                # यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
                 else:
                     st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-                    download_df = filtered_db.copy()
-                
-                # कॉमन डाउनलोड और प्रिंट बटन्स पैनल (Landscape PDF को पूरी तरह से फिक्स कर दिया गया है)
-                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                col_btn1, col_btn2, col_btn3 = st.columns(3)
-                
-                if "S.No." in download_df.columns:
-                    download_df = download_df.drop(columns=["S.No."])
-                
-                with col_btn1:
-                    csv_buffer = download_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(label="📥 डाउनलोड छात्र सूची (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True)
-                
-                with col_btn2:
-                    columns_json = list(download_df.columns)
-                    rows_json = download_df.values.tolist()
-                    pdf_script = f"""
-                    <script src="https://cloudflare.com"></script>
-                    <script src="https://cloudflare.com"></script>
-                    <script>
-                    function generateLandscapePDF() {{
-                        const {{ jsPDF }} = window.jspdf;
-                        const doc = new jsPDF('l', 'mm', 'a4');
-                        doc.text("Permanent Shared Live Database - Student List", 14, 15);
-                        const columns = {columns_json};
-                        const rows = {rows_json};
-                        doc.autoTable({{
-                            head: [columns],
-                            body: rows,
-                            startY: 22,
-                            styles: {{ fontSize: 7, cellPadding: 1.5 }},
-                            headStyles: {{ fillColor: }},
-                            theme: 'grid'
-                        }});
-                        doc.save('student_list_landscape.pdf');
-                    }}
-                    </script>
-                    <button onclick="generateLandscapePDF()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">📄 डायरेक्ट Landscape PDF डाउनलोड करें</button>
-                    """
-                    st.markdown(pdf_script, unsafe_allow_html=True)
-                    
-                with col_btn3:
-                    st.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">🖨️ सीधे प्रिंट निकालें (Direct Print)</button>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.warning("⚠️ रिकॉर्ड मैच नहीं हुआ।")
+                st.warning("Record match nahi hua.")
