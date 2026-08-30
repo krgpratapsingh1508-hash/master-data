@@ -359,23 +359,22 @@ if not live_db.empty:
 
             dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
-            def generate_cce_html_block(items, start_idx, foil_label, has_data):
-                if not has_data:
-                    return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
-                
-                # 🎯 पेपर कोड के सामने ऑटोमैटिक डिटेक्टेड सब्जेक्ट कोड को HTML में प्रिंट करें
-                paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
-                
-                block = f"""
-                <div class="foil-unit">
-                    <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
-                    <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
-                    <div class="header-box">{college_name}</div>
-                    <div class="sub-box exam-right">{exam_info}</div>
-                    <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
-                    <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
-                    <div class="foil-title">{foil_label}</div>
-                    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                                def generate_cce_html_block(items, start_idx, foil_label, has_data):
+                        if not has_data:
+                            return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                        
+                        paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
+                        
+                        block = f"""
+                        <div class="foil-unit">
+                            <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
+                            <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
+                            <div class="header-box">{college_name}</div>
+                            <div class="sub-box exam-right">{exam_info}</div>
+                            <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
+                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
+                            <div class="foil-title">{foil_label}</div>
+                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
                                 <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
@@ -395,6 +394,7 @@ if not live_db.empty:
                         </div>
                         """
                         return block
+
 
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
                     right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
