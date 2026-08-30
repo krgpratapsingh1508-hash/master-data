@@ -376,15 +376,13 @@ if not live_db.empty:
                     <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                     <div class="foil-title">{foil_label}</div>
                     <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                                                    <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
-                        # Renders database dynamic mapped student items loops safely
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
                         
-                        # Generates empty placeholder rows up to 30 elements limit if records are lower
                         current_len = len(items)
                         if current_len < 30:
                             for k in range(current_len + start_idx, 30 + start_idx):
@@ -398,11 +396,9 @@ if not live_db.empty:
                         """
                         return block
 
-                    # Dynamic HTML grid layout distribution
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
                     right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
 
-                    # CSS Layout Stylesheet config rules block
                     html_style = """
                     <style>
                         #foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }
@@ -417,7 +413,6 @@ if not live_db.empty:
                     </style>
                     """
                     
-                    # Unified DOM tree template with screenshot capturing javascript
                     full_html = f"""
                     <html>
                     <head>
@@ -443,15 +438,15 @@ if not live_db.empty:
                         <div id="foil-capture-area">
                             {left_block_html}
                             {right_block_html}
-                </div>
-            </body>
-            </html>
-            """
-            st.components.v1.html(full_html, height=1600, scrolling=True)
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    st.components.v1.html(full_html, height=1600, scrolling=True)
+                else:
+                    st.error("इस फ़िल्टर के आधार पर कोई छात्र लाइव लिस्ट में नहीं मिला।")
         else:
-            st.error("इस फ़िल्टर के आधार पर कोई छात्र लाइव लिस्ट में नहीं मिला।")
-else:
-    st.error("Live database file khali hai.")
+            st.error("Live database file khali hai.")
 
 # ----------------------------------------------------------------------
 # 🛠️ FULL ADMIN MANAGEMENT PANEL (FIXED & SECURITY LOCKED)
