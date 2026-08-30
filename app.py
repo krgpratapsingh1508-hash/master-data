@@ -542,9 +542,7 @@ if not live_db.empty:
                 0; } .flex-container { gap: 10px; } .print-action-area 
                 { display: none !important; } }
                 
-                """
-            
-                full_html = f"""
+                """full_html = f"""
                 
                 
                 {html_style
