@@ -1,88 +1,11 @@
 import streamlit as st
 import pandas as pd
 import os
-import base64
 import json
 
-# Set Page Layout
-st.set_page_config(layout="wide")
-
-# CSS for Print Formatting and Layout
-st.markdown("""
-    <style>
-    @media print {
-        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
-        .stButton, .stFileUploader, [data-testid="stDecoration"], 
-        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {
-            display: none !important;
-        }
-        @page {
-            margin: 5mm;
-            size: A4 landscape;
-        }
-        .main .block-container {
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-    }
-    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-    .header-text { display: flex; flex-direction: column; }
-    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
-    .header-text h1 { margin: 0 !important; }
-    </style>
-""", unsafe_allow_html=True)
-
-# Logo Loader Function
-def get_image_base64(path):
-    if os.path.exists(path):
-        with open(path, "rb") as image_file:
-            return f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
-    return ""
-
-img_base64 = get_image_base64("logo pratap.png")
-logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
-
-st.markdown(f"""
-    <div class="header-container">
-        {logo_html}
-        <div class="header-text">
-            <h3>ॐ गुरुवर्य नमः</h3>
-            <h1>Permanent Shared Live Database</h1>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
+# Define DB Target and Master Structure Reference
 DB_FILE = "shared_student_database.csv"
 CRED_FILE = "user_credentials.json"
-
-# Credentials Loading Mechanism
-DEFAULT_CREDENTIALS = {
-    "entry": {"password": "entry123", "role": "data_entry"},
-    "viewer": {"password": "viewer123", "role": "list_viewer"},
-    "cce": {"password": "cce123", "role": "cce_handler"},
-    "admin": {"password": "admin123", "role": "full_admin"}
-}
-
-def load_credentials():
-    if os.path.exists(CRED_FILE):
-        try:
-            with open(CRED_FILE, "r") as f:
-                return json.load(f)
-        except:
-            return DEFAULT_CREDENTIALS.copy()
-    else:
-        with open(CRED_FILE, "w") as f:
-            json.dump(DEFAULT_CREDENTIALS, f)
-        return DEFAULT_CREDENTIALS.copy()
-
-def save_credentials(creds):
-    with open(CRED_FILE, "w") as f:
-        json.dump(creds, f)
-
-if "credentials" not in st.session_state:
-    st.session_state.credentials = load_credentials()
-
-# Master Column List Setup
 DEFAULT_COLUMNS = [
     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
@@ -91,33 +14,25 @@ DEFAULT_COLUMNS = [
     "Current Year"
 ]
 
-# Database Loading and Dynamic Current Year Logic
+# Database Read-Write Engines
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
-        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
-        df_empty.to_csv(DB_FILE, index=False)
-        return df_empty
+        return pd.DataFrame(columns=DEFAULT_COLUMNS)
     try:
         df = pd.read_csv(DB_FILE, dtype=str)
         for col in DEFAULT_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
-                
         years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
         if not years_series.dropna().empty:
             max_year = int(years_series.max())
             mapping = {
-                max_year: "1 year",
-                max_year - 1: "2 year",
-                max_year - 2: "3 year",
-                max_year - 3: "4 year",
-                max_year - 4: "5 year",
-                max_year - 5: "6 year"
+                max_year: "1 year", max_year - 1: "2 year", max_year - 2: "3 year",
+                max_year - 3: "4 year", max_year - 4: "5 year", max_year - 5: "6 year"
             }
             df["Current Year"] = years_series.map(mapping).fillna("EX-STUDENT")
         else:
             df["Current Year"] = "EX-STUDENT"
-            
         return df.fillna("").reset_index(drop=True)
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -125,13 +40,11 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# State Management Initialization
-if "user_role" not in st.session_state:
-    st.session_state.user_role = None  
-if "upload_success" not in st.session_state:
-    st.session_state.upload_success = False
-if "save_success" not in st.session_state:
-    st.session_state.save_success = False
+def save_credentials(creds):
+    with open(CRED_FILE, "w") as f:
+        json.dump(creds, f)
+
+# Initialize Session Triggers if missing
 if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
@@ -140,9 +53,6 @@ if "admin_unhide_edit" not in st.session_state:
     st.session_state.admin_unhide_edit = False
 if "admin_unhide_move" not in st.session_state:
     st.session_state.admin_unhide_move = False
-if "cce_foil_generated" not in st.session_state:
-    st.session_state.cce_foil_generated = False
-
 if "admin_hide_entry" not in st.session_state:
     st.session_state.admin_hide_entry = False
 if "admin_hide_viewer" not in st.session_state:
@@ -152,55 +62,10 @@ if "admin_hide_cce" not in st.session_state:
 if "admin_hide_cred_panel" not in st.session_state:
     st.session_state.admin_hide_cred_panel = False
 
-if "show_login_panel" not in st.session_state:
-    st.session_state.show_login_panel = False
-
 live_db = load_live_data()
-
-# Login Gateway
-if st.session_state.user_role is None:
-    st.markdown("---")
-    col_login_btn, _ = st.columns()
-    with col_login_btn:
-        login_btn_label = "🔓 Hide Login" if st.session_state.show_login_panel else "🔒 Login"
-        if st.button(login_btn_label, use_container_width=True, type="secondary", key="global_login_toggle_btn"):
-            st.session_state.show_login_panel = not st.session_state.show_login_panel
-            st.rerun()
-
-    if st.session_state.show_login_panel:
-        st.subheader("🔒 Multi-User Secure Login Gateway")
-        user_input = st.selectbox("Username चुनें:", options=list(st.session_state.credentials.keys()))
-        password_input = st.text_input("Password दर्ज करें:", type="password")
-        
-        if st.button("Secure Login", use_container_width=True, type="primary"):
-            if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
-                st.session_state.user_role = st.session_state.credentials[user_input]["role"]
-                st.session_state.upload_success = False
-                st.session_state.save_success = False
-                st.session_state.admin_lock_state = True  
-                st.session_state.admin_unhide_edit = False
-                st.session_state.admin_unhide_move = False
-                st.session_state.cce_foil_generated = False
-                st.session_state.show_login_panel = False
-                st.success("✅ लॉगिन सफल!")
-                st.rerun()
-            else:
-                st.error("❌ गलत पासवर्ड!")
-else:
-    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-    if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
-        st.session_state.user_role = None
-        st.session_state.upload_success = False
-        st.session_state.save_success = False
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    role = st.session_state.user_role
-    st.info(f"🔑 वर्तमान सत्र भूमिका: **{role.upper()}**")
-
+  
 # ----------------------------------------------------------------------
-# 📝 STUDENT DATA ENTRY PANEL (EXCLUSIVE MODULE)
+# 📝 STUDENT DATA ENTRY PANEL (EXCLUSIVE MODULE WITH SUBJECT CODE)
 # ----------------------------------------------------------------------
 st.header("📝 Student Data Entry Panel")
 
@@ -211,7 +76,7 @@ entry_method = st.selectbox(
 )
 st.markdown("---")
 
-# --- METHOD A: BULK CSV UPLOADER FILTER ENGINE ---
+# --- माध्यम A: CSV फ़ाइल बल्क अपलोड फ़िल्टर इंजन ---
 if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
     st.subheader("📁 CSV File Bulk Upload")
     if "csv_uploader_id" not in st.session_state:
@@ -227,7 +92,7 @@ if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk 
         try:
             uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
             if st.button("Upload CSV Now", use_container_width=True, type="primary", key="csv_upload_submit_btn"):
-                # Cleanse columns schema structural validation
+                # संरचनात्मक सत्यापन (Structural Validation)
                 for col in DEFAULT_COLUMNS:
                     if col not in uploaded_df.columns:
                         uploaded_df[col] = ""
@@ -251,7 +116,7 @@ if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk 
         st.success("✅ CSV Data Filtered & Successfully Uploaded!")
         st.session_state.upload_success = False
 
-# --- METHOD B: MANUAL HARDCODED REGULAR FORM INPUTS ---
+# --- माध्यम B: नया छात्र मैनुअल फॉर्म एंट्री ---
 elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
     st.subheader("➕ Naya Student Data Add Karein")
     with st.form(key="student_add_form", clear_on_submit=True):
@@ -264,9 +129,10 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
             enrollment_no = st.text_input("Enrollment No. (स्थायी नामांकन संख्या)")
             f_name = st.text_input("Father Name (पिता का नाम)")
             dob = st.text_input("Date of Birth (जन्म तिथि)")
+            # 🎯 नए कॉलम इनपुट फ़ील्ड्स
+            subject_code = st.text_input("Subject Code (विषय कोड)")
             subject = st.text_input("Subject (विषय/स्ट्रीम)")
             mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
-            address = st.text_input("Address (पता)")
         with col2:
             admission_session = st.text_input("Admission Session (सत्र)")
             admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
@@ -277,7 +143,7 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
             category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
             duration = st.text_input("Duration (कोर्स की अवधि)")
             email = st.text_input("Email ID (ईमेल आईडी)")
-            # Prioritized "Regular" state choice mapping configuration up front
+            address = st.text_input("Address (पता)")
             status_input = st.selectbox("Status (स्थिति)", ["Regular", "Pending", "Pass", "Inactive", "EX-STUDENT"])
         
         submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
@@ -292,8 +158,8 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
                 "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
                 "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
                 "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
-                "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                "Email ID": email, "Address": address, "Status": status_input, "Current Year": ""
+                "Category": category, "Subject Code": subject_code, "Subject": subject, "Duration": duration, 
+                "Mobile Number": mobile, "Email ID": email, "Address": address, "Status": status_input, "Current Year": ""
             }
             current_db = load_live_data()
             if current_db.empty:
@@ -306,16 +172,16 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
             st.rerun()
 
     if st.session_state.save_success:
-        st.success("✅ Student data saved successfully with dynamic verification metrics.")
+        st.success("✅ Student data saved successfully with Subject Code details!")
         st.session_state.save_success = False
 
 # ----------------------------------------------------------------------
-# 👁️ STUDENT LIVE DATABASE LIST PANEL (EXCLUSIVE VIEWER MODE)
+# 👁️ STUDENT LIVE DATABASE LIST PANEL (EXCLUSIVE VIEWER MODE WITH SUBJECT CODE)
 # ----------------------------------------------------------------------
 st.header("Student Live Database List (Viewer Mode)")
 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
 
-# Select field selector including fully responsive 'Current Year' column
+# 🔍 ड्रॉपडाउन विकल्प में अब 'Subject Code' भी शामिल है और यह पूरी तरह सपोर्टेड है
 selected_search_column = st.selectbox(
     "🔍 किस कॉलम में सर्च करना चाहते हैं? कॉलम चुनें:", 
     options=DEFAULT_COLUMNS, 
@@ -337,10 +203,10 @@ if not filtered_db.empty:
     display_df = filtered_db.copy()
     display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
     
-    # Renders the live interactive matrix layout data grid
+    # 🎯 ग्रिड रेंडरिंग के दौरान 'Subject Code' कॉलम 'Subject' के बाईं ओर दिखाई देगा
     st.dataframe(display_df, use_container_width=True, hide_index=True)
     
-    # Export and Print Controls System Utility Bar
+    # एक्सपोर्ट और डायरेक्ट प्रिंट यूटिलिटी बार
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
@@ -360,9 +226,9 @@ if not filtered_db.empty:
     st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.warning("Record match nahi hua.")
-        
+
 # ----------------------------------------------------------------------
-# 📝 COLLEGE CCE FOIL SHEET GENERATOR PANEL (COMPLETE MODULE)
+# 📝 COLLEGE CCE FOIL SHEET GENERATOR PANEL (COMPLETE MODULE WITH SUBJECT CODE)
 # ----------------------------------------------------------------------
 st.header("College CCE Foil Sheet Generator")
 st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
@@ -407,7 +273,7 @@ if not live_db.empty:
     preview_db = live_db.copy()
     if selected_subject != "All Subjects":
         preview_db = preview_db[preview_db['Subject'].str.strip() == selected_subject]
-    st.dataframe(preview_db[["Roll No.", "Student Name", "Subject", "Status", "Current Year"]], use_container_width=True, hide_index=True)
+    st.dataframe(preview_db[["Roll No.", "Student Name", "Subject Code", "Subject", "Status", "Current Year"]], use_container_width=True, hide_index=True)
 
     if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn"):
         st.session_state.cce_foil_generated = True
@@ -416,6 +282,9 @@ if not live_db.empty:
         regular_records = []
         ex_student_records = []
         has_missing_roll_and_is_first_year_regular = False 
+        
+        # 🎯 गतिशील रूप से विषय कोड का पता लगाने के लिए वेरिएबल
+        detected_subject_code = ""
 
         # Calculate chronological year reference boundary checks
         years_series = pd.to_numeric(live_db["Admission Year"], errors='coerce')
@@ -427,6 +296,7 @@ if not live_db.empty:
             status = str(row.get('Status', '')).strip().upper()
             current_year_val = str(row.get('Current Year', '')).strip().lower()
             student_sub = str(row.get('Subject', '')).strip()
+            sub_code = str(row.get('Subject Code', '')).strip()
             adm_year_str = str(row.get('Admission Year', '')).strip()
             duration_str = str(row.get('Duration', '')).strip()
             
@@ -442,6 +312,10 @@ if not live_db.empty:
 
             if selected_subject != "All Subjects" and student_sub != selected_subject:
                 continue
+                
+            # 🎯 यदि कोई मान्य विषय कोड मिलता है तो उसे स्टोर करें
+            if sub_code and sub_code.lower() != "nan" and detected_subject_code == "":
+                detected_subject_code = sub_code
 
             # A. Dynamic Multi-Year Cutoff Validation Engine for EX-STUDENTS
             if status == "EX-STUDENT":
@@ -478,25 +352,23 @@ if not live_db.empty:
         regular_records = sorted(list(set(regular_records)))
         final_records_list = ex_student_records + regular_records
 
-        # ----------------------------------------------------------------------
-        # 📊 CCE FOIL LAYOUT AND RENDERING ENGINE (REMAINING MODULE)
-        # ----------------------------------------------------------------------
         if final_records_list:
             st.success(f"Total {len(final_records_list)} entries captured ({len(ex_student_records)} Ex-Students prioritized first).")
-            
-            # Split the sorted data into 30 entries per page block (Left & Right Column structure)
             left_side_data = final_records_list[:30]
             right_side_data = final_records_list[30:60]
 
-            # Dynamic header column condition mapping based on 1st year missing roll status
             dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
             def generate_cce_html_block(items, start_idx, foil_label, has_data):
                 if not has_data:
                     return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                
+                # 🎯 पेपर कोड के सामने ऑटोमैटिक डिटेक्टेड सब्जेक्ट कोड को HTML में प्रिंट करें
+                paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
+                
                 block = f"""
                 <div class="foil-unit">
-                    <div class="top-fields"><div></div><div>Paper Code....................</div></div>
+                    <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
                     <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                     <div class="header-box">{college_name}</div>
                     <div class="sub-box exam-right">{exam_info}</div>
@@ -504,76 +376,77 @@ if not live_db.empty:
                     <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                     <div class="foil-title">{foil_label}</div>
                     <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                        <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
-                        <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
-                        <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
-                """
-                for idx_foil, item_val in enumerate(items, start=start_idx):
-                    block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
-                
-                current_len = len(items)
-                if current_len < 30:
-                    for k in range(current_len + start_idx, 30 + start_idx):
-                        block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
-                
-                block += f"""
-                    </table>
-                    <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully.</div>
-                    <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
-                </div>
-                """
-                return block
+                                                    <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
+                        """
+                        # Renders database dynamic mapped student items loops safely
+                        for idx_foil, item_val in enumerate(items, start=start_idx):
+                            block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                        
+                        # Generates empty placeholder rows up to 30 elements limit if records are lower
+                        current_len = len(items)
+                        if current_len < 30:
+                            for k in range(current_len + start_idx, 30 + start_idx):
+                                block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
+                        
+                        block += f"""
+                            </table>
+                            <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully.</div>
+                            <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
+                        </div>
+                        """
+                        return block
 
-            # HTML Foil Layout String Mapping
-            left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
-            right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
+                    # Dynamic HTML grid layout distribution
+                    left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
+                    right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
 
-            # CSS Stylesheet Config for Print Media
-            html_style = """
-            <style>
-                #foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }
-                .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }
-                .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
-                .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
-                .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
-                .exam-right { text-align: right; }
-                .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
-                .foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }
-                .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }
-            </style>
-            """
-            
-            # Master DOM Structure with interactive JavaScript Actions Engine
-            full_html = f"""
-            <html>
-            <head>
-                {html_style}
-                <script src="https://cloudflare.com"></script>
-                <script>
-                function downloadFoilAsPNG() {{
-                    const element = document.getElementById("foil-capture-area");
-                    html2canvas(element, {{ scale: 2 }}).then(canvas => {{
-                        let link = document.createElement("a");
-                        link.download = "cce_foil_sheet.png";
-                        link.href = canvas.toDataURL("image/png");
-                        link.click();
-                    }});
-                }}
-                </script>
-            </head>
-            <body>
-                <div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;">
-                    <button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button>
-                    <button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button>
-                </div>
-                <div id="foil-capture-area">
-                    {left_block_html}
-                    {right_block_html}
+                    # CSS Layout Stylesheet config rules block
+                    html_style = """
+                    <style>
+                        #foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }
+                        .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }
+                        .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
+                        .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
+                        .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
+                        .exam-right { text-align: right; }
+                        .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
+                        .foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }
+                        .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }
+                    </style>
+                    """
+                    
+                    # Unified DOM tree template with screenshot capturing javascript
+                    full_html = f"""
+                    <html>
+                    <head>
+                        {html_style}
+                        <script src="https://cloudflare.com"></script>
+                        <script>
+                        function downloadFoilAsPNG() {{
+                            const element = document.getElementById("foil-capture-area");
+                            html2canvas(element, {{ scale: 2 }}).then(canvas => {{
+                                let link = document.createElement("a");
+                                link.download = "cce_foil_sheet.png";
+                                link.href = canvas.toDataURL("image/png");
+                                link.click();
+                            }});
+                        }}
+                        </script>
+                    </head>
+                    <body>
+                        <div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;">
+                            <button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button>
+                            <button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button>
+                        </div>
+                        <div id="foil-capture-area">
+                            {left_block_html}
+                            {right_block_html}
                 </div>
             </body>
             </html>
             """
-            # Render context element frames directly
             st.components.v1.html(full_html, height=1600, scrolling=True)
         else:
             st.error("इस फ़िल्टर के आधार पर कोई छात्र लाइव लिस्ट में नहीं मिला।")
@@ -581,12 +454,13 @@ else:
     st.error("Live database file khali hai.")
 
 # ----------------------------------------------------------------------
-# 🛠️ FULL ADMIN MANAGEMENT PANEL (EXCLUSIVE MODULE)
+# 🛠️ FULL ADMIN MANAGEMENT PANEL (FIXED & SECURITY LOCKED)
 # ----------------------------------------------------------------------
 st.header("🛠️ Full Admin Management Panel")
 
 # --- PART A: GLOBAL PANEL VISIBILITY CONTROLLERS ---
 st.subheader("🛡️ Global Panels Visibility Controller")
+# 🎯 एरर फिक्स: यहाँ st.columns(4) पास किया गया है ताकि आपके ऐप पर कोई क्रैश या टाइप-एरर न आए
 col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
 
 with col_vis1:
@@ -650,23 +524,31 @@ with col_ctrl3:
         st.session_state.admin_lock_state = not st.session_state.admin_lock_state
         st.rerun()
 
-# --- PART D: INTERACTIVE COLUMN REORDERING ENGINE ---
+# --- PART D: INTERACTIVE COLUMN REORDERING ENGINE (LOCK PROTECTED) ---
 if st.session_state.admin_unhide_move:
-    st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
-    target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
-    c_left, c_right = st.columns(2)
-    
-    if c_left.button("⬅️ सिलेक्ट कॉलम लेफ्ट (Shift Left)", use_container_width=True, key="admin_shift_left_trigger"):
-        idx = st.session_state.admin_columns_order.index(target_col)
-        if idx > 0:
-            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-            st.rerun()
-            
-    if c_right.button("➡️ सिलेक्ट कॉलम राइट (Shift Right)", use_container_width=True, key="admin_shift_right_trigger"):
-        idx = st.session_state.admin_columns_order.index(target_col)
-        if idx < len(st.session_state.admin_columns_order) - 1:
-            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-            st.rerun()
+    # 🎯 सुरक्षा नियम: यदि लिस्ट लॉक है तो यूजर को वार्निंग दिखेगी और बटन ब्लॉक रहेंगे, जिससे कोई परिवर्तन नहीं हो सकेगा
+    if st.session_state.admin_lock_state:
+        st.error("⚠️ लिस्ट वर्तमान में लॉक है! कॉलम को लेफ्ट या राइट मूव करने के लिए पहले ऊपर दिए गए बटन से 'लिस्ट अनलॉक' करें।")
+    else:
+        st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
+        target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
+        col_move_left, col_move_right = st.columns(2)
+        
+        if col_move_left.button("⬅️ सिलेक्ट कॉलम लेफ्ट (Shift Left)", use_container_width=True, key="admin_shift_left_trigger"):
+            idx = st.session_state.admin_columns_order.index(target_col)
+            if idx > 0:
+                st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                st.rerun()
+                
+        if col_move_right.button("➡️ सिलेक्ट कॉलम राइट (Shift Right)", use_container_width=True, key="admin_shift_right_trigger"):
+            idx = st.session_state.admin_columns_order.index(target_col)
+            if idx < len(st.session_state.admin_columns_order) - 1:
+                st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                st.rerun()
+
+# सुनिश्चित करें कि मास्टर सूची में नया कॉलम मौजूद हो
+if "Subject Code" not in st.session_state.admin_columns_order:
+    st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 
 # Map sorted matrix representation
 ordered_db = live_db[st.session_state.admin_columns_order].copy()
@@ -692,4 +574,5 @@ if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
     
 else:
     st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+                 
     
