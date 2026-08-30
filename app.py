@@ -520,7 +520,6 @@ else:
                 full_html += generate_cce_html_block(left_side_rolls, 1, "FOIL", True)
                 has_right_data = len(right_side_rolls) > 0
                 full_html += generate_cce_html_block(right_side_rolls, 31, "FOIL", has_right_data)
-                    </div>
                 </body>
                     
     # ==========================================
