@@ -73,7 +73,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट延प्रबंधन सेटअप
+# स्टेट मैनेजमेंट सेटअप
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -216,8 +216,8 @@ else:
                 filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
                 st.dataframe(filtered_db, use_container_width=True, hide_index=True)
                 
-                # बटन्स अनुभाग
+                # बटन्स अनुभाग - एरर फ्री (No empty with blocks)
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                            
+
+
