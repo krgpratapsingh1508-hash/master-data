@@ -188,7 +188,7 @@ else:
             st.session_state.save_success = False
 
     # ==========================================
-    # 👁️ 2. LIST VIEWER ROLE (साफ, सुरक्षित और बिना लॉक/अनलॉक के)
+    # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
     # ==========================================
     elif role == "list_viewer":
         st.header("📊 Student Live Database List (Viewer Mode)")
@@ -218,21 +218,24 @@ else:
             
             # यदि सर्च रिकॉर्ड या डेटाबेस खाली नहीं है
             if not filtered_db.empty:
-                # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना बिना रो को आगे-पीछे किए
+                # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना
                 filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
                 
-                # सुरक्षित रीड-ओनली टेबल व्यू (व्यूअर के लिए हमेशा साफ़ और फिक्स व्यू)
+                # सुरक्षित रीड-ओनली टेबल व्यू
                 st.dataframe(filtered_db, use_container_width=True, hide_index=True)
                 
-                # --- एक्शन बटन्स पैनल (CSV डाउनलोड और प्रिंट/PDF) ---
+                # स्वच्छ डाउनलोड फ़ाइल तैयार करना (बिना S.No. के)
+                clean_download_df = filtered_db.drop(columns=["S.No."])
+                
+                # --- 🛠️ बटन अनुभाग (3 अलग-अलग बटन्स का पैनल) ---
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                col_btn1, col_btn2 = st.columns(2)
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
                 with col_btn1:
-                    download_df = filtered_db.drop(columns=["S.No."])
-                    csv_buffer = download_df.to_csv(index=False).encode('utf-8')
+                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
+                    csv_buffer = clean_download_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="📥 डाउनलोड छात्र सूची (Download as CSV)", 
+                        label="📥 डाउनलोड छात्र सूची (CSV)", 
                         data=csv_buffer, 
                         file_name="student_database_list.csv", 
                         mime="text/csv", 
@@ -240,7 +243,53 @@ else:
                     )
                     
                 with col_btn2:
-                    # स्मार्ट प्रिंट / PDF बटन जो डिवाइस के अनुसार सीधे प्रिंटर कमांड देगा या PDF डाउनलोड विकल्प खोलेगा
+                    # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर (बिना प्रिंटर की ज़रूरत के)
+                    columns_json = list(clean_download_df.columns)
+                    rows_json = clean_download_df.values.tolist()
+                    
+                    pdf_script = f"""
+                    <script src="https://cloudflare.com"></script>
+                    <script src="https://cloudflare.com"></script>
+                    <script>
+                    function generateLandscapePDF() {{
+                        const {{ jsPDF }} = window.jspdf;
+                        const doc = new jsPDF('l', 'mm', 'a4'); // 'l' का मतलब Landscape (चौड़ा पन्ना) है
+                        
+                        doc.text("Permanent Shared Live Database - Student List", 14, 15);
+                        
+                        const columns = {columns_json};
+                        const rows = {rows_json};
+                        
+                        doc.autoTable({{
+                            head: [columns],
+                            body: rows,
+                            startY: 22,
+                            styles: {{ fontSize: 7, cellPadding: 1.5 }},
+                            headStyles: {{ fillColor: [255, 87, 51] }}, // संस्थान का नारंगी थीम कलर
+                            theme: 'grid'
+                        }});
+                        
+                        doc.save('student_list_landscape.pdf');
+                    }}
+                    </script>
+                    <button onclick="generateLandscapePDF()" style="
+                        width: 100%; 
+                        background-color: #4CAF50; 
+                        color: white; 
+                        border: none; 
+                        padding: 0.5rem 1rem; 
+                        border-radius: 0.5rem; 
+                        cursor: pointer; 
+                        font-weight: 500; 
+                        line-height: 1.6; 
+                        text-align: center; 
+                        box-sizing: border-box;
+                    ">📄 डायरेक्ट Landscape PDF डाउनलोड करें</button>
+                    """
+                    st.markdown(pdf_script, unsafe_allow_html=True)
+                    
+                with col_btn3:
+                    # बटन 3: सीधे हार्डवेयर प्रिंटर पर प्रिंट निकालने का बटन
                     st.markdown("""
                         <button onclick="window.print()" style="
                             width: 100%; 
@@ -254,8 +303,9 @@ else:
                             line-height: 1.6; 
                             text-align: center; 
                             box-sizing: border-box;
-                        ">🖨️ प्रिंट निकालें / PDF सुरक्षित करें (Print / Save as PDF)</button>
+                        ">🖨️ सीधे प्रिंट निकालें (Direct Print)</button>
                     """, unsafe_allow_html=True)
+                    
                 st.markdown('</div>', unsafe_allow_html=True)
                 
             else:
