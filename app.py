@@ -122,70 +122,87 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE
+    # 📁 1. DATA ENTRY ROLE (स्मार्ट ऑटो-हाइड स्विचिंग के साथ)
     # ==========================================
     if role == "data_entry":
-        st.header("📁 CSV File Bulk Upload")
-        uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-        if uploaded_file is not None:
-            try:
-                uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                if st.button("Upload CSV Now"):
-                    if "Admission No." in uploaded_df.columns:
-                        uploaded_df = uploaded_df.drop(columns=["Admission No."])
-                    current_db = load_live_data()
-                    updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
-                    save_live_data(updated_df)
-                    st.session_state.upload_success = True
-                    st.session_state.save_success = False
-                    st.rerun()
-            except Exception as e:
-                st.error(f"त्रुटि: {e}")
-
-        if st.session_state.upload_success:
-            st.success("✅ Data Complete upload")
-
+        st.header("📝 Student Data Entry Panel")
+        
+        # 🔄 स्मार्ट ऑटो-हाइड ट्रिगर ड्रॉपडाउन (स्विच बटन की तरह काम करेगा)
+        entry_method = st.selectbox(
+            "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
+            options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
+        )
         st.markdown("---")
-        st.header("➕ Naya Student Data Add Karein")
-        with st.form(key="student_add_form", clear_on_submit=True):
-            eligibility = st.selectbox("Eligibility", ["None", "U.G.", "P.G."])
-            unique_id = st.text_input("Unique ID")
-            roll_no = st.text_input("Roll No.")
-            application_no = st.text_input("Application No.")
-            enr_no = st.text_input("Enrollment No.")
-            s_name = st.text_input("Student Name")
-            f_name = st.text_input("Father Name")
-            m_name = st.text_input("Mother Name")
-            dob = st.text_input("Date of Birth")
-            category = st.text_input("Category")
-            subject = st.text_input("Subject")
-            duration = st.selectbox("Duration", ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"])
-            mobile = st.text_input("Mobile No.")
-            email = st.text_input("Email ID")
-            address = st.text_input("Address")
-            status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
-            submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
-        if submit_student:
-            if s_name.strip() == "":
-                st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
-            else:
-                new_row = {
-                    "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
-                    "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
-                    "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
-                    "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
-                }
-                current_db = load_live_data()
-                updated_df = pd.DataFrame([new_row]) if current_db.empty else pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
-                save_live_data(updated_df)
-                st.session_state.save_success = True
+        # ----------------------------------------
+        # माध्यम ए: केवल CSV अपलोड दिखेगा (मैनुअल फॉर्म हाइड रहेगा)
+        # ----------------------------------------
+        if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+            st.subheader("📁 CSV File Bulk Upload")
+            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+            if uploaded_file is not None:
+                try:
+                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                    if st.button("Upload CSV Now", use_container_width=True, type="primary"):
+                        if "Admission No." in uploaded_df.columns:
+                            uploaded_df = uploaded_df.drop(columns=["Admission No."])
+                        current_db = load_live_data()
+                        updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
+                        save_live_data(updated_df)
+                        st.session_state.upload_success = True
+                        st.session_state.save_success = False
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"त्रुटि: {e}")
+
+            if st.session_state.upload_success:
+                st.success("✅ CSV Data Complete upload")
                 st.session_state.upload_success = False
-                st.rerun()
 
-        if st.session_state.save_success:
-            st.success("✅ data save successfully")
-            st.session_state.save_success = False
+        # ----------------------------------------
+        # माध्यम बी: केवल मैनुअल फॉर्म दिखेगा (CSV अपलोडर हाइड रहेगा)
+        # ----------------------------------------
+        elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+            st.subheader("➕ Naya Student Data Add Karein")
+            with st.form(key="student_add_form", clear_on_submit=True):
+                eligibility = st.selectbox("Eligibility", ["None", "U.G.", "P.G."])
+                unique_id = st.text_input("Unique ID")
+                roll_no = st.text_input("Roll No.")
+                application_no = st.text_input("Application No.")
+                enr_no = st.text_input("Enrollment No.")
+                s_name = st.text_input("Student Name")
+                f_name = st.text_input("Father Name")
+                m_name = st.text_input("Mother Name")
+                dob = st.text_input("Date of Birth")
+                category = st.text_input("Category")
+                subject = st.text_input("Subject")
+                duration = st.selectbox("Duration", ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"])
+                mobile = st.text_input("Mobile No.")
+                email = st.text_input("Email ID")
+                address = st.text_input("Address")
+                status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
+                submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
+
+            if submit_student:
+                if s_name.strip() == "":
+                    st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+                else:
+                    new_row = {
+                        "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+                        "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
+                        "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
+                        "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
+                    }
+                    current_db = load_live_data()
+                    updated_df = pd.DataFrame([new_row]) if current_db.empty else pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
+                    save_live_data(updated_df)
+                    st.session_state.save_success = True
+                    st.session_state.upload_success = False
+                    st.rerun()
+
+            if st.session_state.save_success:
+                st.success("✅ Student data save successfully")
+                st.session_state.save_success = False
 
     # ==========================================
     # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
