@@ -76,15 +76,16 @@ CREDENTIALS = {
     "admin": {"password": "admin123", "role": "full_admin"}
 }
 
-# 🎯 बिल्कुल नए 20 कॉलम्स की मास्टर सूची
+# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची (Status के राइट में Current Year जोड़ा गया)
 DEFAULT_COLUMNS = [
     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
     "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
-    "Category", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status"
+    "Category", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
+    "Current Year"
 ]
 
-# डेटा लोड फंक्शन
+# डेटा लोड फंक्शन (ऑटोमैटिक करंट ईयर कैलकुलेशन लॉजिक के साथ)
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -92,9 +93,30 @@ def load_live_data():
         return df_empty
     try:
         df = pd.read_csv(DB_FILE, dtype=str)
+        
+        # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हैं
         for col in DEFAULT_COLUMNS:
             if col not in df.columns:
                 df[col] = ""
+                
+        # 🎯 ऑटोमैटिक करंट ईयर कैलकुलेशन एल्गोरिथ्म
+        years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
+        if not years_series.dropna().empty:
+            max_year = int(years_series.max())
+            
+            # आपकी शर्त के अनुसार डायनामिक मैपिंग डिक्शनरी
+            mapping = {
+                max_year: "1 year",
+                max_year - 1: "2 year",
+                max_year - 2: "3 year",
+                max_year - 3: "4 year",
+                max_year - 4: "5 year",
+                max_year - 5: "6 year"
+            }
+            df["Current Year"] = years_series.map(mapping).fillna("EX-STUDENT")
+        else:
+            df["Current Year"] = "EX-STUDENT"
+            
         return df.fillna("").reset_index(drop=True)
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -154,7 +176,7 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE (नए 20 कॉलम्स और ऑटो-क्लियर फ़ीचर के साथ)
+    # 📁 1. DATA ENTRY ROLE (ऑटो-क्लियर और स्मार्ट ग्रिड लेआउट के साथ)
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
@@ -251,6 +273,8 @@ else:
                     email = st.text_input("Email ID (ईमेल आईडी)")
                     status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
                 
+                # नोट: "Current Year" यहाँ इनपुट फॉर्म में नहीं रखा गया है क्योंकि यह डेटाबेस लोडिंग के समय 
+                # एडमिशन ईयर को देखकर आपके फॉर्मूले (1 Year, 2 Year, EX-STUDENT आदि) से ऑटो-कैलकुलेट होता है।
                 submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
             if submit_student:
@@ -264,7 +288,8 @@ else:
                         "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
                         "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
                         "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                        "Email ID": email, "Address": address, "Status": status_input
+                        "Email ID": email, "Address": address, "Status": status_input,
+                        "Current Year": ""  # लोड होते समय ऑटो-फिल होगा
                     }
                     current_db = load_live_data()
                     if current_db.empty:
@@ -319,7 +344,7 @@ else:
                 display_df = filtered_db.copy()
                 display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
                 
-                # सुरक्षित रीड-ओनली टेबल व्यू (Viewer के लिए कॉलम हमेशा फिक्स और लॉक रहेंगे)
+                # सुरक्षित रीड-ओनली टेबल व्यू (इसमें Current Year कॉलम अपने आप दिखाई देगा)
                 st.dataframe(display_df, use_container_width=True, hide_index=True)
                 
                 # --- 🛠️ बटन अनुभाग (3 विशिष्ट बटन्स का पैनल - एरर फ्री) ---
@@ -327,7 +352,7 @@ else:
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
                 with col_btn1:
-                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
+                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड (Current Year कॉलम के साथ)
                     csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
                     st.download_button(
                         label="Download Student List (CSV)", 
@@ -359,7 +384,7 @@ else:
                             head: [columns],
                             body: rows,
                             startY: 22,
-                            styles: {{ fontSize: 7, cellPadding: 1.5 }},
+                            styles: {{ fontSize: 6, cellPadding: 1.2 }},
                             theme: 'grid'
                         }});
                         
@@ -428,32 +453,36 @@ else:
 
             target_sem = st.selectbox("Kaun sa Semester chahiye?", semesters, key="cce_sem_box", on_change=reset_foil_state)
 
-            sem_to_year_num = {
-                "1": "1", "2": "1", "3": "2", "4": "2", "5": "3",
-                "6": "3", "7": "4", "8": "4", "9": "5", "10": "5"
+            # सेमेस्टर के आधार पर टारगेट ईयर टेक्स्ट मैपिंग (नया 'Current Year' कॉलम फॉर्मेट सिंक)
+            sem_to_year_text = {
+                "1": "1 year", "2": "1 year", 
+                "3": "2 year", "4": "2 year", 
+                "5": "3 year", "6": "3 year", 
+                "7": "4 year", "8": "4 year", 
+                "9": "5 year", "10": "5 year"
             }
-            target_num = sem_to_year_num[target_sem]
+            target_year_text = sem_to_year_text[target_sem]
 
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             exam_info = f"Examination :- CCE                                             B.A. LL.B. {target_sem}th SEMESTER"
 
-            # सुधरा हुआ जनरेट बटन (यह क्लिक स्टेट को मेमोरी में लॉक रखेगा)
             st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn", on_click=click_foil_button)
 
             if st.session_state.cce_foil_generated:
                 roll_numbers = []
                 for _, row in live_db.iterrows():
                     roll = str(row.get('Roll No.', row.get('Roll No', ''))).strip()
-                    student_year = str(row.get('Duration', row.get('year', row.get('Year', '')))).strip().lower()
                     status = str(row.get('Status', row.get('STATUS', ''))).strip().upper()
-                    row_sem = str(row.get('Semester', row.get('SEMESTER', row.get('sem', '')))).strip()
+                    current_year_val = str(row.get('Current Year', '')).strip().lower()
                     
                     if not roll or roll == "nan" or roll == "":
                         continue
-                    if target_num in student_year and ('REGULAR' in status or 'ACTIVE' in status):
+                        
+                    # 🎯 नए ऑटोमैटिक 'Current Year' कॉलम के आधार पर सटीक रोल नंबर फ़िल्टर लॉजिक
+                    if target_year_text in current_year_val and ('REGULAR' in status or 'ACTIVE' in status):
                         roll_numbers.append(roll)
-                    elif 'EX-STUDENT' in status or 'EX' in status:
-                        if row_sem == target_sem or target_num in student_year or not row_sem:
+                    elif 'EX-STUDENT' in current_year_val or 'EX-STUDENT' in status or 'EX' in status:
+                        if target_year_text in current_year_val:
                             roll_numbers.append(roll)
 
                 roll_numbers = sorted(list(set(roll_numbers)))
@@ -565,27 +594,14 @@ else:
                 display_cce_df.insert(0, "S.No.", range(1, len(display_cce_df) + 1))
                 st.dataframe(display_cce_df, use_container_width=True, hide_index=True)
                 
-                # --- 🛠️ बटन अनुभाग (3 विशिष्ट बटन्स का पैनल - एरर फ्री) ---
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
-                
                 with col_btn1:
-                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
                     csv_buffer = filtered_cce_db.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Download Student List (CSV)", 
-                        data=csv_buffer, 
-                        file_name="student_database_list.csv", 
-                        mime="text/csv", 
-                        use_container_width=True, 
-                        key="cce_csv_dl"
-                    )
-                    
+                    st.download_button(label="Download Student List (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True, key="cce_csv_dl")
                 with col_btn2:
-                    # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर
                     columns_json = list(filtered_cce_db.columns)
                     rows_json = filtered_cce_db.values.tolist()
-                    
                     pdf_script = f"""
                     <script src="https://cloudflare.com"></script>
                     <script src="https://cloudflare.com"></script>
@@ -596,50 +612,15 @@ else:
                         doc.text("Permanent Shared Live Database - Student List", 14, 15);
                         const columns = {columns_json};
                         const rows = {rows_json};
-                        doc.autoTable({{ 
-                            head: [columns], 
-                            body: rows, 
-                            startY: 22, 
-                            styles: {{ fontSize: 7, cellPadding: 1.5 }}, 
-                            theme: 'grid' 
-                        }});
+                        doc.autoTable({{ head: [columns], body: rows, startY: 22, styles: {{ fontSize: 6, cellPadding: 1.2 }}, theme: 'grid' }});
                         doc.save('student_list_landscape.pdf');
                     }}
                     </script>
-                    <button onclick="generateLandscapePDF()" style="
-                        width: 100%; 
-                        background-color: #4CAF50; 
-                        color: white; 
-                        border: none; 
-                        padding: 0.5rem 1rem; 
-                        border-radius: 0.5rem; 
-                        cursor: pointer; 
-                        font-weight: 500; 
-                        line-height: 1.6; 
-                        text-align: center; 
-                        box-sizing: border-box;
-                    ">Direct Landscape PDF Download</button>
+                    <button onclick="generateLandscapePDF()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Landscape PDF Download</button>
                     """
                     st.markdown(pdf_script, unsafe_allow_html=True)
-                    
                 with col_btn3:
-                    # बटन 3: सीधे ब्राउज़र प्रिंटर डायलॉग खोलने का बटन
-                    st.markdown("""
-                        <button onclick="window.print()" style="
-                            width: 100%; 
-                            background-color: #FF5733; 
-                            color: white; 
-                            border: none; 
-                            padding: 0.5rem 1rem; 
-                            border-radius: 0.5rem; 
-                            cursor: pointer; 
-                            font-weight: 500; 
-                            line-height: 1.6; 
-                            text-align: center; 
-                            box-sizing: border-box;
-                        ">Direct Print</button>
-                    """, unsafe_allow_html=True)
-                    
+                    st.markdown("""<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Print</button>""", unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.warning("Record match nahi hua.")
@@ -718,7 +699,7 @@ else:
                     edited_df = st.data_editor(
                         ordered_db,
                         use_container_width=True,
-                        disabled=[col for col in ordered_db.columns if col == "Select"],
+                        disabled=[col for col in ordered_db.columns if col == "Select" or col == "Current Year"],
                         key="advanced_admin_unlocked_editor",
                         hide_index=True
                     )
@@ -726,7 +707,8 @@ else:
                     # लाइव एडिटर टेक्स्ट मॉडिफिकेशन सिंक करना
                     clean_edited = edited_df.drop(columns=["Select", "S.No."])
                     for col in clean_edited.columns:
-                        live_db.loc[filtered_db.index, col] = clean_edited[col].values
+                        if col != "Current Year": # Current Year को छोड़कर बाकी सब सिंक करें
+                            live_db.loc[filtered_db.index, col] = clean_edited[col].values
                     save_live_data(live_db)
                     
                     selected_rows = edited_df[edited_df["Select"] == True]
@@ -746,4 +728,4 @@ else:
                 else:
                     st.dataframe(ordered_db, use_container_width=True, hide_index=True)
             else:
-                st.warning("Record match nahi hua.")
+                st.warning("Record match nahi hua.") match nahi hua.")
