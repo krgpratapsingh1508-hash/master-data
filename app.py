@@ -154,20 +154,25 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE
+    # 📁 1. DATA ENTRY ROLE (नए 20 कॉलम्स और ऑटो-क्लियर फ़ीचर के साथ)
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
         
+        # 🔄 स्मार्ट ऑटो-हाइड ट्रिगर ड्रॉपडाउन
         entry_method = st.selectbox(
             "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
             options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
         )
         st.markdown("---")
 
+        # ----------------------------------------
+        # माध्यम ए: केवल CSV अपलोडर दिखेगा (मैनुअल फॉर्म हाइड रहेगा)
+        # ----------------------------------------
         if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
             st.subheader("📁 CSV File Bulk Upload")
             
+            # ऑटो-क्लियर के लिए डायनामिक की (Key) का उपयोग
             if "csv_uploader_id" not in st.session_state:
                 st.session_state.csv_uploader_id = 100
 
@@ -180,19 +185,30 @@ else:
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                    
                     if st.button("Upload CSV Now", use_container_width=True, type="primary"):
+                        # 🎯 1. केवल वही कॉलम्स चुनें जो आपके नए सूची में तय हैं (DEFAULT_COLUMNS)
                         for col in DEFAULT_COLUMNS:
                             if col not in uploaded_df.columns:
                                 uploaded_df[col] = ""
+                        
+                        # 🎯 2. फ़ाइल से फालतू कॉलम्स को हटाकर नए क्रम में व्यवस्थित करना
                         cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
                         
                         current_db = load_live_data()
-                        updated_df = cleaned_uploaded_df if current_db.empty else pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                        
+                        # 🎯 3. डेटाबेस में कतारों को सुरक्षित रूप से मर्ज करना
+                        if current_db.empty:
+                            updated_df = cleaned_uploaded_df
+                        else:
+                            updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                        
                         save_live_data(updated_df)
                         
+                        # 🎯 फ़ाइल को डैशबोर्ड से तुरंत हटाने और स्क्रीन साफ करने का लॉजिक
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
-                        st.session_state.csv_uploader_id += 1  
+                        st.session_state.csv_uploader_id += 1  # आईडी बदलते ही uploader रीसेट
                         st.rerun()
                 except Exception as e:
                     st.error(f"त्रुटि: {e}")
@@ -201,30 +217,66 @@ else:
                 st.success("✅ CSV Data Filtered & Successfully Uploaded!")
                 st.session_state.upload_success = False
 
+        # ----------------------------------------
+        # माध्यम बी: केवल मैनुअल फॉर्म दिखेगा (CSV अपलोडर हाइड रहेगा)
+        # ----------------------------------------
         elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
             st.subheader("➕ Naya Student Data Add Karein")
+            
             with st.form(key="student_add_form", clear_on_submit=True):
-                admission_year = st.text_input("Admission Year")
-                admission_session = st.text_input("Admission Session")
-                eligibility_name = st.text_input("Eligibility Name")
-                admission_app_no = st.text_input("Admission Application Number")
-                admission_date = st.text_input("Admission Date")
-                unique_id = st.text_input("Unique ID")
-                roll_no = st.text_input("Roll No.")
-                app_enroll_no = st.text_input("Application Enrollment No.")
-                enrollment_no = st.text_input("Enrollment No.")
-                s_name = st.text_input("Student Name")
-                f_name = st.text_input("Father Name")
-                m_name = st.text_input("Mother Name")
-                dob = st.text_input("Date of Birth")
-                category = st.selectbox("Category", ["General", "OBC", "SC", "ST"])
-                subject = st.text_input("Subject")
-                duration = st.text_input("Duration")
-                mobile = st.text_input("Mobile Number")
-                email = st.text_input("Email ID")
-                address = st.text_input("Address")
-                status_input = st.selectbox("Status", ["Active", "Pending", "Pass", "Inactive"])
+                # आपके नए 20 कस्टमाइज्ड इनपुट फ़ील्ड्स
+                admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
+                admission_session = st.text_input("Admission Session (सत्र)")
+                eligibility_name = st.text_input("Eligibility Name (योग्यता का नाम)")
+                admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
+                admission_date = st.text_input("Admission Date (प्रवेश तिथि)")
+                unique_id = st.text_input("Unique ID (आधार या स्कॉलर नंबर)")
+                roll_no = st.text_input("Roll No. (रोल नंबर)")
+                app_enroll_no = st.text_input("Application Enrollment No. (एप्लिकेशन नामांकन संख्या)")
+                enrollment_no = st.text_input("Enrollment No. (स्थायी नामांकन संख्या)")
+                s_name = st.text_input("Student Name (छात्र का नाम)")
+                f_name = st.text_input("Father Name (पिता का नाम)")
+                m_name = st.text_input("Mother Name (माता का नाम)")
+                dob = st.text_input("Date of Birth (जन्म तिथि)")
+                category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
+                subject = st.text_input("Subject (विषय/स्ट्रीम)")
+                duration = st.text_input("Duration (कोर्स की अवधि)")
+                mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
+                email = st.text_input("Email ID (ईमेल आईडी)")
+                address = st.text_input("Address (पता)")
+                status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
+                
                 submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
             if submit_student:
                 if s_name.strip() == "":
+                    st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+                else:
+                    new_row = {
+                        "Admission Year": admission_year, "Admission Session": admission_session, 
+                        "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no,
+                        "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
+                        "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
+                        "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
+                        "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
+                        "Email ID": email, "Address": address, "Status": status_input
+                    }
+                    current_db = load_live_data()
+                    if current_db.empty:
+                        updated_df = pd.DataFrame([new_row])
+                    else:
+                        updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
+                    
+                    save_live_data(updated_df)
+                    st.session_state.save_success = True
+                    st.session_state.upload_success = False
+                    st.rerun()
+
+            if st.session_state.save_success:
+                st.success("✅ Student data save successfully")
+                st.session_state.save_success = False
+                
+    # ==========================================
+    # 📁 1. DATA ENTRY ROLE
+    # ==========================================
+    
