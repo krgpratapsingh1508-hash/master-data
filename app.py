@@ -6,15 +6,23 @@ import base64
 # पेज का लेआउट सेट करें
 st.set_page_config(layout="wide")
 
-# प्रिंट फ़ॉर्मेटिंग, लेआउट और बटन को व्यवस्थित करने के लिए सीएसएस (CSS)
+# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
 st.markdown("""
     <style>
     @media print {
-        /* प्रिंट करते समय लॉगिन, हेडर, बटन और साइडबार जैसी चीज़ों को छुपाने के लिए */
-        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"], .print-hide {
+        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
+        .stButton, .stFileUploader, [data-testid="stDecoration"], 
+        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {
             display: none !important;
         }
-        .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
+        @page {
+            margin: 5mm;
+            size: A4 landscape;
+        }
+        .main .block-container {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
     }
     .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
     .header-text { display: flex; flex-direction: column; }
@@ -45,7 +53,7 @@ st.markdown(f"""
 
 DB_FILE = "shared_student_database.csv"
 
-# 🔑 4-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स (CCE जोड़ा गया है)
+# 🔑 4-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स
 CREDENTIALS = {
     "entry": {"password": "entry123", "role": "data_entry"},
     "viewer": {"password": "viewer123", "role": "list_viewer"},
@@ -126,25 +134,20 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE (स्मार्ट ऑटो-क्लियर और ऑटो-हाइड के साथ)
+    # 📁 1. DATA ENTRY ROLE
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
         
-        # 🔄 स्मार्ट ऑटो-हाइड ट्रिगर ड्रॉपडाउन (स्विच बटन की तरह काम करेगा)
         entry_method = st.selectbox(
             "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
             options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
         )
         st.markdown("---")
 
-        # ----------------------------------------
-        # माध्यम ए: केवल CSV अपलोड दिखेगा (मैनुअल फॉर्म हाइड रहेगा)
-        # ----------------------------------------
         if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
             st.subheader("📁 CSV File Bulk Upload")
             
-            # 🎯 ऑटो-क्लियर के लिए डायनामिक की (Key) का उपयोग
             if "csv_uploader_id" not in st.session_state:
                 st.session_state.csv_uploader_id = 100
 
@@ -164,10 +167,9 @@ else:
                         updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
                         save_live_data(updated_df)
                         
-                        # 🎯 फ़ाइल को डैशबोर्ड से तुरंत हटाने और स्क्रीन साफ करने का लॉजिक
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
-                        st.session_state.csv_uploader_id += 1  # आईडी बदलते ही पुराना अपलोडर स्वतः रीसेट हो जाएगा
+                        st.session_state.csv_uploader_id += 1  
                         st.rerun()
                 except Exception as e:
                     st.error(f"त्रुटि: {e}")
@@ -176,9 +178,6 @@ else:
                 st.success("✅ CSV Data Complete upload")
                 st.session_state.upload_success = False
 
-        # ----------------------------------------
-        # माध्यम बी: केवल मैनुअल फॉर्म दिखेगा (CSV अपलोडर हाइड रहेगा)
-        # ----------------------------------------
         elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
             st.subheader("➕ Naya Student Data Add Karein")
             with st.form(key="student_add_form", clear_on_submit=True):
@@ -220,6 +219,7 @@ else:
             if st.session_state.save_success:
                 st.success("✅ Student data save successfully")
                 st.session_state.save_success = False
+
     # ==========================================
     # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
     # ==========================================
@@ -251,21 +251,21 @@ else:
             
             # यदि सर्च रिकॉर्ड या डेटाबेस खाली नहीं है
             if not filtered_db.empty:
-                # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना
+                # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना बिना रो को आगे-पीछे किए
                 filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
                 
-                # सुरक्षित रीड-ओनली टेबल व्यू
+                # सुरक्षित रीड-ओनली टेबल व्यू (Viewer के लिए कॉलम हमेशा फिक्स और लॉक रहेंगे)
                 st.dataframe(filtered_db, use_container_width=True, hide_index=True)
                 
                 # स्वच्छ डाउनलोड फ़ाइल तैयार करना (बिना S.No. के)
                 clean_download_df = filtered_db.drop(columns=["S.No."])
                 
-                # --- 🛠️ बटन अनुभाग (3 अलग-अलग बटन्स का पैनल) ---
+                # --- 🛠️ बटन अनुभाग (3 विशिष्ट बटन्स का पैनल) ---
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
                 with col_btn1:
-                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
+                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड (Instant Download)
                     csv_buffer = clean_download_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
                         label="📥 डाउनलोड छात्र सूची (CSV)", 
@@ -286,7 +286,7 @@ else:
                     <script>
                     function generateLandscapePDF() {{
                         const {{ jsPDF }} = window.jspdf;
-                        const doc = new jsPDF('l', 'mm', 'a4'); // 'l' का मतलब Landscape (चौड़ा पन्ना) है
+                        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape (चौड़ा पन्ना) लेआउट
                         
                         doc.text("Permanent Shared Live Database - Student List", 14, 15);
                         
@@ -298,7 +298,7 @@ else:
                             body: rows,
                             startY: 22,
                             styles: {{ fontSize: 7, cellPadding: 1.5 }},
-                            headStyles: {{ fillColor: [255, 87, 51] }}, // संस्थान का नारंगी थीम कलर
+                            headStyles: {{ fillColor: [255, 87, 51] }}, // आपका नारंगी थीम कलर
                             theme: 'grid'
                         }});
                         
@@ -322,7 +322,7 @@ else:
                     st.markdown(pdf_script, unsafe_allow_html=True)
                     
                 with col_btn3:
-                    # बटन 3: सीधे हार्डवेयर प्रिंटर पर प्रिंट निकालने का बटन
+                    # बटन 3: सीधे हार्डवेयर प्रिंटर पर प्रिंट भेजने या ब्राउज़र प्रिंट डायलॉग खोलने का बटन
                     st.markdown("""
                         <button onclick="window.print()" style="
                             width: 100%; 
@@ -343,14 +343,14 @@ else:
                 
             else:
                 st.warning("⚠️ रिकॉर्ड मैच नहीं हुआ।")
-
+                
     # ==========================================
-    # 📝 3. CCE HANDLER ROLE (डेटाबेस सूची और लाइव Foil Sheet जनरेटर)
+    # 📝 3. CCE HANDLER ROLE (डेटाबेस सूची और एरर-फ्री Foil Sheet जनरेटर)
     # ==========================================
     elif role == "cce_handler":
         st.header("📝 College CCE Foil Sheet Generator & Live Database")
         
-        # 🔄 CCE मोड के दो सब-डैशबोर्ड (स्विच करने के लिए)
+        # CCE मोड के दो सब-डैशबोर्ड (स्विच करने के लिए)
         cce_mode = st.selectbox(
             "⚙️ CCE कार्य का चयन करें (Choose Action):",
             options=["🖨️ CCE Foil Sheet जनरेट करें (Generate Foil Sheets)", "📊 छात्र लाइव सूची देखें (View Live Database)"]
@@ -358,13 +358,12 @@ else:
         st.markdown("---")
 
         # ----------------------------------------
-        # माध्यम ए: CCE Foil Sheet जनरेटर (बिना अपलोड झंझट के सीधे लाइव डेटा से लिंक)
+        # माध्यम ए: CCE Foil Sheet जनरेटर (लाइव डेटाबेस से डायरेक्ट लिंक)
         # ----------------------------------------
         if cce_mode == "🖨️ CCE Foil Sheet जनरेट करें (Generate Foil Sheets)":
             st.subheader("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
             
             if not live_db.empty:
-                # Semester Dropdown selection
                 semesters = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
                 target_sem = st.selectbox("Kaun sa Semester chahiye?", semesters, key="cce_sem_box")
 
@@ -379,7 +378,6 @@ else:
 
                 roll_numbers = []
 
-                # लाइव डेटाबेस की रो प्रोसेस करने का सिंक लॉजिक
                 for _, row in live_db.iterrows():
                     roll = str(row.get('Roll No.', row.get('Roll No', ''))).strip()
                     student_year = str(row.get('Duration', row.get('year', row.get('Year', '')))).strip().lower()
@@ -389,7 +387,6 @@ else:
                     if not roll or roll == "nan" or roll == "":
                         continue
                     
-                    # 'Active' या 'Regular' छात्रों का फिल्टर मिलान
                     if target_num in student_year and ('REGULAR' in status or 'ACTIVE' in status):
                         roll_numbers.append(roll)
                     elif 'EX-STUDENT' in status or 'EX' in status:
@@ -404,7 +401,6 @@ else:
                     left_side_rolls = roll_numbers[:30]
                     right_side_rolls = roll_numbers[30:60]
 
-                    # HTML Foil Sheet Block Content Builder
                     def generate_cce_html_block(rolls, start_idx, foil_label, has_data):
                         if not has_data:
                             return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
@@ -478,7 +474,6 @@ else:
                         """
                         return block
 
-                    # Side-By-Side HTML Layout Injection with Embedded Print
                     full_html = """<!DOCTYPE html>
                     <html>
                     <head>
@@ -498,9 +493,13 @@ else:
                         table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
                         th, td { border: 1px solid black; padding: 4px; height: 22px; }
                         .col-header-num { font-size: 10px; background-color: #f9f9f9; }
-    
+                        .note { font-size: 10.5px; padding: 8px 4px; border-top: 2px solid black; border-bottom: 2px solid black; text-align: justify; margin-top: 15px; }
+                        .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; line-height: 1.8; }
+                        @media print {
+                            body { max-width: 100%; padding: 0; }
+                            
     # ==========================================
-    # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड विदाउट इंडेंटेशन एरर)
+    # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और एरर-फ्री एडवांस कमांड सेंटर)
     # ==========================================
     elif role == "full_admin":
         st.header("📊 Student Live Database List (Admin)")
@@ -511,7 +510,6 @@ else:
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
             st.rerun()
-            
         search_query = st.text_input("🔍 Student Name या Roll No. दर्ज करके खोजें:")
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -528,7 +526,6 @@ else:
                 ]
             st.write(f"📋 कुल छात्र रिकॉर्ड: **{len(filtered_db)}**")
             
-            # यदि सर्च रिकॉर्ड या डेटाबेस खाली नहीं है
             if not filtered_db.empty:
                 st.markdown('<div class="print-hide">### 🛠️ Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
@@ -544,12 +541,12 @@ else:
                         st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # वर्तमान निर्धारित कॉलम ऑर्डर के अनुसार डेटा रेंडर करना
+                # वर्तमान निर्धारित कॉलम ऑर्डर के अनुसार डेटा तैयार करें
                 ordered_db = filtered_db[st.session_state.admin_columns_order].copy()
                 ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
                 download_df = filtered_db.copy()
                 
-                # 🎯 यदि एडमिन पैनल UNLOCK है, तभी सारे कंट्रोल्स और ऑल सिलेक्ट प्रकट करें
+                # 🎯 यदि एडमिन पैनल UNLOCK है, तो ही कंट्रोल्स और ऑल सिलेक्ट दिखाएं
                 if not st.session_state.admin_lock_state:
                     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                     target_col = st.selectbox("आगे-पीछे खिसकाने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
@@ -572,7 +569,7 @@ else:
                     # सिलेक्ट कॉलम इन्सर्ट करें
                     ordered_db.insert(0, "Select", select_all)
                     
-                    # डेटा एडिटर (यहाँ सीधे डबल क्लिक करके लाइव टेक्स्ट एडिट किया जा सकता है)
+                    # डेटा एडिटर (टेक्स्ट डायरेक्ट एडिट हो सकता है यहाँ)
                     edited_df = st.data_editor(
                         ordered_db,
                         use_container_width=True,
@@ -601,22 +598,52 @@ else:
                     st.markdown('</div>', unsafe_allow_html=True)
                     download_df = edited_df.drop(columns=["Select", "S.No."]) if "Select" in edited_df.columns else edited_df.drop(columns=["S.No."])
                 
-                # 🎯 यदि एडमिन पैनल LOCK है, तो सारे बटन छिप जाएंगे लेकिन तालिका स्क्रीन पर हमेशा दिखेगी
+                # 🎯 यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
                 else:
                     st.dataframe(ordered_db, use_container_width=True, hide_index=True)
                     download_df = filtered_db.copy()
                 
-                # कॉमन डाउनलोड और प्रिंट बटन्स पैनल
+                # कॉमन डाउनलोड और प्रिंट बटन्स पैनल (Landscape PDF को पूरी तरह से फिक्स कर दिया गया है)
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                col_btn1, col_btn2 = st.columns(2)
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                
                 if "S.No." in download_df.columns:
                     download_df = download_df.drop(columns=["S.No."])
-                csv_buffer = download_df.to_csv(index=False).encode('utf-8')
                 
-                col_btn1.download_button(label="📥 डाउनलोड छात्र सूची (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True)
-                col_btn2.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">🖨️ प्रिंट या PDF बनाएं</button>', unsafe_allow_html=True)
+                with col_btn1:
+                    csv_buffer = download_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(label="📥 डाउनलोड छात्र सूची (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True)
+                
+                with col_btn2:
+                    columns_json = list(download_df.columns)
+                    rows_json = download_df.values.tolist()
+                    pdf_script = f"""
+                    <script src="https://cloudflare.com"></script>
+                    <script src="https://cloudflare.com"></script>
+                    <script>
+                    function generateLandscapePDF() {{
+                        const {{ jsPDF }} = window.jspdf;
+                        const doc = new jsPDF('l', 'mm', 'a4');
+                        doc.text("Permanent Shared Live Database - Student List", 14, 15);
+                        const columns = {columns_json};
+                        const rows = {rows_json};
+                        doc.autoTable({{
+                            head: [columns],
+                            body: rows,
+                            startY: 22,
+                            styles: {{ fontSize: 7, cellPadding: 1.5 }},
+                            headStyles: {{ fillColor: }},
+                            theme: 'grid'
+                        }});
+                        doc.save('student_list_landscape.pdf');
+                    }}
+                    </script>
+                    <button onclick="generateLandscapePDF()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">📄 डायरेक्ट Landscape PDF डाउनलोड करें</button>
+                    """
+                    st.markdown(pdf_script, unsafe_allow_html=True)
+                    
+                with col_btn3:
+                    st.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">🖨️ सीधे प्रिंट निकालें (Direct Print)</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-                
             else:
                 st.warning("⚠️ रिकॉर्ड मैच नहीं हुआ।")
-                
