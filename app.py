@@ -496,9 +496,9 @@ else:
         else:
             st.error("Live database file khali hai.")
 
-    # --------------------------------------------------
+      # --------------------------------------------------
     # 🛠️ 4. FULL ADMIN ROLE PANEL (Role: केवल full_admin)
-    # 🎯 आवश्यकता 4: क्रेडेंशियल्स बदलना, लिस्ट शो, कंट्रोल्स को अनहाइड करने के बटन्स (टेक्स्ट एडिट, कॉलम शिफ्ट, लॉक/अनलॉक)
+    # 🎯 आवश्यकता: क्रेडेंशियल्स बदलना, 3 न्यू हाइड/अनहाइड मास्टर बटन्स, लिस्ट व्यू और एडवांस्ड कंट्रोल्स
     # --------------------------------------------------
     if role == "full_admin":
         st.header("🛠️ Full Admin Management Panel")
@@ -518,9 +518,33 @@ else:
                     st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक अपडेट हो गया है!")
 
         st.markdown("---")
+        
+        # 🎯 पार्ट बी: 3 न्यू मास्टर बटन्स (पैनल्स को हाइड/अनहाइड करने का पावर)
+        st.subheader("🛡️ Global Panels Visibility Controller")
+        col_vis1, col_vis2, col_vis3 = st.columns(3)
+        
+        with col_vis1:
+            entry_btn_label = "👁️ Data Entry Panel: UNHIDDEN" if not st.session_state.admin_hide_entry else "🙈 Data Entry Panel: HIDDEN"
+            if st.button(entry_btn_label, use_container_width=True, key="admin_master_toggle_entry"):
+                st.session_state.admin_hide_entry = not st.session_state.admin_hide_entry
+                st.rerun()
+                
+        with col_vis2:
+            viewer_btn_label = "👁️ Viewer Panel: UNHIDDEN" if not st.session_state.admin_hide_viewer else "🙈 Viewer Panel: HIDDEN"
+            if st.button(viewer_btn_label, use_container_width=True, key="admin_master_toggle_viewer"):
+                st.session_state.admin_hide_viewer = not st.session_state.admin_hide_viewer
+                st.rerun()
+                
+        with col_vis3:
+            cce_btn_label = "👁️ CCE Panel: UNHIDDEN" if not st.session_state.admin_hide_cce else "🙈 CCE Panel: HIDDEN"
+            if st.button(cce_btn_label, use_container_width=True, key="admin_master_toggle_cce"):
+                st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
+                st.rerun()
+
+        st.markdown("---")
         st.subheader("📊 Master Database List View & Advanced Controls")
         
-        # 🎯 कंट्रोल बटन्स का पैनल (फंक्शंस को अनहाइड करने के लिए)
+        # पुराना कंट्रोल पैनल (फंक्शंस को अनहाइड करने के लिए)
         col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
         with col_ctrl1:
             if st.button("📝 एडिट टेक्स्ट फ़ंक्शन अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_text_edit"):
@@ -536,7 +560,7 @@ else:
                 st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                 st.rerun()
 
-        # 🔀 कॉलम खिसकाने के मूव बटन्स (यदि बटन अनहाइड किया गया हो)
+        # कॉलम खिसकाने के मूव बटन्स (यदि बटन अनहाइड किया गया हो)
         if st.session_state.admin_unhide_move:
             st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
             target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
@@ -558,9 +582,9 @@ else:
         ordered_db = live_db[st.session_state.admin_columns_order].copy()
         ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
         
-        st.write(f"कुल रिकॉर्ड संख्या: **{len(ordered_db)}**")
+        st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
         
-        # 📝 स्थिति 1: जब लिस्ट अनलॉक है और टेक्स्ट एडिट फ़ंक्शन अनहाइड है (डायरेक्ट लाइव टेक्स्ट एडिटिंग)
+        # स्थिति 1: जब लिस्ट अनलॉक है और टेक्स्ट एडिट फ़ंक्शन अनहाइड है (डायरेक्ट लाइव टेक्स्ट एडिटिंग)
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
             st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे सेव हो जाएगा।")
             edited_df = st.data_editor(
@@ -577,7 +601,6 @@ else:
                     live_db[col] = clean_edited[col].values
             save_live_data(live_db)
             
-        # 🔒 स्थिति 2: जब लिस्ट लॉक हो या टेक्स्ट एडिट फ़ंक्शन हाइड हो (साधारण रीड-ओनली व्यू)
+        # स्थिति 2: जब लिस्ट लॉक हो या टेक्स्ट एडिट फ़ंक्शन हाइड हो (साधारण मास्टर ग्रिड रीड-ओनली व्यू)
         else:
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-        
