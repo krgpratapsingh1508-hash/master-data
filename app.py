@@ -92,6 +92,100 @@ def load_live_data():
             # आपकी शर्त के अनुसार डायनामिक मैपिंग डिक्शनरी
             mapping = {
                 max_year: "1 year",
+                max_import streamlit as st
+import pandas as pd
+import os
+import base64
+
+# पेज का लेआउट सेट करें
+st.set_page_config(layout="wide")
+
+# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
+st.markdown("""
+    <style>
+    @media print {
+        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
+        .stButton, .stFileUploader, [data-testid="stDecoration"], 
+        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {
+            display: none !important;
+        }
+        @page {
+            margin: 5mm;
+            size: A4 landscape;
+        }
+        .main .block-container {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    }
+    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .header-text { display: flex; flex-direction: column; }
+    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
+    .header-text h1 { margin: 0 !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+# लोगो लोड करने का फंक्शन
+def get_image_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as image_file:
+            return f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
+    return ""
+
+img_base64 = get_image_base64("logo pratap.png")
+logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
+
+st.markdown(f"""
+    <div class="header-container">
+        {logo_html}
+        <div class="header-text">
+            <h3>ॐ गुरुवर्य नमः</h3>
+            <h1>Permanent Shared Live Database</h1>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+DB_FILE = "shared_student_database.csv"
+
+# 🔑 4-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स
+CREDENTIALS = {
+    "entry": {"password": "entry123", "role": "data_entry"},
+    "viewer": {"password": "viewer123", "role": "list_viewer"},
+    "cce": {"password": "cce123", "role": "cce_handler"},
+    "admin": {"password": "admin123", "role": "full_admin"}
+}
+
+# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची (Status के राइट में Current Year जोड़ा गया)
+DEFAULT_COLUMNS = [
+    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
+    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
+    "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
+    "Category", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
+    "Current Year"
+]
+
+# डेटा लोड फंक्शन (ऑटोमैटिक करंट ईयर कैलकुलेशन लॉजिक के साथ)
+def load_live_data():
+    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
+        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
+        df_empty.to_csv(DB_FILE, index=False)
+        return df_empty
+    try:
+        df = pd.read_csv(DB_FILE, dtype=str)
+        
+        # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हैं
+        for col in DEFAULT_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+                
+        # 🎯 ऑटोमैटिक करंट ईयर कैलकुलेशन एल्गोरिथ्म
+        years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
+        if not years_series.dropna().empty:
+            max_year = int(years_series.max())
+            
+            # आपकी शर्त के अनुसार डायनामिक मैपिंग डिक्शनरी
+            mapping = {
+                max_year: "1 year",
                 max_year - 1: "2 year",
                 max_year - 2: "3 year",
                 max_year - 3: "4 year",
@@ -109,7 +203,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट सेटअप
+# स्टेट MANAGEMENT सेटअप
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -159,6 +253,82 @@ else:
 
     st.markdown("---")
     role = st.session_state.user_role
+
+# ==========================================
+# 📁 1. DATA ENTRY PANEL
+# ==========================================
+st.header("📝 Student Data Entry Panel")
+
+entry_method = st.selectbox(
+    "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
+    options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
+)
+st.markdown("---")
+
+if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+    st.subheader("📁 CSV File Bulk Upload")
+    if "csv_uploader_id" not in st.session_state:
+        st.session_state.csv_uploader_id = 100
+
+    uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"], key=f"csv_uploader_{st.session_state.csv_uploader_id}")
+    if uploaded_file is not None:
+        try:
+            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+            if st.button("Upload CSV Now", use_container_width=True, type="primary"):
+                for col in DEFAULT_COLUMNS:
+                    if col not in uploaded_df.columns:
+                        uploaded_df[col] = ""
+                cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                current_db = load_live_data()
+                if current_db.empty:
+                    updated_df = cleaned_uploaded_df
+                else:
+                    updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                save_live_data(updated_df)
+                st.session_state.upload_success = True
+                st.session_state.save_success = False
+                st.session_state.csv_uploader_id += 1
+                st.rerun()
+        except Exception as e:
+            st.error(f"त्रुटि: {e}")
+
+    if st.session_state.upload_success:
+        st.success("✅ CSV Data Filtered & Successfully Uploaded!")
+        st.session_state.upload_success = False
+
+elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+    st.subheader("➕ Naya Student Data Add Karein")
+    with st.form(key="student_add_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
+            eligibility_name = st.text_input("Eligibility Name (योग योग्यता का नाम)")
+            admission_date = st.text_input("Admission Date (प्रवेश तिथि)")
+            roll_no = st.text_input("Roll No. (रोल नंबर)")
+            enrollment_no = st.text_input("Enrollment No. (स्थायी नामांकन संख्या)")
+            f_name = st.text_input("Father Name (पिता का नाम)")
+            dob = st.text_input("Date of Birth (जन्म तिथि)")
+            subject = st.text_input("Subject (विषय/स्ट्रीम)")
+            mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
+            address = st.text_input("Address (पता)")
+        with col2:
+            admission_session = st.text_input("Admission Session (सत्र)")
+            admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
+            unique_id = st.text_input("Unique ID (आधार या स्कॉलर नंबर)")
+            app_enroll_no = st.text_input("Application Enrollment No. (एप्लिकेशन नामांकन संख्या)")
+            s_name = st.text_input("Student Name (छात्र का नाम)")
+            m_name = st.text_input("Mother Name (माता का नाम)")
+            category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
+            duration = st.text_input("Duration (कोर्स की अवधि)")
+            email = st.text_input("Email ID (ईमेल आईडी)")
+            status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
+        submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
+
+    if submit_student:
+        if s_name.strip() == "":
+            st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+        else:
+            new_row = {
 
 # ==========================================
 # 📁 1. DATA ENTRY PANEL
@@ -717,37 +887,3 @@ else:
             # सिलेक्ट कॉलम इन्सर्ट करें
             ordered_db.insert(0, "Select", select_all)
             
-            # डेटा एडिटर (टेक्स्ट डायरेक्ट एडिट हो सकता है यहाँ)
-            edited_df = st.data_editor(
-                ordered_db,
-                use_container_width=True,
-                disabled=[col for col in ordered_db.columns if col == "Select" or col == "Current Year"],
-                key="advanced_admin_unlocked_editor",
-                hide_index=True
-            )
-            
-            # लाइव एडिटर टेक्स्ट मॉडिफिकेशन सिंक करना
-            clean_edited = edited_df.drop(columns=["Select", "S.No."])
-            for col in clean_edited.columns:
-                if col != "Current Year": # Current Year को छोड़कर बाकी सब सिंक करें
-                    live_db.loc[filtered_db.index, col] = clean_edited[col].values
-            save_live_data(live_db)
-            
-            selected_rows = edited_df[edited_df["Select"] == True]
-            
-            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-            st.info(f"Chayanit row ki sankhya: **{len(selected_rows)}**")
-            if len(selected_rows) > 0:
-                if st.button("Delete Selected Rows (Chayanit row delete karein)", type="primary", use_container_width=True, key="delete_rows_btn"):
-                    indices_to_drop = filtered_db.index[[int(s_no) - 1 for s_no in selected_rows["S.No."]]]
-                    live_db = live_db.drop(indices_to_drop).reset_index(drop=True)
-                    save_live_data(live_db)
-                    st.success("Chayanit row safaltapurvak hata di gayi hain!")
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
-        else:
-            st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-    else:
-        st.warning("Record match nahi hua.")
