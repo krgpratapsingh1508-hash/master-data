@@ -221,10 +221,105 @@ else:
                 st.session_state.save_success = False
 
     # ==========================================
-    # 👁️ 2. LIST VIEWER ROLE
+    # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और सुरक्षित एडमिन कमांड सेंटर)
     # ==========================================
-    elif role == "list_viewer":
-        st.header("Student Live Database List (Viewer Mode)")
+    elif role == "full_admin":
+        st.header("Student Live Database List (Admin)")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        # लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
         visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
+        if st.button(visibility_label, use_container_width=True, type="secondary"):
+            st.session_state.list_visibility_state = not st.session_state.list_visibility_state
+            st.rerun()
+        search_query = st.text_input("Student Name ya Roll No. darj karke khojein:")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # यदि लिस्ट को हाइड (Hide) किया गया है
+        if not st.session_state.list_visibility_state:
+            st.info("Student list ko varpamaan me chhupaya gaya hai. Dekhne ke liye upar Unhide button dabayein.")
+            
+        else:
+            filtered_db = live_db.copy()
+            if search_query:
+                filtered_db = filtered_db[
+                    filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
+                    filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
+                ]
+            st.write(f"Kul Student Record: **{len(filtered_db)}**")
+            
+            if not filtered_db.empty:
+                st.markdown('<div class="print-hide">### Advanced Admin Command Center</div>', unsafe_allow_html=True)
+                
+                # मास्टर锁 लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                if st.session_state.admin_lock_state:
+                    if st.button("Unlock List (Admin button aur editing chalu karein)", type="primary", use_container_width=True):
+                        st.session_state.admin_lock_state = False
+                        st.rerun()
+                else:
+                    if st.button("Lock List (Sabhi admin buttons ko chhupayein aur surakshit karein)", type="secondary", use_container_width=True):
+                        st.session_state.admin_lock_state = True
+                        st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # वर्तमान निर्धारित कॉलम ऑर्डर के अनुसार डेटा तैयार करें
+                ordered_db = filtered_db[st.session_state.admin_columns_order].copy()
+                ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+                
+                # यदि एडमिन पैनल UNLOCK है, तो ही कंट्रोल्स और ऑल सिलेक्ट दिखाएं
+                if not st.session_state.admin_lock_state:
+                    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                    target_col = st.selectbox("Aage-piche khiskane ke liye column chunein:", options=st.session_state.admin_columns_order)
+                    
+                    c_left, c_right = st.columns(2)
+                    if c_left.button("Column Shift Left", use_container_width=True):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx > 0:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                            st.rerun()
+                    if c_right.button("Column Shift Right", use_container_width=True):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx < len(st.session_state.admin_columns_order) - 1:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                            st.rerun()
+                    
+                    select_all = st.checkbox("Select All Rows (Sabhi row ko ek sath chunein)")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # सिलेक्ट कॉलम इन्सर्ट करें
+                    ordered_db.insert(0, "Select", select_all)
+                    
+                    # डेटा एडिटर (टेक्स्ट डायरेक्ट एडिट हो सकता है यहाँ)
+                    edited_df = st.data_editor(
+                        ordered_db,
+                        use_container_width=True,
+                        disabled=[col for col in ordered_db.columns if col == "Select"],
+                        key="advanced_admin_unlocked_editor",
+                        hide_index=True
+                    )
+                    
+                    # लाइव एडिटर टेक्स्ट मॉडिफिकेशन सिंक करना
+                    clean_edited = edited_df.drop(columns=["Select", "S.No."])
+                    for col in clean_edited.columns:
+                        live_db.loc[filtered_db.index, col] = clean_edited[col].values
+                    save_live_data(live_db)
+                    
+                    selected_rows = edited_df[edited_df["Select"] == True]
+                    
+                    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                    st.info(f"Chayanit row ki sankhya: **{len(selected_rows)}**")
+                    if len(selected_rows) > 0:
+                        if st.button("Delete Selected Rows (Chayanit row delete karein)", type="primary", use_container_width=True):
+                            indices_to_drop = filtered_db.index[[int(s_no) - 1 for s_no in selected_rows["S.No."]]]
+                            live_db = live_db.drop(indices_to_drop).reset_index(drop=True)
+                            save_live_data(live_db)
+                            st.success("Chayanit row safaltapurvak hata di gayi hain!")
+                            st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                # यदि एडमिन पैनल LOCK है, तो साधारण ग्रिड दिखाएं (कंट्रोल्स छिपे रहेंगे)
+                else:
+                    st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+            else:
+                st.warning("Record match nahi hua.")
