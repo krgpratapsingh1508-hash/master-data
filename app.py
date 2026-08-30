@@ -105,7 +105,9 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट सेटअप
+# ==========================================
+# ⚙️ स्टेट मैनेजमेंट सेटअप (STATE MANAGEMENT INITIALIZATION)
+# ==========================================
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
 if "upload_success" not in st.session_state:
@@ -116,12 +118,22 @@ if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
     st.session_state.admin_lock_state = True  
+if "list_visibility_state" not in st.session_state:
+    st.session_state.list_visibility_state = True  
+if "cce_foil_generated" not in st.session_state:
+    st.session_state.cce_foil_generated = False
 if "admin_unhide_edit" not in st.session_state:
     st.session_state.admin_unhide_edit = False
 if "admin_unhide_move" not in st.session_state:
     st.session_state.admin_unhide_move = False
-if "cce_foil_generated" not in st.session_state:
-    st.session_state.cce_foil_generated = False
+
+# 🎯 न्यू 3 मास्टर बटन्स के लिए वेरिएबल्स (यहाँ इन्हें रजिस्टर करके एरर फिक्स किया गया)
+if "admin_hide_entry" not in st.session_state:
+    st.session_state.admin_hide_entry = False
+if "admin_hide_viewer" not in st.session_state:
+    st.session_state.admin_hide_viewer = False
+if "admin_hide_cce" not in st.session_state:
+    st.session_state.admin_hide_cce = False
 
 live_db = load_live_data()
 
