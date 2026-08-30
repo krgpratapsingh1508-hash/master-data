@@ -216,8 +216,7 @@ else:
                 filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
                 st.dataframe(filtered_db, use_container_width=True, hide_index=True)
                 
-                # बटन्स अनुभाग - एरर फ्री (No empty with blocks)
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2 = st.columns(2)
-
-
+                download_df = filtered_db.drop(columns=["S.No."])
+                
