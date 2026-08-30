@@ -160,40 +160,61 @@ else:
     role = st.session_state.user_role
     st.info(f"🔑 वर्तमान सत्र भूमिका: **{role.upper()}**")
 
-    # --------------------------------------------------
+        # --------------------------------------------------
     # 📁 A. DATA ENTRY PANEL (Role: data_entry या full_admin)
     # --------------------------------------------------
     if role in ["data_entry", "full_admin"]:
         st.header("📝 Student Data Entry Panel")
+        
+        # 🔄 स्मार्ट ऑटो-हाइड ट्रिगर ड्रॉपडाउन
         entry_method = st.selectbox(
             "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
-            options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
+            options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"],
+            key="data_entry_method_selector"
         )
         st.markdown("---")
 
+        # ----------------------------------------
+        # माध्यम ए: केवल CSV अपलोडर (मैनुअल फॉर्म पूरी तरह हाइड)
+        # ----------------------------------------
         if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
             st.subheader("📁 CSV File Bulk Upload")
             if "csv_uploader_id" not in st.session_state:
                 st.session_state.csv_uploader_id = 100
 
-            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"], key=f"csv_uploader_{st.session_state.csv_uploader_id}")
+            uploaded_file = st.file_uploader(
+                "CSV फ़ाइल चुनें", 
+                type=["csv"], 
+                key=f"csv_uploader_{st.session_state.csv_uploader_id}"
+            )
+            
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                    if st.button("Upload CSV Now", use_container_width=True, type="primary"):
+                    
+                    if st.button("Upload CSV Now", use_container_width=True, type="primary", key="csv_upload_submit_btn"):
+                        # 🎯 1. केवल वही कॉलम्स सुनिश्चित करें जो मास्टर सूची में हैं
                         for col in DEFAULT_COLUMNS:
                             if col not in uploaded_df.columns:
                                 uploaded_df[col] = ""
+                        
+                        # 🎯 2. फ़ाइल से फालतू कॉलम्स को हटाकर व्यवस्थित करना
                         cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                        
                         current_db = load_live_data()
+                        
+                        # 🎯 3. डेटाबेस में कतारों को सुरक्षित रूप से मर्ज करना
                         if current_db.empty:
                             updated_df = cleaned_uploaded_df
                         else:
                             updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                        
                         save_live_data(updated_df)
+                        
+                        # स्क्रीन रिफ्रेश और अपलोड सक्सेस स्टेट क्लीनअप
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
-                        st.session_state.csv_uploader_id += 1
+                        st.session_state.csv_uploader_id += 1  # uploader रीसेट ट्रिगर
                         st.rerun()
                 except Exception as e:
                     st.error(f"त्रुटि: {e}")
@@ -202,10 +223,16 @@ else:
                 st.success("✅ CSV Data Filtered & Successfully Uploaded!")
                 st.session_state.upload_success = False
 
+        # ----------------------------------------
+        # माध्यम बी: केवल मैनुअल फॉर्म (CSV अपलोडर पूरी तरह हाइड)
+        # ----------------------------------------
         elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
             st.subheader("➕ Naya Student Data Add Karein")
+            
             with st.form(key="student_add_form", clear_on_submit=True):
+                # 2-कॉलम ग्रिड लेआउट
                 col1, col2 = st.columns(2)
+                
                 with col1:
                     admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
                     eligibility_name = st.text_input("Eligibility Name (योग्यता का नाम)")
@@ -217,10 +244,169 @@ else:
                     subject = st.text_input("Subject (विषय/स्ट्रीम)")
                     mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
                     address = st.text_input("Address (पता)")
+                    
                 with col2:
                     admission_session = st.text_input("Admission Session (सत्र)")
                     admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
                     unique_id = st.text_input("Unique ID (आधार या स्कॉलर नंबर)")
                     app_enroll_no = st.text_input("Application Enrollment No. (एप्लिकेशन नामांकन संख्या)")
                     s_name = st.text_input("Student Name (छात्र का नाम)")
+                    m_name = st.text_input("Mother Name (माता का नाम)")
+                    category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
+                    duration = st.text_input("Duration (कोर्स की अवधि)")
+                    email = st.text_input("Email ID (ईमेल आईडी)")
+                    status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
+                
+                submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
+
+            if submit_student:
+                if s_name.strip() == "":
+                    st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+                else:
+                    new_row = {
+                        "Admission Year": admission_year, "Admission Session": admission_session, 
+                        "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no,
+                        "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
+                        "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
+                        "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
+                        "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
+                        "Email ID": email, "Address": address, "Status": status_input, 
+                        "Current Year": ""  # बैकएंड गणना के लिए खाली, लोड होने पर स्वतः फिल होगा
+                    }
+                    current_db = load_live_data()
+                    if current_db.empty:
+                        updated_df = pd.DataFrame([new_row])
+                    else:
+                        updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
                     
+                    save_live_data(updated_df)
+                    st.session_state.save_success = True
+                    st.session_state.upload_success = False
+                    st.rerun()
+
+            if st.session_state.save_success:
+                st.success("✅ Student data saved successfully")
+                st.session_state.save_success = False
+
+    # --------------------------------------------------
+    # 👁️ B. LIST VIEWER PANEL (Role: list_viewer)
+    # --------------------------------------------------
+    if role == "list_viewer":
+        st.header("Student Live Database List (Viewer Mode)")
+        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+
+        # लिस्ट को छुपाने या दिखाने का बटन (Toggle Button)
+        visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
+        if st.button(visibility_label, use_container_width=True, type="secondary", key="viewer_panel_toggle_btn"):
+            st.session_state.list_visibility_state = not st.session_state.list_visibility_state
+            st.rerun()
+            
+        search_query = st.text_input("Student Name ya Roll No. darj karke khojein:", key="viewer_panel_search_input")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # यदि लिस्ट को हाइड (Hide) किया गया है
+        if not st.session_state.list_visibility_state:
+            st.info("Student list ko vartamaan me chhupaya gaya hai. Dekhne ke liye upar Unhide button dabayein.")
+        else:
+            filtered_db = live_db.copy()
+            
+            # सर्च फ़िल्टर लॉजिक
+            if search_query:
+                filtered_db = filtered_db[
+                    filtered_db["Student Name"].str.contains(search_query, case=False, na=False) |
+                    filtered_db["Roll No."].str.contains(search_query, case=False, na=False)
+                ]
+            st.write(f"Kul Student Record: **{len(filtered_db)}**")
+            
+            # यदि सर्च रिकॉर्ड या डेटाबेस खाली नहीं है
+            if not filtered_db.empty:
+                # S.No. को 1 से सेट करना
+                display_df = filtered_db.copy()
+                display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
+                
+                # सुरक्षित रीड-ओनली टेबल व्यू
+                st.dataframe(display_df, use_container_width=True, hide_index=True)
+                
+                # --- 🛠️ बटन अनुभाग (3 विशिष्ट बटन्स का पैनल) ---
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                
+                with col_btn1:
+                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
+                    csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="Download Student List (CSV)", 
+                        data=csv_buffer, 
+                        file_name="student_database_list.csv", 
+                        mime="text/csv", 
+                        use_container_width=True,
+                        key="viewer_panel_csv_download_btn"
+                    )
+                    
+                with col_btn2:
+                    # बटन 2: जावास्क्रिप्ट आधारित डायरेक्ट Landscape PDF जनरेटर (फिक्स्ड CDN लिंक्स के साथ)
+                    columns_json = list(filtered_db.columns)
+                    rows_json = filtered_db.values.tolist()
+                    
+                    pdf_script = f"""
+                    <script src="https://cloudflare.com"></script>
+                    <script src="https://cloudflare.com"></script>
+                    <script>
+                    function generateLandscapePDF() {{
+                        const {{ jsPDF }} = window.jspdf;
+                        const doc = new jsPDF('l', 'mm', 'a4');
+                        
+                        doc.text("Permanent Shared Live Database - Student List", 14, 15);
+                        
+                        const columns = {columns_json};
+                        const rows = {rows_json};
+                        
+                        doc.autoTable({{
+                            head: [columns],
+                            body: rows,
+                            startY: 22,
+                            styles: {{ fontSize: 6, cellPadding: 1.2 }},
+                            theme: 'grid'
+                        }});
+                        
+                        doc.save('student_list_landscape.pdf');
+                    }}
+                    </script>
+                    <button onclick="generateLandscapePDF()" style="
+                        width: 100%; 
+                        background-color: #4CAF50; 
+                        color: white; 
+                        border: none; 
+                        padding: 0.5rem 1rem; 
+                        border-radius: 0.5rem; 
+                        cursor: pointer; 
+                        font-weight: 500; 
+                        line-height: 1.6; 
+                        text-align: center; 
+                        box-sizing: border-box;
+                    ">Direct Landscape PDF Download</button>
+                    """
+                    st.markdown(pdf_script, unsafe_allow_html=True)
+                    
+                with col_btn3:
+                    # बटन 3: सीधे हार्डवेयर प्रिंटर पर प्रिंट भेजने का बटन
+                    st.markdown("""
+                        <button onclick="window.print()" style="
+                            width: 100%; 
+                            background-color: #FF5733; 
+                            color: white; 
+                            border: none; 
+                            padding: 0.5rem 1rem; 
+                            border-radius: 0.5rem; 
+                            cursor: pointer; 
+                            font-weight: 500; 
+                            line-height: 1.6; 
+                            text-align: center; 
+                            box-sizing: border-box;
+                        ">Direct Print</button>
+                    """, unsafe_allow_html=True)
+                    
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.warning("Record match nahi hua.")
+                
