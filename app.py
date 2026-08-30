@@ -187,11 +187,11 @@ else:
             st.success("✅ data save successfully")
             st.session_state.save_success = False
 
-   # ==========================================
-    # 👁️ 2. LIST VIEWER ROLE (सुरक्षित, साफ़ और बिना लॉक/अनलॉक बटन के)
+       # ==========================================
+    # 👁️ 2. VIEWER ROLE (सुरक्षित डेटा देखने और खोजने के लिए)
     # ==========================================
-    elif role == "list_viewer":
-        st.header("📊 Student Live Database List (Viewer Mode)")
+    elif role == "viewer":
+        st.header("📊 Student Live Database List")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         # 👁️ लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
@@ -218,43 +218,23 @@ else:
             
             # यदि सर्च रिकॉर्ड या डेटाबेस खाली नहीं है
             if not filtered_db.empty:
-                # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना बिना रो को आगे-पीछे किए
-                filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
+                # वर्तमान निर्धारित कॉलम ऑर्डर के अनुसार केवल डेटा रेंडर करना (कोई एडिटिंग नहीं)
+                ordered_db = filtered_db[st.session_state.admin_columns_order].copy()
+                ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
                 
-                # सुरक्षित रीड-ओनली टेबल व्यू (व्यूअर के लिए हमेशा लॉक)
-                st.dataframe(filtered_db, use_container_width=True, hide_index=True)
+                # तालिका को सुरक्षित रूप से प्रदर्शित करना
+                st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+                download_df = filtered_db.copy()
                 
-                # --- एक्शन बटन्स पैनल (CSV डाउनलोड और प्रिंट/PDF) ---
+                # कॉमन डाउनलोड और प्रिंट बटन्स पैनल
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 col_btn1, col_btn2 = st.columns(2)
+                if "S.No." in download_df.columns:
+                    download_df = download_df.drop(columns=["S.No."])
+                csv_buffer = download_df.to_csv(index=False).encode('utf-8')
                 
-                with col_btn1:
-                    download_df = filtered_db.drop(columns=["S.No."])
-                    csv_buffer = download_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 डाउनलोड छात्र सूची (CSV)", 
-                        data=csv_buffer, 
-                        file_name="student_database_list.csv", 
-                        mime="text/csv", 
-                        use_container_width=True
-                    )
-                    
-                with col_btn2:
-                    st.markdown("""
-                        <button onclick="window.print()" style="
-                            width: 100%; 
-                            background-color: #FF5733; 
-                            color: white; 
-                            border: none; 
-                            padding: 0.5rem 1rem; 
-                            border-radius: 0.5rem; 
-                            cursor: pointer; 
-                            font-weight: 500; 
-                            line-height: 1.6; 
-                            text-align: center; 
-                            box-sizing: border-box;
-                        ">🖨️ प्रिंट या PDF बनाएं</button>
-                    """, unsafe_allow_html=True)
+                col_btn1.download_button(label="📥 डाउनलोड छात्र सूची (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True)
+                col_btn2.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">🖨️ प्रिंट या PDF बनाएं</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
             else:
