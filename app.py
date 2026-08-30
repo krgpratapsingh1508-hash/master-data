@@ -106,7 +106,7 @@ def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
 # ==========================================
-# ⚙️ स्टेट मैनेजमेंट सेटअप (STATE MANAGEMENT INITIALIZATION)
+# ⚙️ स्टेट मैनेजमेंट सेटअप (क्रैश प्रोटेक्शन)
 # ==========================================
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
@@ -118,22 +118,26 @@ if "admin_columns_order" not in st.session_state:
     st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state:
     st.session_state.admin_lock_state = True  
-if "list_visibility_state" not in st.session_state:
-    st.session_state.list_visibility_state = True  
-if "cce_foil_generated" not in st.session_state:
-    st.session_state.cce_foil_generated = False
 if "admin_unhide_edit" not in st.session_state:
     st.session_state.admin_unhide_edit = False
 if "admin_unhide_move" not in st.session_state:
     st.session_state.admin_unhide_move = False
+if "cce_foil_generated" not in st.session_state:
+    st.session_state.cce_foil_generated = False
 
-# 🎯 न्यू 3 मास्टर बटन्स के लिए वेरिएबल्स (यहाँ इन्हें रजिस्टर करके एरर फिक्स किया गया)
+# एडमिन के मास्टर हाइड/अनहाइड बटनों के वेरिएबल्स (AttributeError फिक्स)
 if "admin_hide_entry" not in st.session_state:
     st.session_state.admin_hide_entry = False
 if "admin_hide_viewer" not in st.session_state:
     st.session_state.admin_hide_viewer = False
 if "admin_hide_cce" not in st.session_state:
     st.session_state.admin_hide_cce = False
+if "admin_hide_cred_panel" not in st.session_state:
+    st.session_state.admin_hide_cred_panel = False
+
+# छोटा लॉगिन पैनल टॉगल बटन वेरिएबल
+if "show_login_panel" not in st.session_state:
+    st.session_state.show_login_panel = False
 
 live_db = load_live_data()
 
@@ -142,23 +146,35 @@ live_db = load_live_data()
 # ==========================================================
 if st.session_state.user_role is None:
     st.markdown("---")
-    st.subheader("🔒 Multi-User Secure Login Gateway")
-    user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(st.session_state.credentials.keys()))
-    password_input = st.text_input("Password दर्ज करें:", type="password")
     
-    if st.button("Secure Login", use_container_width=True, type="primary"):
-        if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
-            st.session_state.user_role = st.session_state.credentials[user_input]["role"]
-            st.session_state.upload_success = False
-            st.session_state.save_success = False
-            st.session_state.admin_lock_state = True  
-            st.session_state.admin_unhide_edit = False
-            st.session_state.admin_unhide_move = False
-            st.session_state.cce_foil_generated = False
-            st.success("✅ लॉगिन सफल!")
+    # 🎯 छोटा और आकर्षक 'Login' बटन जो पासवर्ड पैनल को हाइड/अनहाइड करेगा
+    col_login_btn, _ = st.columns([1, 5])
+    with col_login_btn:
+        login_btn_label = "🔓 Hide Login" if st.session_state.show_login_panel else "🔒 Login"
+        if st.button(login_btn_label, use_container_width=True, type="secondary", key="global_login_toggle_btn"):
+            st.session_state.show_login_panel = not st.session_state.show_login_panel
             st.rerun()
-        else:
-            st.error("❌ गलत पासवर्ड!")
+
+    # यदि 'Login' बटन पर क्लिक करके अनहाइड किया गया है, तभी नीचे का पैनल दिखेगा
+    if st.session_state.show_login_panel:
+        st.subheader("🔒 Multi-User Secure Login Gateway")
+        user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(st.session_state.credentials.keys()))
+        password_input = st.text_input("Password दर्ज करें:", type="password")
+        
+        if st.button("Secure Login", use_container_width=True, type="primary"):
+            if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
+                st.session_state.user_role = st.session_state.credentials[user_input]["role"]
+                st.session_state.upload_success = False
+                st.session_state.save_success = False
+                st.session_state.admin_lock_state = True  
+                st.session_state.admin_unhide_edit = False
+                st.session_state.admin_unhide_move = False
+                st.session_state.cce_foil_generated = False
+                st.session_state.show_login_panel = False # लॉगिन के बाद इसे स्वतः हाइड करें
+                st.success("✅ लॉगिन सफल!")
+                st.rerun()
+            else:
+                st.error("❌ गलत पासवर्ड!")
 
 # ==========================================================
 # 🔑 लॉगिन के बाद का मुख्य सिस्टम (केवल पासवर्ड डालने पर एक्टिव होगा)
@@ -176,14 +192,13 @@ else:
     role = st.session_state.user_role
     st.info(f"🔑 वर्तमान सत्र भूमिका: **{role.upper()}**")
 
-    # --------------------------------------------------
+        # --------------------------------------------------
     # 📁 1. DATA ENTRY PANEL (Role: data_entry या full_admin)
-    # 🎯 आवश्यकता 1: इसमें केवल शुद्ध डेटा एंट्री का ही साधन रहेगा
+    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
     # --------------------------------------------------
-    if role in ["data_entry", "full_admin"]:
+    if role in ["data_entry", "full_admin"] and not st.session_state.admin_hide_entry:
         st.header("📝 Student Data Entry Panel")
         
-        # 🔄 स्मार्ट ऑटो-हाइड ट्रिगर ड्रॉपडाउन
         entry_method = st.selectbox(
             "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
             options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"],
@@ -191,46 +206,28 @@ else:
         )
         st.markdown("---")
 
-        # ----------------------------------------
-        # माध्यम ए: केवल CSV अपलोडर (मैनुअल फॉर्म पूरी तरह हाइड)
-        # ----------------------------------------
         if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
             st.subheader("📁 CSV File Bulk Upload")
             if "csv_uploader_id" not in st.session_state:
                 st.session_state.csv_uploader_id = 100
 
-            uploaded_file = st.file_uploader(
-                "CSV फ़ाइल चुनें", 
-                type=["csv"], 
-                key=f"csv_uploader_{st.session_state.csv_uploader_id}"
-            )
-            
+            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"], key=f"csv_uploader_{st.session_state.csv_uploader_id}")
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                    
                     if st.button("Upload CSV Now", use_container_width=True, type="primary", key="csv_upload_submit_btn"):
-                        # 🎯 1. केवल वही कॉलम्स सुनिश्चित करें जो मास्टर सूची में हैं
                         for col in DEFAULT_COLUMNS:
                             if col not in uploaded_df.columns:
                                 uploaded_df[col] = ""
-                        
-                        # 🎯 2. फ़ाइल से फालतू कॉलम्स को हटाकर व्यवस्थित करना
                         cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                        
                         current_db = load_live_data()
-                        
-                        # 🎯 3. डेटाबेस में कतारों को सुरक्षित रूप से मर्ज करना
                         if current_db.empty:
                             updated_df = cleaned_uploaded_df
                         else:
                             updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
-                        
                         save_live_data(updated_df)
-                        
-                        # स्क्रीन रिफ्रेश और अपलोड सक्सेस स्टेट क्लीनअप
                         st.session_state.upload_success = True
-                        st.session_state.csv_uploader_id += 1  # uploader रीसेट ट्रिगर
+                        st.session_state.csv_uploader_id += 1
                         st.rerun()
                 except Exception as e:
                     st.error(f"त्रुटि: {e}")
@@ -239,16 +236,10 @@ else:
                 st.success("✅ CSV Data Filtered & Successfully Uploaded!")
                 st.session_state.upload_success = False
 
-        # ----------------------------------------
-        # माध्यम बी: केवल मैनुअल फॉर्म (CSV अपलोडर पूरी तरह हाइड)
-        # ----------------------------------------
         elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
             st.subheader("➕ Naya Student Data Add Karein")
-            
             with st.form(key="student_add_form", clear_on_submit=True):
-                # 2-कॉलम ग्रिड लेआउट
                 col1, col2 = st.columns(2)
-                
                 with col1:
                     admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
                     eligibility_name = st.text_input("Eligibility Name (योग्यता का नाम)")
@@ -260,7 +251,6 @@ else:
                     subject = st.text_input("Subject (विषय/स्ट्रीम)")
                     mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
                     address = st.text_input("Address (पता)")
-                    
                 with col2:
                     admission_session = st.text_input("Admission Session (सत्र)")
                     admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
@@ -272,7 +262,6 @@ else:
                     duration = st.text_input("Duration (कोर्स की अवधि)")
                     email = st.text_input("Email ID (ईमेल आईडी)")
                     status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
-                
                 submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
 
             if submit_student:
@@ -286,15 +275,13 @@ else:
                         "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
                         "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
                         "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                        "Email ID": email, "Address": address, "Status": status_input, 
-                        "Current Year": ""  # बैकएंड गणना के लिए खाली, लोड होने पर स्वतः फिल होगा
+                        "Email ID": email, "Address": address, "Status": status_input, "Current Year": ""
                     }
                     current_db = load_live_data()
                     if current_db.empty:
                         updated_df = pd.DataFrame([new_row])
                     else:
                         updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
-                    
                     save_live_data(updated_df)
                     st.session_state.save_success = True
                     st.rerun()
@@ -305,87 +292,46 @@ else:
 
     # --------------------------------------------------
     # 👁️ 2. LIST VIEWER PANEL (Role: list_viewer या full_admin)
-    # 🎯 आवश्यकता 2: पहले कॉलम स्क्रॉल करके चुनें, फिर टाइप करें, CSV और प्रिंट बटन रहेगा
+    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
     # --------------------------------------------------
-    if role in ["list_viewer", "full_admin"]:
+    if role in ["list_viewer", "full_admin"] and not st.session_state.admin_hide_viewer:
         st.header("Student Live Database List (Viewer Mode)")
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         
-        # 1. पहले कॉलम नाम स्क्रॉल/सेलेक्ट करने का ड्रॉपडाउन
-        selected_search_column = st.selectbox(
-            "🔍 किस कॉलम में सर्च करना चाहते हैं? कॉलम चुनें (Select Column to Search):", 
-            options=DEFAULT_COLUMNS, 
-            key="viewer_panel_column_selector"
-        )
-        
-        # 2. चुने गए कॉलम के आधार पर टाइप करने का सर्च बार
-        search_query = st.text_input(
-            f"'{selected_search_column}' के अंदर सर्च करने के लिए टाइप करें:", 
-            key="viewer_panel_search_query_input"
-        )
+        # पहले कॉलम नाम स्क्रॉल करके चुनने का सिस्टमिक ड्रॉपडाउन
+        selected_search_column = st.selectbox("🔍 किस कॉलम में सर्च करना चाहते हैं? कॉलम चुनें:", options=DEFAULT_COLUMNS, key="viewer_panel_column_selector")
+        search_query = st.text_input(f"'{selected_search_column}' के अंदर सर्च करने के लिए टाइप करें:", key="viewer_panel_search_query_input")
         st.markdown('</div>', unsafe_allow_html=True)
 
         filtered_db = live_db.copy()
-        
-        # सर्च बार फ़िल्टर लॉजिक (पूरी रो को निकालने के लिए)
         if search_query:
-            filtered_db = filtered_db[
-                filtered_db[selected_search_column].str.contains(search_query, case=False, na=False)
-            ]
+            filtered_db = filtered_db[filtered_db[selected_search_column].str.contains(search_query, case=False, na=False)]
             
         st.write(f"Kul Student Record: **{len(filtered_db)}**")
         
         if not filtered_db.empty:
-            # S.No. को 1 से सुव्यवस्थित सेट करना
             display_df = filtered_db.copy()
             display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
-            
-            # सुरक्षित रीड-ओनली तालिका दृश्य (पूरी रो शो होगी)
             st.dataframe(display_df, use_container_width=True, hide_index=True)
             
-            # --- 🛠️ बटन्स (केवल CSV डाउनलोड और डायरेक्ट प्रिंटर कमांड) ---
             st.markdown('<div class="print-hide">', unsafe_allow_html=True)
             col_btn1, col_btn2 = st.columns(2)
-            
             with col_btn1:
-                # बटन ए: केवल CSV डाउनलोड करने का विकल्प
                 csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Download Student List (CSV)", 
-                    data=csv_buffer, 
-                    file_name="student_database_list.csv", 
-                    mime="text/csv", 
-                    use_container_width=True, 
-                    key="viewer_panel_csv_download_action"
-                )
-                
+                st.download_button(label="Download Student List (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True, key="viewer_panel_csv_download_action")
             with col_btn2:
-                # बटन बी: सीधे हार्डवेयर प्रिंटर पर भेजने का डायरेक्ट प्रिंट कमांड
                 st.markdown("""
-                    <button onclick="window.print()" style="
-                        width: 100%; 
-                        background-color: #FF5733; 
-                        color: white; 
-                        border: none; 
-                        padding: 0.5rem 1rem; 
-                        border-radius: 0.5rem; 
-                        cursor: pointer; 
-                        font-weight: 500; 
-                        line-height: 1.6; 
-                        text-align: center; 
-                        box-sizing: border-box;
-                    ">Direct Print</button>
+                    <button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Print</button>
                 """, unsafe_allow_html=True)
-                
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning("Record match nahi hua.")
 
     # --------------------------------------------------
     # 📝 3. CCE HANDLER PANEL (Role: cce_handler या full_admin)
-    # 🎯 आवश्यकता 3: केवल CCE Foil जेनरेटर सिस्टम, प्रिंट बटन और PNG इमेज डाउनलोड सिस्टम
+    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
     # --------------------------------------------------
-    if role in ["cce_handler", "full_admin"]:
+    if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
         st.header("College CCE Foil Sheet Generator")
         st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
 
@@ -510,30 +456,13 @@ else:
 
     # --------------------------------------------------
     # 🛠️ 4. FULL ADMIN ROLE PANEL (Role: केवल full_admin)
-    # 🎯 आवश्यकता: क्रेडेंशियल्स बदलना, 3 न्यू हाइड/अनहाइड मास्टर बटन्स, लिस्ट व्यू और एडवांस्ड कंट्रोल्स
     # --------------------------------------------------
     if role == "full_admin":
         st.header("🛠️ Full Admin Management Panel")
         
-        # 🔑 पार्ट ए: यूजरनेम और पासवर्ड बदलने का पावर
-        st.subheader("🔐 Change User Credentials System")
-        with st.form(key="credentials_change_form"):
-            target_user = st.selectbox("किस यूजर का क्रेडेंशियल बदलना चाहते हैं?", options=list(st.session_state.credentials.keys()))
-            new_password = st.text_input("नया पासवर्ड दर्ज करें:", type="password")
-            submit_cred = st.form_submit_button("Update Password Now", type="primary")
-            
-            if submit_cred:
-                if new_password.strip() == "":
-                    st.error("पासवर्ड खाली नहीं हो सकता।")
-                else:
-                    st.session_state.credentials[target_user]["password"] = new_password
-                    st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक अपडेट हो गया है!")
-
-        st.markdown("---")
-        
-        # 🎯 पार्ट बी: 3 न्यू मास्टर बटन्स (पैनल्स को हाइड/अनहाइड करने का पावर)
+        # 🎯 पार्ट ए: 4 विजिबिलिटी कंट्रोलर मास्टर बटन्स (पैनल्स की विजिबिलिटी को लाइव कंट्रोल करने के लिए)
         st.subheader("🛡️ Global Panels Visibility Controller")
-        col_vis1, col_vis2, col_vis3 = st.columns(3)
+        col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
         
         with col_vis1:
             entry_btn_label = "👁️ Data Entry Panel: UNHIDDEN" if not st.session_state.admin_hide_entry else "🙈 Data Entry Panel: HIDDEN"
@@ -553,10 +482,33 @@ else:
                 st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
                 st.rerun()
 
+        with col_vis4:
+            cred_btn_label = "👁️ Password Panel: UNHIDDEN" if not st.session_state.admin_hide_cred_panel else "🙈 Password Panel: HIDDEN"
+            if st.button(cred_btn_label, use_container_width=True, key="admin_master_toggle_cred_panel"):
+                st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
+                st.rerun()
+
         st.markdown("---")
+
+        # 🔑 पासवर्ड अपडेट पैनल (यदि एडमिन द्वारा अनहाइड हो)
+        if not st.session_state.admin_hide_cred_panel:
+            st.subheader("🔐 Change User Credentials System")
+            with st.form(key="credentials_change_form"):
+                target_user = st.selectbox("किस यूजर का क्रेडेंशियल बदलना चाहते हैं?", options=list(st.session_state.credentials.keys()))
+                new_password = st.text_input("नया पासवर्ड दर्ज करें:", type="password")
+                submit_cred = st.form_submit_button("Update Password Now", type="primary")
+                
+                if submit_cred:
+                    if new_password.strip() == "":
+                        st.error("पासवर्ड खाली नहीं हो सकता।")
+                    else:
+                        st.session_state.credentials[target_user]["password"] = new_password
+                        st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक अपडेट हो गया है!")
+            st.markdown("---")
+
         st.subheader("📊 Master Database List View & Advanced Controls")
         
-        # पुराना कंट्रोल पैनल (फंक्शंस को अनहाइड करने के लिए)
+        # एडवांस कंट्रोल टूल्स
         col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
         with col_ctrl1:
             if st.button("📝 एडिट टेक्स्ट फ़ंक्शन अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_text_edit"):
@@ -572,7 +524,7 @@ else:
                 st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                 st.rerun()
 
-        # कॉलम खिसकाने के मूव बटन्स (यदि बटन अनहाइड किया गया हो)
+        # कॉलम मूव सिस्टम (यदि अनहाइड हो)
         if st.session_state.admin_unhide_move:
             st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
             target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
@@ -590,13 +542,13 @@ else:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
                     st.rerun()
 
-        # वर्तमान कॉलम ऑर्डर की मैपिंग तैयार करना
+        # मास्टर ग्रिड मैपिंग
         ordered_db = live_db[st.session_state.admin_columns_order].copy()
         ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
         
         st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
         
-        # स्थिति 1: जब लिस्ट अनलॉक है और टेक्स्ट एडिट फ़ंक्शन अनहाइड है (डायरेक्ट लाइव टेक्स्ट एडिटिंग)
+        # स्थिति 1: जब लिस्ट अनलॉक और टेक्स्ट एडिट अनहाइड हो (डायरेक्ट लाइव टेक्स्ट एडिटिंग)
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
             st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे सेव हो जाएगा।")
             edited_df = st.data_editor(
@@ -606,13 +558,13 @@ else:
                 key="admin_live_data_editor",
                 hide_index=True
             )
-            # परिवर्तनों को मूल डेटाबेस में सुरक्षित वापस सिंक करें
             clean_edited = edited_df.drop(columns=["S.No."])
             for col in clean_edited.columns:
                 if col != "Current Year":
                     live_db[col] = clean_edited[col].values
             save_live_data(live_db)
             
-        # स्थिति 2: जब लिस्ट लॉक हो या टेक्स्ट एडिट फ़ंक्शन हाइड हो (साधारण मास्टर ग्रिड रीड-ओनली व्यू)
+        # स्थिति 2: साधारण रीड-ओनली मास्टर ग्रिड व्यू
         else:
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+            
