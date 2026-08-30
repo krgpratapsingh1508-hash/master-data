@@ -134,7 +134,7 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE
+    # 📁 1. DATA ENTRY ROLE (सुरक्षित कॉलम फ़िल्टर और ऑटो-क्लियर के साथ)
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
@@ -160,13 +160,28 @@ else:
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                    
                     if st.button("Upload CSV Now", use_container_width=True, type="primary"):
-                        if "Admission No." in uploaded_df.columns:
-                            uploaded_df = uploaded_df.drop(columns=["Admission No."])
+                        # 🎯 1. केवल वही कॉलम्स चुनें जो सिस्टम में तय हैं (DEFAULT_COLUMNS)
+                        # यदि अपलोड की गई फ़ाइल में कोई कॉलम गायब है, तो उसे खाली स्टोर करेगा
+                        for col in DEFAULT_COLUMNS:
+                            if col not in uploaded_df.columns:
+                                uploaded_df[col] = ""
+                        
+                        # 🎯 2. फ़ाइल से फालतू कॉलम्स को पूरी तरह हटा दें और क्रम सही करें
+                        cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                        
                         current_db = load_live_data()
-                        updated_df = uploaded_df if current_db.empty else pd.concat([current_db, uploaded_df], ignore_index=True)
+                        
+                        # 🎯 3. केवल शुद्ध और स्वीकृत कॉलम्स को ही मुख्य डेटाबेस में मर्ज करें
+                        if current_db.empty:
+                            updated_df = cleaned_uploaded_df
+                        else:
+                            updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                        
                         save_live_data(updated_df)
                         
+                        # डैशबोर्ड से फ़ाइल को तुरंत साफ़ (Clear) करने का लॉजिक
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
                         st.session_state.csv_uploader_id += 1  
@@ -175,7 +190,7 @@ else:
                     st.error(f"त्रुटि: {e}")
 
             if st.session_state.upload_success:
-                st.success("✅ CSV Data Complete upload")
+                st.success("✅ CSV Data Filtered & Successfully Uploaded!")
                 st.session_state.upload_success = False
 
         elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
@@ -219,7 +234,6 @@ else:
             if st.session_state.save_success:
                 st.success("✅ Student data save successfully")
                 st.session_state.save_success = False
-
     # ==========================================
     # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
     # ==========================================
