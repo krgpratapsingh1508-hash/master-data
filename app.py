@@ -194,6 +194,7 @@ else:
         st.header("📊 Student Live Database List (Viewer)")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        # 👁️ हाइड / अनहाइड बटन
         visibility_label = "👁️ Unhide Student List" if not st.session_state.list_visibility_state else "🙈 Hide Student List"
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
