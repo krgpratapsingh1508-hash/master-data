@@ -359,25 +359,39 @@ else:
                 st.warning("Record match nahi hua.")
                 
     # ==========================================
-    # 📝 3. CCE HANDLER ROLE (क्लिक करने पर Foil शीट जनरेट करने के बटन के साथ)
+    # 📝 3. CCE HANDLER ROLE (फ़ॉइल शीट डिस्प्ले फिक्स के साथ)
     # ==========================================
     elif role == "cce_handler":
         st.header("College CCE Foil Sheet Generator & Live Database")
         st.markdown("---")
 
-        # --- स्टेट मैनेजमेंट ताकि बटन क्लिक याद रहे ---
+        # --- स्टेट मैनेजमेंट ट्रिगर ---
         if "cce_foil_generated" not in st.session_state:
             st.session_state.cce_foil_generated = False
 
+        # बटन क्लिक को स्थायी रखने के लिए फंक्शन
+        def click_foil_button():
+            st.session_state.cce_foil_generated = True
+
         # ----------------------------------------
-        # प्ररूप 1: CCE Foil Sheet जनरेटर (बटन क्लिक पर लोड होगा)
+        # प्ररूप 1: CCE Foil Sheet जनरेटर
         # ----------------------------------------
         st.subheader("🖨️ Part 1: College CCE Foil Sheets (Landscape View)")
         st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
         
         if not live_db.empty:
             semesters = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-            target_sem = st.selectbox("Kaun sa Semester chahiye?", semesters, key="cce_sem_box")
+            
+            # सेमेस्टर बदलते ही पुरानी फ़ॉइल हाइड करने के लिए ऑन-चेंज लॉजिक
+            def reset_foil_state():
+                st.session_state.cce_foil_generated = False
+
+            target_sem = st.selectbox(
+                "Kaun sa Semester chahiye?", 
+                semesters, 
+                key="cce_sem_box", 
+                on_change=reset_foil_state
+            )
 
             sem_to_year_num = {
                 "1": "1", "2": "1", "3": "2", "4": "2", "5": "3",
@@ -388,9 +402,14 @@ else:
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             exam_info = f"Examination :- CCE                                             B.A. LL.B. {target_sem}th SEMESTER"
 
-            # 🎯 Foil जनरेट करने का विशेष बटन
-            if st.button("✨ Generate CCE Foil Sheets Now", use_container_width=True, type="primary"):
-                st.session_state.cce_foil_generated = True
+            # 🎯 सुधरा हुआ जनरेट बटन (यह क्लिक स्टेट को मेमोरी में लॉक रखेगा)
+            st.button(
+                "✨ Generate CCE Foil Sheets Now", 
+                use_container_width=True, 
+                type="primary", 
+                key="generate_foil_btn", 
+                on_click=click_foil_button
+            )
 
             # 🎯 यदि बटन क्लिक हो चुका है, तो फ़ॉइल शीट रेंडर करें
             if st.session_state.cce_foil_generated:
@@ -478,7 +497,7 @@ else:
                             </table>
                             <div class="note">
                                 <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
-                            </div>
+                        </div>
                             <div class="footer-fields">
                                 Signature of Examiner...............................................................<br>
                                 Name of Examiner.....................................................................<br>
@@ -507,21 +526,7 @@ else:
                         .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
                         .exam-right { text-align: right; }
                         .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
-                        .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; line-height: 1.8; }
-                        @media print {
-                            body { max-width: 100%; padding: 0; }
-                            .flex-container { gap: 10px; }
-                            .print-action-area { display: none !important; }
-                        }
-                    </style>
-                    </head>
-                    <body>
-                        <div class="print-action-area">
-                            <button class="action-btn" onclick="window.print()">Print Only Foils (Landscape)</button>
-                        </div>
-                        <div class="flex-container">
-                    """
-                    
+                        .foil-title { text-align: center; font-weight: bold; background-color: #f2f2f2; border: 1px solid black; border-bottom: none; padding: 4px 0; font-size: 13px; margin-top: 5px; }                    
     # ==========================================
     # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और सुरक्षित एडमिन कमांड सेंटर)
     # ==========================================
