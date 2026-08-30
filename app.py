@@ -6,10 +6,11 @@ import base64
 # पेज का लेआउट सेट करें
 st.set_page_config(layout="wide")
 
-# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
+# प्रिंट फ़ॉर्मेटिंग, लेआउट और बटन को व्यवस्थित करने के लिए सीएसएस (CSS)
 st.markdown("""
     <style>
     @media print {
+        /* प्रिंट करते समय लॉगिन, हेडर, बटन और साइडबार जैसी चीज़ों को छुपाने के लिए */
         [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"], .print-hide {
             display: none !important;
         }
@@ -43,9 +44,12 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 DB_FILE = "shared_student_database.csv"
+
+# 🔑 4-स्तरीय सुरक्षा क्रेडेंशियल्स सेटिंग्स (CCE जोड़ा गया है)
 CREDENTIALS = {
     "entry": {"password": "entry123", "role": "data_entry"},
     "viewer": {"password": "viewer123", "role": "list_viewer"},
+    "cce": {"password": "cce123", "role": "cce_handler"},
     "admin": {"password": "admin123", "role": "full_admin"}
 }
 
