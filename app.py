@@ -477,6 +477,7 @@ if not live_db.empty:
             def generate_cce_html_block(rolls, start_idx, foil_label, has_data):
                 if not has_data:
                     return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                
                 block = f"""
                 <div class="foil-unit">
                     <div class="top-fields"><div></div><div>Paper Code....................</div></div>
@@ -491,12 +492,15 @@ if not live_db.empty:
                         <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">Roll No.</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                         <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                 """
+                
                 for idx_foil, r_foil in enumerate(rolls, start=start_idx):
                     block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{r_foil}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                
                 current_len = len(rolls)
                 if current_len < 30:
                     for k in range(current_len + start_idx, 30 + start_idx):
                         block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
+                
                 block += f"""
                     </table>
                     <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.</div>
@@ -510,23 +514,59 @@ if not live_db.empty:
                 """
                 return block
 
-            full_html = f"""<!DOCTYPE html>
-            <html>
-            <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; background: white; margin: 0; padding: 5px; width: 100%; max-width: 1100px; margin: auto; }}
-                .print-action-area {{ text-align: center; margin-bottom: 20px; }}
-                .action-btn {{ background-color: #2e7d32; border: none; color: white; padding: 12px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
-                .action-btn:hover {{ background-color: #1b5e20; }}
-                .flex-container {{ display: flex; justify-content: space-between; gap: 20px; width: 100%; }}
-                .foil-unit {{ width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; page-break-inside: avoid; }}
-                .top-fields {{ display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }}
-                .header-box {{ text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }}
-                .sub-box {{ border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }}
-                .exam-right {{ text-align: right; }}
-                .marks-info {{ display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }}
-                .foil-title {{ text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; letter-spacing: 2px; }}
+            left_block_html = generate_cce_html_block(left_side_rolls, 1, "FOIL", True)
+            right_block_html = generate_cce_html_block(right_side_rolls, 31, "FOIL", len(right_side_rolls) > 0)
 
+            # CSS को अलग ब्लॉक में रखा गया है ताकि पायथन कंपाइलर सिंटैक्स एरर न दे
+            html_style = """
+            <style>
+                body { font-family: Arial, sans-serif; background: white; margin: 0; padding: 5px; width: 100%; max-width: 1100px; margin: auto; }
+                .print-action-area { text-align: center; margin-bottom: 20px; }
+                .action-btn { background-color: #2e7d32; border: none; color: white; padding: 12px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+                .action-btn:hover { background-color: #1b5e20; }
+                .flex-container { display: flex; justify-content: space-between; gap: 20px; width: 100%; }
+                .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-shadow: none; box-sizing: border-box; background: white; page-break-inside: avoid; }
+                .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
+                .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
+                .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
+                .exam-right { text-align: right; }
+                .marks-info { display: flex; justify-content: space-
+                between; padding: 5px 0; font-weight: bold; 
+                border-bottom: 2px solid black; font-size: 12px; }
+                .foil-title { text-align: center; font-weight: bold; 
+                font-size: 16px; margin: 10px 0; letter-spacing: 
+                2px; }
+                .footer-fields { margin-top: 15px; font-size: 12px; 
+                font-weight: bold; line-height: 1.8; }
+                @media print { body { max-width: 100%; padding: 
+                0; } .flex-container { gap: 10px; } .print-action-area 
+                { display: none !important; } }
+                
+                """
+            
+                full_html = f"""
+                
+                
+                {html_style
+                 
+                 
+                 Print Only Foils (Landscape)
+                 
+                 {left_block_html}
+                 {right_block_html}
+                 
+                 
+                 """
+            
+            
+            st.components.v1.html(full_html, height=1550, 
+                                       scrolling=False)
+        else:
+            st.error("Is Semester ka koi data live list me nahi 
+            mila.")
+            else:
+            st.error("Live database file khali hai.")
+                
 # ==========================================================
 # 📝 CCE PART 2: STUDENTS LIVE DATABASE & DOWNLOADS
 # ==========================================================
