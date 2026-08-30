@@ -98,6 +98,8 @@ if "admin_lock_state" not in st.session_state:
     st.session_state.admin_lock_state = True  
 if "list_visibility_state" not in st.session_state:
     st.session_state.list_visibility_state = True  
+if "cce_foil_generated" not in st.session_state:
+    st.session_state.cce_foil_generated = False
 
 live_db = load_live_data()
 
@@ -115,6 +117,7 @@ if st.session_state.user_role is None:
             st.session_state.save_success = False
             st.session_state.admin_lock_state = True  
             st.session_state.list_visibility_state = True  
+            st.session_state.cce_foil_generated = False
             st.success("✅ लॉगिन सफल!")
             st.rerun()
         else:
@@ -134,7 +137,7 @@ else:
     role = st.session_state.user_role
 
     # ==========================================
-    # 📁 1. DATA ENTRY ROLE (सुरक्षित कॉलम फ़िल्टर और ऑटो-क्लियर के साथ)
+    # 📁 1. DATA ENTRY ROLE
     # ==========================================
     if role == "data_entry":
         st.header("📝 Student Data Entry Panel")
@@ -160,28 +163,16 @@ else:
             if uploaded_file is not None:
                 try:
                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                    
                     if st.button("Upload CSV Now", use_container_width=True, type="primary"):
-                        # 🎯 1. केवल वही कॉलम्स चुनें जो सिस्टम में तय हैं (DEFAULT_COLUMNS)
-                        # यदि अपलोड की गई फ़ाइल में कोई कॉलम गायब है, तो उसे खाली स्टोर करेगा
                         for col in DEFAULT_COLUMNS:
                             if col not in uploaded_df.columns:
                                 uploaded_df[col] = ""
-                        
-                        # 🎯 2. फ़ाइल से फालतू कॉलम्स को पूरी तरह हटा दें और क्रम सही करें
                         cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
                         
                         current_db = load_live_data()
-                        
-                        # 🎯 3. केवल शुद्ध और स्वीकृत कॉलम्स को ही मुख्य डेटाबेस में मर्ज करें
-                        if current_db.empty:
-                            updated_df = cleaned_uploaded_df
-                        else:
-                            updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
-                        
+                        updated_df = cleaned_uploaded_df if current_db.empty else pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
                         save_live_data(updated_df)
                         
-                        # डैशबोर्ड से फ़ाइल को तुरंत साफ़ (Clear) करने का लॉजिक
                         st.session_state.upload_success = True
                         st.session_state.save_success = False
                         st.session_state.csv_uploader_id += 1  
@@ -234,14 +225,14 @@ else:
             if st.session_state.save_success:
                 st.success("✅ Student data save successfully")
                 st.session_state.save_success = False
+
     # ==========================================
-    # 👁️ 2. LIST VIEWER ROLE (CSV, Landscape PDF और Direct Print बटन्स के साथ)
+    # 👁️ 2. LIST VIEWER ROLE (सुरक्षित और एरर-फ्री व्यूअर मोड)
     # ==========================================
     elif role == "list_viewer":
         st.header("Student Live Database List (Viewer Mode)")
         
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-        # 👁️ लिस्ट को पूरी तरह हाइड / अनहाइड करने का मास्टर बटन
         visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
         if st.button(visibility_label, use_container_width=True, type="secondary"):
             st.session_state.list_visibility_state = not st.session_state.list_visibility_state
@@ -253,7 +244,6 @@ else:
         # 🎯 यदि लिस्ट को हाइड (Hide) किया गया है
         if not st.session_state.list_visibility_state:
             st.info("Student list ko varpamaan me chhupaya gaya hai. Dekhne ke liye upar Unhide button dabayein.")
-            
         else:
             filtered_db = live_db.copy()
             if search_query:
@@ -268,7 +258,7 @@ else:
                 # 🎯 S.No. को 1 से सुव्यवस्थित तरीके से सेट करना बिना रो को आगे-पीछे किए
                 filtered_db.insert(0, "S.No.", range(1, len(filtered_db) + 1))
                 
-                # सुरक्षित रीड-物理 टेबल व्यू (Viewer के लिए कॉलम हमेशा फिक्स और लॉक रहेंगे)
+                # सुरक्षित रीड-ओनली टेबल व्यू (Viewer के लिए कॉलम हमेशा फिक्स और लॉक रहेंगे)
                 st.dataframe(filtered_db, use_container_width=True, hide_index=True)
                 
                 # स्वच्छ डाउनलोड फ़ाइल तैयार करना (बिना S.No. के)
@@ -279,7 +269,7 @@ else:
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 
                 with col_btn1:
-                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड (Instant Download)
+                    # बटन 1: डायरेक्ट CSV फाइल डाउनलोड
                     csv_buffer = clean_download_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
                         label="Download Student List (CSV)", 
@@ -300,7 +290,7 @@ else:
                     <script>
                     function generateLandscapePDF() {{
                         const {{ jsPDF }} = window.jspdf;
-                        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape लेआउट
+                        const doc = new jsPDF('l', 'mm', 'a4');
                         
                         doc.text("Permanent Shared Live Database - Student List", 14, 15);
                         
@@ -312,7 +302,6 @@ else:
                             body: rows,
                             startY: 22,
                             styles: {{ fontSize: 7, cellPadding: 1.5 }},
-                            headStyles: {{ fillColor: [255, 87, 51] }}, // फिक्स्ड ऑरेंज थीम कलर ऐरे
                             theme: 'grid'
                         }});
                         
@@ -354,12 +343,11 @@ else:
                     """, unsafe_allow_html=True)
                     
                 st.markdown('</div>', unsafe_allow_html=True)
-                
             else:
                 st.warning("Record match nahi hua.")
                 
     # ==========================================
-    # 📝 3. CCE HANDLER ROLE (फ़ॉइल शीट डिस्प्ले फिक्स के साथ)
+    # 📝 3. CCE HANDLER ROLE (डेटाबेस सूची और एरर-फ्री Foil Sheet जनरेटर)
     # ==========================================
     elif role == "cce_handler":
         st.header("College CCE Foil Sheet Generator & Live Database")
@@ -374,9 +362,9 @@ else:
             st.session_state.cce_foil_generated = True
 
         # ----------------------------------------
-        # प्ररूप 1: CCE Foil Sheet जनरेटर
+        # प्ररूप 1: CCE Foil Sheet जनरेटर (बटन क्लिक पर लोड होगा)
         # ----------------------------------------
-        st.subheader("🖨️ Part 1: College CCE Foil Sheets (Landscape View)")
+        st.subheader("Part 1: College CCE Foil Sheets (Landscape View)")
         st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
         
         if not live_db.empty:
@@ -386,12 +374,7 @@ else:
             def reset_foil_state():
                 st.session_state.cce_foil_generated = False
 
-            target_sem = st.selectbox(
-                "Kaun sa Semester chahiye?", 
-                semesters, 
-                key="cce_sem_box", 
-                on_change=reset_foil_state
-            )
+            target_sem = st.selectbox("Kaun sa Semester chahiye?", semesters, key="cce_sem_box", on_change=reset_foil_state)
 
             sem_to_year_num = {
                 "1": "1", "2": "1", "3": "2", "4": "2", "5": "3",
@@ -402,19 +385,11 @@ else:
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             exam_info = f"Examination :- CCE                                             B.A. LL.B. {target_sem}th SEMESTER"
 
-            # 🎯 सुधरा हुआ जनरेट बटन (यह क्लिक स्टेट को मेमोरी में लॉक रखेगा)
-            st.button(
-                "✨ Generate CCE Foil Sheets Now", 
-                use_container_width=True, 
-                type="primary", 
-                key="generate_foil_btn", 
-                on_click=click_foil_button
-            )
+            # सुधरा हुआ जनरेट बटन (यह क्लिक स्टेट को मेमोरी में लॉक रखेगा)
+            st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn", on_click=click_foil_button)
 
-            # 🎯 यदि बटन क्लिक हो चुका है, तो फ़ॉइल शीट रेंडर करें
             if st.session_state.cce_foil_generated:
                 roll_numbers = []
-
                 for _, row in live_db.iterrows():
                     roll = str(row.get('Roll No.', row.get('Roll No', ''))).strip()
                     student_year = str(row.get('Duration', row.get('year', row.get('Year', '')))).strip().lower()
@@ -423,7 +398,6 @@ else:
                     
                     if not roll or roll == "nan" or roll == "":
                         continue
-                    
                     if target_num in student_year and ('REGULAR' in status or 'ACTIVE' in status):
                         roll_numbers.append(roll)
                     elif 'EX-STUDENT' in status or 'EX' in status:
@@ -434,99 +408,89 @@ else:
 
                 if roll_numbers:
                     st.success(f"Total {len(roll_numbers)} students mile hain. Niche aapka format ready hai.")
-
                     left_side_rolls = roll_numbers[:30]
                     right_side_rolls = roll_numbers[30:60]
 
                     def generate_cce_html_block(rolls, start_idx, foil_label, has_data):
                         if not has_data:
                             return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
-                            
                         block = f"""
                         <div class="foil-unit">
-                            <div class="top-fields">
-                                <div></div><div>Paper Code....................</div>
-                            </div>
-                            <div class="top-fields" style="margin-top: 5px;">
-                                <div></div><div>Bundle No....................</div>
-                            </div>
+                            <div class="top-fields"><div></div><div>Paper Code....................</div></div>
+                            <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                             <div class="header-box">{college_name}</div>
                             <div class="sub-box exam-right">{exam_info}</div>
                             <div class="sub-box">Subject.................................................... Paper.........................</div>
-                            <div class="marks-info">
-                                <div>Max. Marks: ...................</div>
-                                <div>Min. Pass Marks: ...................</div>
-                            </div>
+                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table>
-                                <tr>
-                                    <th class="col-header-num" style="width: 8%;">1</th>
-                                    <th class="col-header-num" style="width: 30%;" colspan="3">2</th>
-                                </tr>
-                                <tr>
-                                    <th rowspan="2">Code No.</th>
-                                    <th rowspan="2">Roll No.</th>
-                                    <th colspan="2">Marks Obtained</th>
-                                </tr>
-                                <tr>
-                                    <th style="width: 15%;">In Figures</th>
-                                    <th style="width: 45%;">In Words</th>
-                                </tr>
+                                <tr><th class="col-header-num" style="width: 8%;">1</th><th class="col-header-num" style="width: 30%;" colspan="3">2</th></tr>
+                                <tr><th rowspan="2">Code No.</th><th rowspan="2">Roll No.</th><th colspan="2">Marks Obtained</th></tr>
+                                <tr><th style="width: 15%;">In Figures</th><th style="width: 45%;">In Words</th></tr>
                         """
                         for idx_foil, r_foil in enumerate(rolls, start=start_idx):
-                            block += f"""
-                                <tr>
-                                    <td><b>{idx_foil}</b></td>
-                                    <td>{r_foil}</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>"""
-                        
+                            block += f"<tr><td><b>{idx_foil}</b></td><td>{r_foil}</td><td></td><td></td></tr>"
                         current_len = len(rolls)
                         if current_len < 30:
                             for k in range(current_len + start_idx, 30 + start_idx):
-                                block += """
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                </tr>"""
-
-                        block += """
+                                block += "<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>"
+                        block += f"""
                             </table>
-                            <div class="note">
-                                <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
-                        </div>
+                            <div class="note"><b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.</div>
                             <div class="footer-fields">
                                 Signature of Examiner...............................................................<br>
                                 Name of Examiner.....................................................................<br>
                                 ....................................................................................................<br>
-                                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                                    <div>Place.......................................................</div>
-                                    <div>Date: ___/___/2026</div>
-                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px;"><div>Place.......................................................</div><div>Date: ___/___/2026</div></div>
                             </div>
                         </div>
                         """
                         return block
 
-                    full_html = """<!DOCTYPE html>
+                    full_html = f"""<!DOCTYPE html>
                     <html>
                     <head>
                     <style>
-                        body { font-family: Arial, sans-serif; background: white; margin: 0; padding: 5px; width: 100%; max-width: 1100px; margin: auto; }
-                        .print-action-area { text-align: center; margin-bottom: 20px; }
-                        .action-btn { background-color: #2e7d32; border: none; color: white; padding: 12px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-                        .action-btn:hover { background-color: #1b5e20; }
-                        .flex-container { display: flex; justify-content: space-between; gap: 20px; width: 100%; }
-                        .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; page-break-inside: avoid; }
-                        .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
-                        .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
-                        .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
-                        .exam-right { text-align: right; }
-                        .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
-                        .foil-title { text-align: center; font-weight: bold; background-color: #f2f2f2; border: 1px solid black; border-bottom: none; padding: 4px 0; font-size: 13px; margin-top: 5px; }                    
+                        body {{ font-family: Arial, sans-serif; background: white; margin: 0; padding: 5px; width: 100%; max-width: 1100px; margin: auto; }}
+                        .print-action-area {{ text-align: center; margin-bottom: 20px; }}
+                        .action-btn {{ background-color: #2e7d32; border: none; color: white; padding: 12px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+                        .action-btn:hover {{ background-color: #1b5e20; }}
+                        .flex-container {{ display: flex; justify-content: space-between; gap: 20px; width: 100%; }}
+                        .foil-unit {{ width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; page-break-inside: avoid; }}
+                        .top-fields {{ display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }}
+                        .header-box {{ text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }}
+                        .sub-box {{ border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }}
+                        .exam-right {{ text-align: right; }}
+                        .marks-info {{ display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }}
+                        .footer-fields {{ margin-top: 15px; font-size: 12px; font-weight: bold; line-height: 1.8; }}
+                        @media print {{ body {{ max-width: 100%; padding: 0; }} .flex-container {{ gap: 10px; }} .print-action-area {{ display: none !important; }} }}
+                    </style>
+                    </head>
+                    <body>
+                        <div class="print-action-area"><button class="action-btn" onclick="window.print()">Print Only Foils (Landscape)</button></div>
+                        <div class="flex-container">
+                            {generate_cce_html_block(left_side_rolls, 1, "FOIL", True)}
+                            {generate_cce_html_block(right_side_rolls, 31, "FOIL", len(right_side_rolls) > 0)}
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    st.components.v1.html(full_html, height=1550, scrolling=False)
+                else:
+                    st.error("Is Semester ka koi data live list me nahi mila.")
+        else:
+            st.error("Live database file khali hai.")
+
+        # ----------------------------------------
+        # प्ररूप 2: छात्र लाइव सूची देखें (सुरक्षित ग्रिड व्यू + 3 बटन्स)
+        # ----------------------------------------
+        st.markdown("---")
+        st.subheader("Part 2: Students Live Database & Downloads")
+        
+        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        visibility_label = "Unhide Student List" if not st.session_state.list_visibility_state else "Hide Student List"
+        if st.button(visibility_label, use_container_width=True, type="secondary", key="cce_hide_btn"):
+            
     # ==========================================
     # 🛠️ 4. FULL ADMIN ROLE (पूरी तरह फिक्स्ड और सुरक्षित एडमिन कमांड सेंटर)
     # ==========================================
@@ -558,7 +522,7 @@ else:
             if not filtered_db.empty:
                 st.markdown('<div class="print-hide">### Advanced Admin Command Center</div>', unsafe_allow_html=True)
                 
-                # मास्टर锁 लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
+                # मास्टर लॉक / अनलॉक बटन (यह हमेशा स्क्रीन पर रहेगा)
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 if st.session_state.admin_lock_state:
                     if st.button("Unlock List (Admin button aur editing chalu karein)", type="primary", use_container_width=True):
