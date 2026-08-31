@@ -138,7 +138,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट इनिशियलाइजेशन
+# स्टेट प्रबंधन इनिशियलाइजेशन
 if "user_role" not in st.session_state: st.session_state.user_role = None  
 if "upload_success" not in st.session_state: st.session_state.upload_success = False
 if "save_success" not in st.session_state: st.session_state.save_success = False
@@ -155,12 +155,12 @@ if "admin_hide_cred_panel" not in st.session_state: st.session_state.admin_hide_
 
 live_db = load_live_data()
 
-# 🛠️ हेल्पर फंक्शन: विज़ुअल लेबल्स रिटर्न करना
+# 🛠 ...
 def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 # ==========================================================
-# 🔒 सिक्योर लॉगिन गेटवे (डेटा लीक सुरक्षा नियंत्रण)
+# 🔒 सिक्योर लॉगिन गेटवे (डेटा सुरक्षा लॉकडाउन)
 # ==========================================================
 if st.session_state.user_role is None:
     st.markdown("---")
@@ -178,7 +178,7 @@ if st.session_state.user_role is None:
             st.error("❌ गलत पासवर्ड दर्ज किया गया है!")
 
 # ==========================================================
-# 🔑 लॉगिन अधिकृत सत्र (सभी पैनल्स केवल इसके अंदर ही चलेंगे)
+# 🔑 लॉगिन अधिकृत सत्र
 # ==========================================================
 else:
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
@@ -229,7 +229,7 @@ else:
                     f_name = st.text_input(get_display_name("Father Name"))
                     dob = st.text_input(get_display_name("Date of Birth"))
                     
-                    # 🎯 क्रम परिवर्तन: सब्जेक्ट आईडी (Subject ID) पूरी तरह हटा दी गई है।
+                    # 🎯 क्रम: विषय आईडी (Subject ID) पूरी तरह हटा दी गई है।
                     # अब सीधे विषय कोड के बाद विषय (Subject) का टेक्स्ट बॉक्स आता है।
                     subject_code = st.text_input(get_display_name("Subject Code"))
                     subject = st.text_input(get_display_name("Subject"))
@@ -246,7 +246,7 @@ else:
                     duration = st.text_input(get_display_name("Duration"))
                     email = st.text_input(get_display_name("Email ID"))
                     address = st.text_input(get_display_name("Address"))
-                    status_input = st.selectbox(get_display_name("Status"), ["Regular", "Pending", "Pass", "Inactive", "EX-STUDENT"])
+                    status_input = st.selectbox(get_display_name("Status"), ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
                 submit_student = st.form_submit_button("Save Student Data", type="primary")
 
             if submit_student:
@@ -266,7 +266,7 @@ else:
                     st.rerun()
         st.markdown("---")
 
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
     # 👁️ STUDENT LIVE DATABASE LIST PANEL - (Role: list_viewer, full_admin)
     # ----------------------------------------------------------------------
     if role in ["list_viewer", "full_admin"] and not st.session_state.admin_hide_viewer:
@@ -299,11 +299,11 @@ else:
             with col_btn2:
                 st.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Direct Print</button>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        else: 
+        else:
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
     # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
     # ----------------------------------------------------------------------
     if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
@@ -367,9 +367,7 @@ else:
                 for _, row in live_db.iterrows():
                     roll = str(row.get('Roll No.', '')).strip()
                     name = str(row.get('Student Name', '')).strip()
-                    status = str(row.get('Status', '')).strip().upper()
-                    
-                    # डेटाबेस की वैल्यू को साफ़ करें ताकि स्पेस मैचिंग की समस्या न हो
+                    status = str(row.get('Status', '')).strip().upper()  # Case-insensitive कन्वर्टर
                     current_year_val = str(row.get('Current Year', '')).strip().lower()
                     student_sub = str(row.get('Subject', '')).strip()
                     sub_code = str(row.get('Subject Code', '')).strip()
@@ -395,8 +393,8 @@ else:
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                    # लॉजिक B: REGULAR छात्रों के लिए रीयल-टाइम सुधरा हुआ फ़िल्टरिंग इंजन
-                    if status == 'REGULAR':
+                    # 🎯 लॉजिक B: REGULAR STUDENT के लिए सुधरा हुआ सटीक फ़िल्टरिंग इंजन
+                    if status == 'REGULAR STUDENT' or status == 'REGULAR':
                         is_regular_year_match = False
                         clean_target_text = target_year_text.strip().lower()
                         
@@ -404,7 +402,7 @@ else:
                         if clean_target_text in current_year_val or current_year_val in clean_target_text:
                             is_regular_year_match = True
                         
-                        # स्थिति 2: यदि कॉलम खाली है, तो एडमिशन इयर और मैक्स इयर के अंतर से स्वतः वर्ष निकालें
+                        # स्थिति 2: यदि कॉलम खाली है, तो एडमिशन इयर के गैप से वर्ष निकालें
                         elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
                             calculated_gap = max_year - adm_year
                             if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
@@ -415,7 +413,7 @@ else:
                             elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
 
                         if is_regular_year_match:
-                            # स्थिति 3: यदि प्रथम वर्ष का छात्र है और रोल नंबर खाली है, तो नाम लें
+                            # स्थिति 3: यदि 1 year का छात्र है और रोल नंबर कॉलम खाली है, तो छात्र का नाम लें
                             if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                 has_missing_roll_and_is_first_year_regular = True
                                 regular_records.append(name if name else "[Unknown Name]")
@@ -433,6 +431,7 @@ else:
                 with col_m2: st.metric("Valid Regular Students", len(regular_records))
                 with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
+                # --- HTML फ़ॉइल शीट रेंडरिंग इंजन ---
                 if final_records_list:
                     st.subheader("🖨️ Generated Visual CCE Foil Sheet")
                     left_side_data = final_records_list[:30]
@@ -451,26 +450,16 @@ else:
                             <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
                             <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
-                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
                                 <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
-                        # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
-                        
-                        # 2. यदि छात्र 30 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
                         for k in range(len(items) + start_idx, 30 + start_idx):
                             block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
-                        
-                        # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
-                        block += f"""
-                            </table>
-                            <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div>
-                            <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
-                        </div>
-                        """
+                        block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
                         return block
 
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
@@ -577,18 +566,27 @@ else:
                     st.rerun()
 
         ordered_db = live_db[st.session_state.admin_columns_order].copy()
-        
-        # Apply mapped label customizer scheme across master grid visualization outputs
         ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
         ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
 
-        # --- PART E: LIVE RENDER MATRIX MODE (READ-ONLY VS DATA EDITOR) ---
+        st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
+
+        # --- PART E: LIVE DATA EDITOR WITH MASTER SELECTION & BULK DELETE ---
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-            st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है।")
-            edited_df = st.data_editor(ordered_db, use_container_width=True, disabled=["S.No.", get_display_name("Current Year")], hide_index=True)
+            st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन और रो डिलीट मोड सक्रिय है। ग्रिड में सबसे ऊपर बाईं ओर क्लिक करके सभी रो सेलेक्ट (Select All) कर सकते हैं।")
+            st.info("💡 रो को डिलीट करने के लिए: रो सेलेक्ट करें और ग्रिड टूलबार के डिलीट आइकॉन पर क्लिक करें या कीबोर्ड से Delete बटन दबाएं।")
+            
+            # num_rows="dynamic" handles select-all check-boxing and automated garbage line dropping cleanly
+            edited_df = st.data_editor(
+                ordered_db, 
+                use_container_width=True, 
+                disabled=["S.No.", get_display_name("Current Year")], 
+                num_rows="dynamic",
+                key="admin_live_editor_grid", 
+                hide_index=True
+            )
             clean_edited = edited_df.drop(columns=["S.No."])
             
-            # Trace custom schema fields back to internal reference targets to bypass save exceptions
             reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
             
             synced_data = {col: [] for col in DEFAULT_COLUMNS}
@@ -598,10 +596,11 @@ else:
                     if internal_key in synced_data:
                         synced_data[internal_key].append(row_edit[display_name_key])
             
-            for col_k in DEFAULT_COLUMNS:
-                if col_k != "Current Year" and col_k in synced_data and len(synced_data[col_k]) == len(live_db):
-                    live_db[col_k] = synced_data[col_k]
-                    
-            save_live_data(live_db)
-        else: 
+            new_live_db = pd.DataFrame(synced_data)
+            
+            if len(new_live_db) != len(live_db) or not new_live_db.equals(live_db[DEFAULT_COLUMNS]):
+                save_live_data(new_live_db)
+                st.success("✅ डेटाबेस रिकॉर्ड्स सफलतापूर्वक सिंक और अपडेट कर दिए गए हैं!")
+                st.rerun()
+        else:
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
