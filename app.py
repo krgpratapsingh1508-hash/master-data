@@ -335,7 +335,7 @@ else:
             }
             target_year_text = mapping_logic[chosen_option]
             display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
-            exam_info = f"                                           {display_subject_heading} {chosen_option.upper()}"
+            exam_info = f"Examination :- CCE                                             {display_subject_heading} {chosen_option.upper()}"
 
             st.write("📊 CCE Processing Student Grid View:")
             preview_db = live_db.copy()
@@ -432,8 +432,8 @@ else:
                             <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
                             <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                             <div class="header-box">{college_name}</div>
-                            <div class="exam-info"><div>Examination :- CCE ........</div><div>{exam_info}</div>
-                            <div class="sub-info"><div>Subject:......................</div><div>Paper.........................</div></div>
+                            <div class="sub-box exam-right">{exam_info}</div>
+                            <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
                             <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
@@ -595,11 +595,12 @@ else:
 
         st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-                # --- PART E: LIVE RENDER MATRIX MODE WITH DYNAMIC ACTIONS ---
+        # --- PART E: LIVE RENDER MATRIX MODE WITH CONDITIONAL ACTIONS ---
+        # ⚡ Condition Tier 2: Three action buttons and data_editor grid only reveal when Unlocked AND Edit is ON
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-            st.warning("⚠️ लाइव संपादन सक्रिय है।")
+            st.warning("⚠️ लाइव संपादन सक्रिय है। ग्रिड के भीतर सीधे सेल पर डबल-क्लिक करके टेक्स्ट सुधारें।")
             
-            # बटन लेआउट मैट्रिक्स
+            # The 3 operational buttons layout matrix
             col_act1, col_act2, col_act3 = st.columns(3)
             with col_act1:
                 if st.button("✅ Select All Rows (सभी पंक्तियाँ चुनें)", use_container_width=True, type="secondary", key="bulk_select_btn"):
@@ -619,10 +620,9 @@ else:
                 hide_index=True
             )
             clean_edited = edited_df.drop(columns=["S.No."])
-            
             reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
             
-            # यदि Select All + Delete एक साथ दबाया गया हो
+            # Action: Purge entire database cleanly if Select All + Delete are triggered
             if confirm_delete and st.session_state.get("admin_select_all_active", False):
                 st.session_state["admin_select_all_active"] = False
                 empty_db = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -639,10 +639,12 @@ else:
             
             new_live_db = pd.DataFrame(synced_data)
             
+            # Action: Commit edits to storage CSV only on explicit button save or programmatic row difference
             if confirm_save_text or confirm_delete or len(new_live_db) != len(live_db):
                 save_live_data(new_live_db)
                 st.success("✅ डेटाबेस रिकॉर्ड्स सफलतापूर्वक लाइव CSV फ़ाइल में सिंक और सहेज दिए गए हैं!")
                 st.rerun()
-        else: 
-            # यदि लिस्ट लॉक है या एडिट बंद है, तो यह सुरक्षित रीड-ओनली व्यू दिखाएगा
+                else: 
+            # यदि लिस्ट लॉक है या एडिट बंद है, तो सुरक्षित रूप से केवल रीड-ओनली डेटाफ्रेम दिखाना
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+
