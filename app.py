@@ -1803,12 +1803,118 @@ else:
     else:
         st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
+import streamlit as st
+import pandas as pd
+import os
+import json
+
+# पेज का लेआउट सेट करें
+st.set_page_config(layout="wide")
+
+# विज़ुअल लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
+st.markdown("""
+    <style>
+    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .header-text { display: flex; flex-direction: column; }
+    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
+    .header-text h1 { margin: 0 !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+DB_FILE = "shared_student_database.csv"
+MAP_FILE = "column_mapping_schema.json"
+PANEL_NAME_FILE = "panel_names_schema.json"
+
+# 🎯 मास्टर कॉलम्स सूची
+DEFAULT_COLUMNS = [
+    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
+    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
+    "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
+    "Category", "Subject Code", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
+    "Current Year"
+]
+
+# डिफ़ॉल्ट 15 पैनल्स की डिक्शनरी मैपिंग (P1 से P15)
+DEFAULT_PANELS = {
+    "P1": "Panal entry",
+    "P2": "Panal admission",
+    "P3": "Panal enrollment",
+    "P4": "Panal scholarship",
+    "P5": "Panal result",
+    "P6": "Panal promotion",
+    "P7": "Panal foil",
+    "P8": "Panal cce record",
+    "P9": "Panal P9",
+    "P10": "Panal P10",
+    "P11": "Panal P11",
+    "P12": "Panal P12",
+    "P13": "Panal merge",
+    "P14": "Panal viewer",
+    "P15": "Panel admin"
+}
+
+def load_live_data():
+    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
+        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
+        df_empty.to_csv(DB_FILE, index=False)
+        return df_empty
+    try:
+        df = pd.read_csv(DB_FILE, dtype=str)
+        for col in DEFAULT_COLUMNS:
+            if col not in df.columns: df[col] = ""
+        return df.fillna("").reset_index(drop=True)
+    except:
+        return pd.DataFrame(columns=DEFAULT_COLUMNS)
+
+def save_live_data(df_to_save):
+    df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
+
+def load_panel_names():
+    if os.path.exists(PANEL_NAME_FILE):
+        try:
+            with open(PANEL_NAME_FILE, "r", encoding="utf-8") as f: return json.load(f)
+        except: return DEFAULT_PANELS.copy()
+    return DEFAULT_PANELS.copy()
+
+def save_panel_names(panel_dict):
+    with open(PANEL_NAME_FILE, "w", encoding="utf-8") as f:
+        json.dump(panel_dict, f, ensure_ascii=False, indent=4)
+
+def load_column_mappings():
+    if os.path.exists(MAP_FILE):
+        try:
+            with open(MAP_FILE, "r", encoding="utf-8") as f: return json.load(f)
+        except: return {}
+    return {}
+
+# स्टेट मैनेजमेंट इनिशियलाइजेशन
+if "panel_names" not in st.session_state: st.session_state.panel_names = load_panel_names()
+if "column_mappings" not in st.session_state: st.session_state.column_mappings = load_column_mappings()
+if "admin_columns_order" not in st.session_state: st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
+if "admin_lock_state" not in st.session_state: st.session_state.admin_lock_state = True  
+if "admin_unhide_edit" not in st.session_state: st.session_state.admin_unhide_edit = False
+if "admin_unhide_move" not in st.session_state: st.session_state.admin_unhide_move = False
+if "admin_hide_master_data" not in st.session_state: st.session_state.admin_hide_master_data = False
+
+# सभी 15 पैनल्स के हाइड/अनहाइड स्टेट्स
+for p_key in DEFAULT_PANELS.keys():
+    state_key = f"hide_panel_{p_key}"
+    if state_key not in st.session_state: st.session_state[state_key] = False
+
+live_db = load_live_data()
+
+def get_display_name(internal_col_name):
+    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
+
+def get_panel_title(panel_id):
+    return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
+
 # ----------------------------------------------------------------------
-# 🛠️ P15: PANEL ADMIN CODE BLOCK
+# 🛠️ P15: PANEL ADMIN (CORRECTED INDENTATION ENGINE)
 # ----------------------------------------------------------------------
 st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
 
-# 👑 1. 15 पैनल्स का नाम बदलने की पॉवर (Dynamic Panel Name Customizer)
+# 👑 1. 15 पैनल्स का नाम बदलने की पॉवर
 st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
 with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
     st.info("💡 यहाँ से बदला गया नाम तुरंत पूरे सिस्टम के इंटरफ़ेस और बटनों पर लागू हो जाएगा।")
@@ -1832,7 +1938,6 @@ with st.expander("15 पैनल्स के नाम (App Titles) एडि�
 st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
 st.caption("💡 नीचे दिए गए बटनों पर क्लिक करके आप संबंधित पैनल को यूजर स्क्रीन से छुपा (Hide) या दिखा (Unhide) सकते हैं:")
 
-# दो अलग-अलग टैब्स में 15 बटना व्यवस्थित करना ताकि स्क्रीन साफ दिखे
 vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
 
 with vis_tabs[0]:
@@ -1859,7 +1964,6 @@ with vis_tabs[1]:
 st.markdown("---")
 st.subheader("📊 Master Database List View & Advanced Operational Controls")
 
-# मुख्य मास्टर डेटा हाइड/अनहाइड टॉगल बटन
 lbl_data_toggle = "🔓 Master Data Matrix: Hide" if not st.session_state.admin_hide_master_data else "👁️ Master Data Matrix: Unhide"
 if st.button(lbl_data_toggle, use_container_width=True, key="data_toggle", type="secondary"):
     st.session_state.admin_hide_master_data = not st.session_state.admin_hide_master_data
@@ -1871,7 +1975,7 @@ with col_ctrl1:
         st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
         st.rerun()
 with col_ctrl2:
-    if st.button("🔀 कॉलम मूव बटन्स (On/Off)", use_container_width=True):
+    if st.button("🔀 कॉलम切 मूव बटन्स (On/Off)", use_container_width=True):
         st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
         st.rerun()
 with col_ctrl3:
@@ -1885,31 +1989,31 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
     st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें:")
     target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
     c_left, c_right = st.columns(2)
+    
     if c_left.button("⬅️ Shift Left", use_container_width=True):
         idx = st.session_state.admin_columns_order.index(target_col)
         if idx > 0:
             st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
             st.rerun()
-                if c_right.button("➡️ Shift Right", use_container_width=True):
+            
+    if c_right.button("➡️ Shift Right", use_container_width=True):
+        idx = st.session_state.admin_columns_order.index(target_col)
+        if idx < len(st.session_state.admin_columns_order) - 1:
+            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+            st.rerun()
 
-                idx = st.session_state.admin_columns_order.index(target_col)
-                if idx < len(st.session_state.admin_columns_order) - 1:
-                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-                    st.rerun()
-
-        # 🔒 डेटा रेंडरिंग ब्लॉक (यह 'Master Data Display Button' की स्टेट पर निर्भर करता है)
-        if st.session_state.admin_hide_master_data:
-            st.warning("🔒 एडमिन डेटा सुरक्षा के कारण वर्तमान में मास्टर सूची (Grid) हिडन (Hidden) की गई है। डेटा देखने के लिए ऊपर Unhide बटन दबाएं।")
-        else:
-            # सुनिश्चित करें कि डायनेमिक कॉलम भी रेंडर आर्डर सूची में सिंक रहें
-            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-            ordered_db = live_db[render_columns].copy()
-            ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
-            ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+# डेटा रेंडरिंग ब्लॉक
+if st.session_state.admin_hide_master_data:
+    st.warning("🔒 एडमिन डेटा सुरक्षा के कारण वर्तमान में मास्टर सूची (Grid) हिडन (Hidden) की गई है।")
+else:
+    render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+    ordered_db = live_db[render_columns].copy()
+    ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+                ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
 
             st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-            # 🔄 लाइव डेटा संपादन/डिलीट मोड (Matrix Mode)
+            # 🔄 लाइव डेटा संपादन/डिलीट मोड (Matrix Mode Engine)
             if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
                 st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है। आप पंक्तियाँ जोड़, एडिट या डिलीट कर सकते हैं।")
                 
@@ -1927,7 +2031,7 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
                         clean_edited = edited_df.drop(columns=["S.No."])
                         reverse_mapping = {get_display_name(k): k for k in render_columns}
                         
-                        # डिक्शनरी री-बिल्डर इंजन जो डेटाबेस स्ट्रक्चर को बनाए रखता है
+                        # डिक्शनरी री-बिल्डर इंजन जो डेटाबेस स्कीमा स्ट्रक्चर को बनाए रखता है
                         synced_data = {col: [] for col in DEFAULT_COLUMNS}
                         
                         # मुख्य डेटाबेस के अन्य सभी एडिशनल डायनेमिक कॉलम्स को भी इसमें जोड़ें
@@ -1935,6 +2039,7 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
                             if col not in synced_data:
                                 synced_data[col] = []
 
+                        # एडिट की गई ग्रिड से वापस डेटा एक्सट्रेक्ट करना
                         for _, row_edit in clean_edited.iterrows():
                             for display_name_key in clean_edited.columns:
                                 internal_key = reverse_mapping.get(display_name_key, display_name_key)
@@ -1950,4 +2055,5 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
             else:
                 # नॉर्मल व्यू मोड (Non-Editable Grid View)
                 st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+
 
