@@ -299,8 +299,8 @@ else:
         else:
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
-        
-    # ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
     # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
     # ----------------------------------------------------------------------
     if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
@@ -335,7 +335,7 @@ else:
             }
             target_year_text = mapping_logic[chosen_option]
             display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
-            exam_info = f"{display_subject_heading} {chosen_option.upper()}"
+            exam_info = f"                                           {display_subject_heading} {chosen_option.upper()}"
 
             st.write("📊 CCE Processing Student Grid View:")
             preview_db = live_db.copy()
@@ -386,15 +386,14 @@ else:
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                                        # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
-                    if status == 'REGULAR STUDENT' or status == 'REGULAR' or status == "" or status == "NAN":
+                    # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
+                    if status == 'REGULAR STUDENT' or status == 'REGULAR':
                         is_regular_year_match = False
                         clean_target_text = target_year_text.strip().lower()
                         
-                        # आसान मैचिंग: अगर डेटाबेस का करंट ईयर सिलेक्टेड टेक्स्ट से मिलता है या खाली है तो गैप कैलकुलेट करे
                         if clean_target_text in current_year_val or current_year_val in clean_target_text:
                             is_regular_year_match = True
-                        else:
+                        elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
                             calculated_gap = max_year - adm_year
                             if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
                             elif clean_target_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
@@ -404,12 +403,12 @@ else:
                             elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
 
                         if is_regular_year_match:
+                            # 1st Year Missing Roll Number Fallback to Name Routing
                             if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                 has_missing_roll_and_is_first_year_regular = True
                                 regular_records.append(name if name else "[Unknown Name]")
                             else:
                                 if roll and roll.lower() != "nan" and roll != "": regular_records.append(roll)
-
 
                 final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
 
@@ -433,24 +432,14 @@ else:
                             <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
                             <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                             <div class="header-box">{college_name}</div>
-                            
-                            <!-- पहली लाइन: Examination बाएँ और Student List दाएँ -->
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 8px;">
-                                <div>Examination :- CCE ........</div>
-                                <div>{exam_info}</div>
-                            </div>
-                            
-                            <!-- दूसरी लाइन: Subject बाएँ और Paper दाएँ -->
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 5px;">
-                                <div>Subject:......................</div>
-                                <div>Paper.........................</div>
-                            </div>
-                            
-                            <div class="marks-info" style="margin-top: 5px;"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
+                            <div class="exam-info"><div>Examination :- CCE ........</div><div>{exam_info}</div>
+                            <div class="sub-info"><div>Subject:......................</div><div>Paper.........................</div></div>
+                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                                                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
-                                <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
+                           <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
                         # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                         for idx_foil, item_val in enumerate(items, start=start_idx):
@@ -462,12 +451,43 @@ else:
                         
                         # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
                         block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Roll Number and Marks awarded to the candidate
-                            may be entered under respective columns very 
-                            carefully. Marks and Roll Number should be legible.
-                            These may be checked again to ensure that no
-                            mistake remains.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
+            may be entered under respective columns very 
+            carefully. Marks and Roll Number should be legible.
+            These may be checked again to ensure that no
+            mistake remains.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
                         return block
+
+                    # 4. असीमित सब-ब्लॉक डिकम्प्रेशन और चंकिंग इंजन (35-35 रिकॉर्ड्स का विभाजन)
+                    html_blocks_compiled = ""
+                    chunk_size = 35
+                    total_records = len(final_records_list)
+                    chunks = [final_records_list[i:i + chunk_size] for i in range(0, total_records, chunk_size)]
+                    
+                    for index, chunk_data in enumerate(chunks):
+                        start_num = (index * chunk_size) + 1
                         
+                        # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें (लेफ्ट, राइट, बॉटम-लेफ्ट, बॉटम-राइट ग्रिड प्रवाह)
+                        if index % 2 == 0:
+                            html_blocks_compiled += '<div class="foil-row-wrapper">'
+                        
+                        html_blocks_compiled += generate_cce_html_block(chunk_data, start_num, f"FOIL - PAGE {index+1}")
+                        
+                        if index % 2 == 1 or index == len(chunks) - 1:
+                            # यदि आखिरी शीट अकेले बची है, तो लेआउट संतुलित रखने के लिए खाली पारदर्शी शीट इंजेक्ट करें
+                            if index % 2 == 0 and index == len(chunks) - 1:
+                                html_blocks_compiled += '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                            html_blocks_compiled += '</div>'
+
+                    # 5. डायनेमिक रिस्पॉन्सिव स्टाइल और प्रिंट मीडिया मार्जिन सेटिंग्स
+                    html_style = """<style>.foil-row-wrapper { display: flex; justify-content: space-between; gap: 20px; width: 1100px; margin: 0 auto 30px auto; background: white; page-break-after: always; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
+                    
+                    # 6. html2canvas स्क्रिप्ट के साथ मल्टी-पेज पीएनजी एक्सपोर्टर इंजन
+                    full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadAllFoilsAsPNG() {{ const elements = document.getElementsByClassName("foil-row-wrapper"); for(let i=0; i<elements.length; i++) {{ html2canvas(elements[i], {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet_page_" + (i+1) + ".png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }} }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print All Sheets</button><button onclick="downloadAllFoilsAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download All Pages in PNG</button></div><div id="master-container">{html_blocks_compiled}</div></body></html>"""
+                    st.components.v1.html(full_html, height=1600, scrolling=True)
+                else:
+                    st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
+        st.markdown("---")
+
     # ----------------------------------------------------------------------
     # 🛠️ 4. FULL ADMIN MANAGEMENT PANEL - (Role: full_admin Only)
     # ----------------------------------------------------------------------
