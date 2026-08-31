@@ -300,7 +300,7 @@ else:
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-# ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
     # ----------------------------------------------------------------------
     if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
