@@ -434,8 +434,8 @@ else:
                 # --- HTML फ़ॉइल शीट रेंडरिंग इंजन ---
                 if final_records_list:
                     st.subheader("🖨️ Generated Visual CCE Foil Sheet")
-                    left_side_data = final_records_list[:30]
-                    right_side_data = final_records_list[30:60]
+                    left_side_data = final_records_list[:35]
+                    right_side_data = final_records_list[35:70]
                     dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
                     def generate_cce_html_block(items, start_idx, foil_label, has_data):
