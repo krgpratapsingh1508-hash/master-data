@@ -745,33 +745,27 @@ if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
     st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे CSV फ़ाइल में सुरक्षित सेव हो जाएगा।")
     edited_df = st.data_editor(
         ordered_db, 
-        use_container_width=True,
-                use_container_width=True, 
+        use_container_width=True, 
         disabled=["S.No.", get_display_name("Current Year")], 
         key="admin_live_editor_grid", 
         hide_index=True
     )
     clean_edited = edited_df.drop(columns=["S.No."])
     
-    # 1. बदले हुए विज़ुअल नामों (Labels) को वापस बैकएंड के ओरिजिनल नामों के साथ मैप करना
+    # बदले हुए विज़ुअल नामों (Labels) को वापस बैकएंड के ओरिजिनल नामों के साथ मैप करना
     reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
     
-    # 2. डेटाबेस को सुरक्षित रूप से री-बिल्ड करने के लिए एक खाली डिक्शनरी संरचना
     synced_data = {col: [] for col in DEFAULT_COLUMNS}
-    
-    # 3. एडिटेड डेटा फ्रेम से लूप चलाकर ओरिजिनल कुंजियों (Keys) पर डेटा व्यवस्थित करना
     for _, row_edit in clean_edited.iterrows():
         for display_name_key in clean_edited.columns:
             internal_key = reverse_mapping.get(display_name_key, display_name_key)
             if internal_key in synced_data:
                 synced_data[internal_key].append(row_edit[display_name_key])
     
-    # 4. 'Current Year' को छोड़कर बाकी सारा डेटा मुख्य डेटाबेस एरे में सिंक करना
     for col_k in DEFAULT_COLUMNS:
         if col_k != "Current Year" and col_k in synced_data and len(synced_data[col_k]) == len(live_db):
             live_db[col_k] = synced_data[col_k]
             
-    # 5. संशोधित डेटाबेस को CSV फ़ाइल में स्थायी सेव करना
     save_live_data(live_db)
 else: 
     # यदि लिस्ट लॉक है, तो केवल रीड-ओनली डेटाफ्रेम दिखाना
