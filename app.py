@@ -595,12 +595,11 @@ else:
 
         st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-        # --- PART E: LIVE RENDER MATRIX MODE WITH CONDITIONAL ACTIONS ---
-        # ⚡ Condition Tier 2: Three action buttons and data_editor grid only reveal when Unlocked AND Edit is ON
+                # --- PART E: LIVE RENDER MATRIX MODE WITH DYNAMIC ACTIONS ---
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-            st.warning("⚠️ लाइव संपादन सक्रिय है। ग्रिड के भीतर सीधे सेल पर डबल-क्लिक करके टेक्स्ट सुधारें।")
+            st.warning("⚠️ लाइव संपादन सक्रिय है।")
             
-            # The 3 operational buttons layout matrix
+            # बटन लेआउट मैट्रिक्स
             col_act1, col_act2, col_act3 = st.columns(3)
             with col_act1:
                 if st.button("✅ Select All Rows (सभी पंक्तियाँ चुनें)", use_container_width=True, type="secondary", key="bulk_select_btn"):
@@ -620,9 +619,10 @@ else:
                 hide_index=True
             )
             clean_edited = edited_df.drop(columns=["S.No."])
+            
             reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
             
-            # Action: Purge entire database cleanly if Select All + Delete are triggered
+            # यदि Select All + Delete एक साथ दबाया गया हो
             if confirm_delete and st.session_state.get("admin_select_all_active", False):
                 st.session_state["admin_select_all_active"] = False
                 empty_db = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -639,12 +639,10 @@ else:
             
             new_live_db = pd.DataFrame(synced_data)
             
-            # Action: Commit edits to storage CSV only on explicit button save or programmatic row difference
             if confirm_save_text or confirm_delete or len(new_live_db) != len(live_db):
                 save_live_data(new_live_db)
                 st.success("✅ डेटाबेस रिकॉर्ड्स सफलतापूर्वक लाइव CSV फ़ाइल में सिंक और सहेज दिए गए हैं!")
                 st.rerun()
-                else: 
-            # यदि लिस्ट लॉक है या एडिट बंद है, तो सुरक्षित रूप से केवल रीड-ओनली डेटाफ्रेम दिखाना
+        else: 
+            # यदि लिस्ट लॉक है या एडिट बंद है, तो यह सुरक्षित रीड-ओनली व्यू दिखाएगा
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-
