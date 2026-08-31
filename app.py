@@ -1890,7 +1890,8 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
         if idx > 0:
             st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
             st.rerun()
-    if             if c_right.button("➡️ Shift Right", use_container_width=True):
+                if c_right.button("➡️ Shift Right", use_container_width=True):
+
                 idx = st.session_state.admin_columns_order.index(target_col)
                 if idx < len(st.session_state.admin_columns_order) - 1:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
