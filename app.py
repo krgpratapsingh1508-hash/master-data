@@ -266,7 +266,7 @@ else:
                     st.rerun()
         st.markdown("---")
 
-# ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # 👁️ STUDENT LIVE DATABASE LIST PANEL - (Role: list_viewer, full_admin)
     # ----------------------------------------------------------------------
     if role in ["list_viewer", "full_admin"] and not st.session_state.admin_hide_viewer:
@@ -303,7 +303,7 @@ else:
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-# ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
     # ----------------------------------------------------------------------
     if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
@@ -380,7 +380,12 @@ else:
 
                     if status == "EX-STUDENT":
                         is_ex_match = False
-                        gap_needed = int(target_year_text.split())
+                        # 🎯 एरर फिक्स यहाँ है: लिस्ट के पहले इंडेक्स [0] को निकाल कर int() में बदला गया है
+                        try:
+                            gap_needed = int(target_year_text.split()[0])
+                        except:
+                            gap_needed = 1
+                            
                         if gap_needed <= course_duration and adm_year == (max_year - gap_needed): is_ex_match = True
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
@@ -435,8 +440,10 @@ else:
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
                     right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
 
+                    # प्रिटिंग लेआउट और फॉन्ट को संतुलित करने के लिए CSS नियम
                     html_style = """<style>#foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
                     
+                    # html2canvas स्क्रीनशॉट कैप्चर स्क्रिप्ट के साथ पूर्ण DOM संयोजन
                     full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadFoilAsPNG() {{ const element = document.getElementById("foil-capture-area"); html2canvas(element, {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet.png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button><button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button></div><div id="foil-capture-area">{left_block_html}{right_block_html}</div></body></html>"""
                     st.components.v1.html(full_html, height=1600, scrolling=True)
                 else:
