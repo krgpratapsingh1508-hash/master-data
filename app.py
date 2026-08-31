@@ -345,6 +345,7 @@ else:
             if selected_subject != "All Subjects":
                 preview_db = preview_db[preview_db['Subject'].str.strip() == selected_subject]
             
+            # प्रीव्यू ग्रिड से Subject ID पूरी तरह हटा दी गई है
             preview_render = preview_db[["Roll No.", "Student Name", "Subject Code", "Subject", "Status", "Current Year"]].copy()
             preview_render = preview_render.rename(columns={c: get_display_name(c) for c in preview_render.columns})
             st.dataframe(preview_render, use_container_width=True, hide_index=True)
@@ -353,12 +354,14 @@ else:
                 st.session_state.cce_foil_generated = True
                 st.rerun()
 
+            # --- डेटा प्रोसेसिंग इंजन ---
             if st.session_state.cce_foil_generated:
                 regular_records = []
                 ex_student_records = []
                 has_missing_roll_and_is_first_year_regular = False 
                 detected_subject_code = ""
 
+                # डेटाबेस में मौजूद अधिकतम प्रवेश वर्ष का पता लगाएं
                 years_series = pd.to_numeric(live_db["Admission Year"], errors='coerce')
                 max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
 
@@ -369,8 +372,9 @@ else:
                     current_year_val = str(row.get('Current Year', '')).strip().lower()
                     student_sub = str(row.get('Subject', '')).strip()
                     sub_code = str(row.get('Subject Code', '')).strip()
+                    adm_year_str = str(row.get('Admission Year', '0')).strip()
                     
-                    try: adm_year = int(float(str(row.get('Admission Year', '0'))))
+                    try: adm_year = int(float(adm_year_str))
                     except: adm_year = 0
                     try: course_duration = int(float(str(row.get('Duration', '6'))))
                     except: course_duration = 6
@@ -378,10 +382,11 @@ else:
                     if selected_subject != "All Subjects" and student_sub != selected_subject: continue
                     if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": detected_subject_code = sub_code
 
+                    # लॉजिक A: EX-STUDENTS के लिए डायनेमिक कटऑफ वैलिडेशन फिक्स
                     if status == "EX-STUDENT":
                         is_ex_match = False
-                        # 🎯 एरर फिक्स यहाँ है: लिस्ट के पहले इंडेक्स [0] को निकाल कर int() में बदला गया है
                         try:
+                            # कनवर्टर एरर रोकने के लिए स्ट्रिंग स्प्लिट फिक्स
                             gap_needed = int(target_year_text.split()[0])
                         except:
                             gap_needed = 1
@@ -390,12 +395,28 @@ else:
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                    if target_year_text in current_year_val and status == 'REGULAR':
-                        if not roll or roll.lower() == "nan" or roll == "":
-                            if current_year_val == "1 year":
-                                has_missing_roll_and_is_first_year_regular = True
-                                regular_records.append(name if name else "[Unknown]")
-                        else: regular_records.append(roll)
+                    # लॉजिक B: REGULAR छात्रों के लिए रीयल-टाइम डायनेमिक फॉलबैक इंजन फिक्स
+                    if status == 'REGULAR':
+                        is_regular_year_match = False
+                        
+                        if target_year_text in current_year_val:
+                            is_regular_year_match = True
+                        elif current_year_val == "" or current_year_val == "ex-student":
+                            # यदि Current Year खाली है, तो ऑन-द-फ्लाई एडमिशन इयर गैप चेक करें
+                            calculated_gap = max_year - adm_year
+                            if target_year_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
+                            elif target_year_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
+                            elif target_year_text == "3 year" and calculated_gap == 2: is_regular_year_match = True
+                            elif target_year_text == "4 year" and calculated_gap == 3: is_regular_year_match = True
+                            elif target_year_text == "5 year" and calculated_gap == 4: is_regular_year_match = True
+                            elif target_year_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
+
+                        if is_regular_year_match:
+                            if not roll or roll.lower() == "nan" or roll == "":
+                                if target_year_text == "1 year":
+                                    has_missing_roll_and_is_first_year_regular = True
+                                    regular_records.append(name if name else "[Unknown]")
+                            else: regular_records.append(roll)
 
                 final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
 
@@ -407,6 +428,7 @@ else:
                 with col_m2: st.metric("Valid Regular Students", len(regular_records))
                 with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
+                # --- HTML फ़ॉइल शीट रेंडरिंग इंजन ---
                 if final_records_list:
                     st.subheader("🖨️ Generated Visual CCE Foil Sheet")
                     left_side_data = final_records_list[:30]
@@ -430,20 +452,31 @@ else:
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
+                        # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                        
+                        # 2. यदि छात्र 30 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
                         for k in range(len(items) + start_idx, 30 + start_idx):
                             block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
-                        block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
+                        
+                        # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
+                        block += f"""
+                            </table>
+                            <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div>
+                            <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
+                        </div>
+                        """
                         return block
 
+                    # लेफ्ट और राइट दोनों विज़ुअल ब्लॉक्स का निर्माण ट्रिगर करें
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
                     right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
 
-                    # प्रिटिंग लेआउट और फॉन्ट को संतुलित करने के लिए CSS नियम
+                    # प्रिटिंग मीडिया और फ़ॉन्ट को संतुलित करने के लिए CSS नियम
                     html_style = """<style>#foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
                     
-                    # html2canvas स्क्रीनशॉट कैप्चर स्क्रिप्ट के साथ पूर्ण DOM संयोजन
+                    # html2canvas स्क्रीनशॉट कैप्चर脚本 के साथ पूर्ण DOM संयोजन
                     full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadFoilAsPNG() {{ const element = document.getElementById("foil-capture-area"); html2canvas(element, {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet.png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button><button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button></div><div id="foil-capture-area">{left_block_html}{right_block_html}</div></body></html>"""
                     st.components.v1.html(full_html, height=1600, scrolling=True)
                 else:
