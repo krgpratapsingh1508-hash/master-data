@@ -445,17 +445,17 @@ else:
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
                         
-                        # 2. यदि छात्र 30 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
-                        for k in range(len(items) + start_idx, 30 + start_idx):
+                        # 2. यदि छात्र 35 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
+                        for k in range(len(items) + start_idx, 35 + start_idx):
                             block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
                         
                         # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
                         block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
                         return block
 
-                    # 4. असीमित सब-ब्लॉक डिकम्प्रेशन और चंकिंग इंजन (30-30 रिकॉर्ड्स का विभाजन)
+                    # 4. असीमित सब-ब्लॉक डिकम्प्रेशन और चंकिंग इंजन (35-35 रिकॉर्ड्स का विभाजन)
                     html_blocks_compiled = ""
-                    chunk_size = 30
+                    chunk_size = 35
                     total_records = len(final_records_list)
                     chunks = [final_records_list[i:i + chunk_size] for i in range(0, total_records, chunk_size)]
                     
