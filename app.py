@@ -152,47 +152,39 @@ if "admin_hide_entry" not in st.session_state: st.session_state.admin_hide_entry
 if "admin_hide_viewer" not in st.session_state: st.session_state.admin_hide_viewer = False
 if "admin_hide_cce" not in st.session_state: st.session_state.admin_hide_cce = False
 if "admin_hide_cred_panel" not in st.session_state: st.session_state.admin_hide_cred_panel = False
-if "show_login_panel" not in st.session_state: st.session_state.show_login_panel = True
 
 live_db = load_live_data()
 
-# 🛠️ हेल्पिंग हेल्पर फंक्शन: डिक्शनरी मैपिंग के अनुसार रीयल-टाइम नाम रिप्लेसमेंट करना
+# 🛠️ हेल्पिंग हेल्पर फंक्शन: ड्यूशनरी मैपिंग के अनुसार रीयल-टाइम नाम रिप्लेसमेंट करना
 def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 # ==========================================================
-# 🔒 लॉगिन गेटवे
+# 🔒 मुख्य लॉगिन गेटवे (पैनल बाहर बिल्कुल नहीं दिखेंगे जब तक लॉगिन न हो)
 # ==========================================================
 if st.session_state.user_role is None:
     st.markdown("---")
-    col_login_btn, _ = st.columns(2)
-    with col_login_btn:
-        login_btn_label = "🔓 Hide Login Panel" if st.session_state.show_login_panel else "🔒 Open Login Panel"
-        if st.button(login_btn_label, use_container_width=True, type="secondary", key="global_login_toggle_btn"):
-            st.session_state.show_login_panel = not st.session_state.show_login_panel
+    st.subheader("🔒 Multi-User Secure Login Gateway")
+    
+    user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(st.session_state.credentials.keys()))
+    password_input = st.text_input("Password दर्ज करें:", type="password")
+    
+    if st.button("Secure Login", use_container_width=True, type="primary"):
+        if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
+            st.session_state.user_role = st.session_state.credentials[user_input]["role"]
+            st.success("✅ लॉगिन सफल!")
             st.rerun()
-
-    if st.session_state.show_login_panel:
-        st.subheader("🔒 Multi-User Secure Login Gateway")
-        user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(st.session_state.credentials.keys()))
-        password_input = st.text_input("Password दर्ज करें:", type="password")
-        
-        if st.button("Secure Login", use_container_width=True, type="primary"):
-            if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
-                st.session_state.user_role = st.session_state.credentials[user_input]["role"]
-                st.session_state.show_login_panel = False
-                st.success("✅ लॉगिन सफल!")
-                st.rerun()
-            else:
-                st.error("❌ गलत पासवर्ड!")
+        else:
+            st.error("❌ गलत पासवर्ड दर्ज किया गया है!")
 
 # ==========================================================
-# 🔑 लॉगिन ऑथेंटिकेटेड सिस्टम
+# 🔑 लॉगिन होने के बाद एक्सेस होने वाले पैनल्स (Role-Based Access)
 # ==========================================================
 else:
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
         st.session_state.user_role = None
+        st.session_state.cce_foil_generated = False
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -201,14 +193,14 @@ else:
     st.markdown("---")
 
 # ----------------------------------------------------------------------
-# 📝 STUDENT DATA ENTRY PANEL (ONLY CODE MODULE)
+# 📝 STUDENT DATA ENTRY PANEL - (ONLY CODE MODULE)
 # ----------------------------------------------------------------------
 st.header("📝 Student Data Entry Panel")
 
 entry_method = st.selectbox(
     "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
     options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"],
-    key="standalone_entry_method_selector"
+    key="standalone_entry_panel_selector"
 )
 st.markdown("---")
 
@@ -256,11 +248,11 @@ if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk 
         except Exception as e:
             st.error(f"❌ फ़ाइल प्रोसेस करने में त्रुटि (Error processing CSV): {e}")
 
-# --- माध्यम B: नया छात्र मैनुअल फॉर्म एंट्री ---
+# --- माध्यम B: नया छात्र मैनुअल फॉर्म प्रविष्टि ---
 elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
     st.subheader("➕ नया छात्र मैन्युअल प्रविष्टि फॉर्म")
     
-    with st.form(key="standalone_student_add_form", clear_on_submit=True):
+    with st.form(key="standalone_student_entry_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             admission_year = st.text_input(get_display_name("Admission Year"))
@@ -271,10 +263,10 @@ elif entry_method == "➕ नया छात्र मैनुअल फॉर
             f_name = st.text_input(get_display_name("Father Name"))
             dob = st.text_input(get_display_name("Date of Birth"))
             
-            # 🎯 सटीक क्रम: सब्जेक्ट टेक्स्ट बॉक्स से ठीक पहले सब्जेक्ट कोड और सब्जेक्ट आईडी बॉक्स
+            # 🎯 सटीक क्रम: सब्जेक्ट कोड और सब्जेक्ट आईडी का टेक्स्ट बॉक्स विषय (Subject) से पहले रखा गया है
             subject_code = st.text_input(get_display_name("Subject Code"), placeholder="उदा. C264")
-            subject_id = st.text_input(get_display_name("Subject ID"), placeholder="उदा. B.A.LL.B.1")
-            subject = st.text_input(get_display_name("Subject"), placeholder="उदा. B.A. LL.B. (Law with Arts)")
+            subject_id = st.text_input(get_display_name("Subject ID"), placeholder="उदा. SUB101")
+            subject = st.text_input(get_display_name("Subject"), placeholder="उदा. B.A. LL.B.")
             
             mobile = st.text_input(get_display_name("Mobile Number"))
         with col2:
