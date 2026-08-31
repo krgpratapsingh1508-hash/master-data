@@ -200,33 +200,114 @@ else:
     st.info(f"🔑 वर्तमान सत्र भूमिका: **{role.upper()}**")
     st.markdown("---")
 
-    # ----------------------------------------------------------------------
-    # 📝 STUDENT DATA ENTRY PANEL - (Role: data_entry, full_admin)
-    # ----------------------------------------------------------------------
-    if role in ["data_entry", "full_admin"] and not st.session_state.admin_hide_entry:
-        st.header("📝 Student Data Entry Panel")
-        entry_method = st.selectbox(
-            "⚙️ डेटा एंट्री का माध्यम चुनें:",
-            options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
-        )
-        
-        if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-            if uploaded_file is not None:
-                if st.button("Upload CSV Now", type="primary"):
-                    try:
-                        uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                        for col in DEFAULT_COLUMNS:
-                            if col not in uploaded_df.columns: uploaded_df[col] = ""
-                        cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                        updated_df = pd.concat([load_live_data(), cleaned_uploaded_df], ignore_index=True)
-                        save_live_data(updated_df)
-                        st.success("✅ CSV डेटा सफलतापूर्वक अपलोड हो गया!")
-                        st.rerun()
-                    except Exception as e: st.error(f"त्रुटि: {e}")
+# ----------------------------------------------------------------------
+# 📝 STUDENT DATA ENTRY PANEL (ONLY CODE MODULE)
+# ----------------------------------------------------------------------
+st.header("📝 Student Data Entry Panel")
 
-        elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
-            with st.form(key="student_add_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    
+entry_method = st.selectbox(
+    "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
+    options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"],
+    key="standalone_entry_method_selector"
+)
+st.markdown("---")
+
+# --- माध्यम A: CSV फ़ाइल बल्क अपलोड ---
+if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+    st.subheader("📁 CSV File Bulk Upload Engine")
+    
+    # एडमिन द्वारा सेट कस्टम नामों के साथ सैंपल प्रविष्टि फॉर्मेट डाउनलोड करने का विकल्प
+    sample_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
+    sample_df_renamed = sample_df.rename(columns={c: get_display_name(c) for c in DEFAULT_COLUMNS})
+    csv_sample = sample_df_renamed.to_csv(index=False).encode('utf-8')
+    
+    st.download_button(
+        label="📥 डेटा प्रविष्टि फॉर्मेट डाउनलोड करें (Sample CSV)",
+        data=csv_sample,
+        file_name="student_entry_format.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+    st.markdown(" ")
+    
+    uploaded_file = st.file_uploader("अपनी स्टूडेंट डेटा CSV फ़ाइल चुनें और अपलोड करें:", type=["csv"])
+    
+    if uploaded_file is not None:
+        try:
+            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+            if st.button("Upload & Append CSV Data Now", use_container_width=True, type="primary"):
+                
+                # यदि यूज़र ने हेडर में कस्टम नामों वाली फ़ाइल अपलोड की है, तो उसे इंटरनल नाम में वापस मैप करें
+                reverse_mapping = {get_display_name(k): k for k in DEFAULT_COLUMNS}
+                uploaded_df = uploaded_df.rename(columns=reverse_mapping)
+                
+                # संरचनात्मक सत्यापन (Structural Validation)
+                for col in DEFAULT_COLUMNS:
+                    if col not in uploaded_df.columns:
+                        uploaded_df[col] = ""
+                
+                cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                current_db = load_live_data()
+                
+                updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
+                save_live_data(updated_df)
+                st.success(f"✅ सफलतापूर्वक {len(cleaned_uploaded_df)} नए छात्र रिकॉर्ड्स लाइव डेटाबेस में जोड़ दिए गए हैं!")
+                st.balloons()
+        except Exception as e:
+            st.error(f"❌ फ़ाइल प्रोसेस करने में त्रुटि (Error processing CSV): {e}")
+
+# --- माध्यम B: नया छात्र मैनुअल फॉर्म एंट्री ---
+elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+    st.subheader("➕ नया छात्र मैन्युअल प्रविष्टि फॉर्म")
+    
+    with st.form(key="standalone_student_add_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            admission_year = st.text_input(get_display_name("Admission Year"))
+            eligibility_name = st.text_input(get_display_name("Eligibility Name"))
+            admission_date = st.text_input(get_display_name("Admission Date"))
+            roll_no = st.text_input(get_display_name("Roll No."))
+            enrollment_no = st.text_input(get_display_name("Enrollment No."))
+            f_name = st.text_input(get_display_name("Father Name"))
+            dob = st.text_input(get_display_name("Date of Birth"))
+            
+            # 🎯 सटीक क्रम: सब्जेक्ट टेक्स्ट बॉक्स से ठीक पहले सब्जेक्ट कोड और सब्जेक्ट आईडी बॉक्स
+            subject_code = st.text_input(get_display_name("Subject Code"), placeholder="उदा. C264")
+            subject_id = st.text_input(get_display_name("Subject ID"), placeholder="उदा. B.A.LL.B.1")
+            subject = st.text_input(get_display_name("Subject"), placeholder="उदा. B.A. LL.B. (Law with Arts)")
+            
+            mobile = st.text_input(get_display_name("Mobile Number"))
+        with col2:
+            admission_session = st.text_input(get_display_name("Admission Session"))
+            admission_app_no = st.text_input(get_display_name("Admission Application Number"))
+            unique_id = st.text_input(get_display_name("Unique ID"))
+            app_enroll_no = st.text_input(get_display_name("Application Enrollment No."))
+            s_name = st.text_input(get_display_name("Student Name"))
+            m_name = st.text_input(get_display_name("Mother Name"))
+            category = st.selectbox(get_display_name("Category"), ["General", "OBC", "SC", "ST"])
+            duration = st.text_input(get_display_name("Duration"))
+            email = st.text_input(get_display_name("Email ID"))
+            address = st.text_input(get_display_name("Address"))
+            status_input = st.selectbox(get_display_name("Status"), ["Regular", "Pending", "Pass", "Inactive", "EX-STUDENT"])
+        
+        submit_student = st.form_submit_button("Save Student Record to Live Database", type="primary", use_container_width=True)
+
+    if submit_student:
+        if s_name.strip() == "":
+            st.error("❌ त्रुटि: कृपया 'Student Name' प्रविष्टि ज़रूर भरें।")
+        else:
+            new_row = {
+                "Admission Year": admission_year, "Admission Session": admission_session, 
+                "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no,
+                "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
+                "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
+                "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
+                "Category": category, "Subject Code": subject_code, "Subject ID": subject_id, "Subject": subject, "Duration": duration, 
+                "Mobile Number": mobile, "Email ID": email, "Address": address, "Status": status_input, "Current Year": ""
+            }
+            
+            current_db = load_live_data()
+            updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
+            save_live_data(updated_df)
+            st.success(f"✅ छात्र '{s_name}' का रिकॉर्ड डेटाबेस में सुरक्षित रूप से सहेज लिया गया है!")
+            
