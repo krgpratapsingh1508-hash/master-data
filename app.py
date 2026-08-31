@@ -302,3 +302,143 @@ else:
         else: 
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
+
+# ----------------------------------------------------------------------
+    # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
+    # ----------------------------------------------------------------------
+    if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
+        st.header("College CCE Foil Sheet Generator")
+        st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
+
+        college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
+
+        if not live_db.empty:
+            unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
+            unique_subjects = [sub for sub in unique_subjects if sub != ""]
+            selected_subject = st.selectbox("📚 Select Subject (विषय चुनें):", options=["All Subjects"] + unique_subjects, key="cce_sub")
+
+            year_sem_options = [
+                "1 Semester", "2 Semester", "3 Semester", "4 Semester", "5 Semester", "6 Semester",
+                "7 Semester", "8 Semester", "9 Semester", "10 Semester", "11 Semester", "12 Semester",
+                "1 year", "2 year", "3 year", "4 year", "5 year", "6 year"
+            ]
+            
+            def on_cce_param_change():
+                st.session_state.cce_foil_generated = False
+
+            chosen_option = st.selectbox("📆 Select Semester / Year:", year_sem_options, key="cce_year_sem", on_change=on_cce_param_change)
+
+            mapping_logic = {
+                "1 Semester": "1 year", "2 Semester": "1 year", "1 year": "1 year",
+                "3 Semester": "2 year", "4 Semester": "2 year", "2 year": "2 year",
+                "5 Semester": "3 year", "6 Semester": "3 year", "3 year": "3 year",
+                "7 Semester": "4 year", "8 Semester": "4 year", "4 year": "4 year",
+                "9 Semester": "5 year", "10 Semester": "5 year", "5 year": "5 year",
+                "11 Semester": "6 year", "12 Semester": "6 year", "6 year": "6 year"
+            }
+            target_year_text = mapping_logic[chosen_option]
+            display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
+            exam_info = f"Examination :- CCE                                             {display_subject_heading} {chosen_option.upper()}"
+
+            st.write("📊 CCE Processing Student Grid View:")
+            preview_db = live_db.copy()
+            if selected_subject != "All Subjects":
+                preview_db = preview_db[preview_db['Subject'].str.strip() == selected_subject]
+            
+            preview_render = preview_db[["Roll No.", "Student Name", "Subject Code", "Subject", "Status", "Current Year"]].copy()
+            preview_render = preview_render.rename(columns={c: get_display_name(c) for c in preview_render.columns})
+            st.dataframe(preview_render, use_container_width=True, hide_index=True)
+
+            if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary"):
+                st.session_state.cce_foil_generated = True
+                st.rerun()
+
+            if st.session_state.cce_foil_generated:
+                regular_records = []
+                ex_student_records = []
+                has_missing_roll_and_is_first_year_regular = False 
+                detected_subject_code = ""
+
+                years_series = pd.to_numeric(live_db["Admission Year"], errors='coerce')
+                max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
+
+                for _, row in live_db.iterrows():
+                    roll = str(row.get('Roll No.', '')).strip()
+                    name = str(row.get('Student Name', '')).strip()
+                    status = str(row.get('Status', '')).strip().upper()
+                    current_year_val = str(row.get('Current Year', '')).strip().lower()
+                    student_sub = str(row.get('Subject', '')).strip()
+                    sub_code = str(row.get('Subject Code', '')).strip()
+                    
+                    try: adm_year = int(float(str(row.get('Admission Year', '0'))))
+                    except: adm_year = 0
+                    try: course_duration = int(float(str(row.get('Duration', '6'))))
+                    except: course_duration = 6
+
+                    if selected_subject != "All Subjects" and student_sub != selected_subject: continue
+                    if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": detected_subject_code = sub_code
+
+                    if status == "EX-STUDENT":
+                        is_ex_match = False
+                        gap_needed = int(target_year_text.split())
+                        if gap_needed <= course_duration and adm_year == (max_year - gap_needed): is_ex_match = True
+                        if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
+                        continue
+
+                    if target_year_text in current_year_val and status == 'REGULAR':
+                        if not roll or roll.lower() == "nan" or roll == "":
+                            if current_year_val == "1 year":
+                                has_missing_roll_and_is_first_year_regular = True
+                                regular_records.append(name if name else "[Unknown]")
+                        else: regular_records.append(roll)
+
+                final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
+
+                st.markdown("---")
+                st.subheader("⚙️ Processing Engine (Validating Student Eligibility)")
+                st.info("🎯 Validation Analytics Summary:")
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1: st.metric("Valid Ex-Students (Prioritized)", len(ex_student_records))
+                with col_m2: st.metric("Valid Regular Students", len(regular_records))
+                with col_m3: st.metric("Total Records Captured", len(final_records_list))
+
+                if final_records_list:
+                    st.subheader("🖨️ Generated Visual CCE Foil Sheet")
+                    left_side_data = final_records_list[:30]
+                    right_side_data = final_records_list[30:60]
+                    dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
+
+                    def generate_cce_html_block(items, start_idx, foil_label, has_data):
+                        if not has_data: return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                        paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
+                        block = f"""
+                        <div class="foil-unit">
+                            <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
+                            <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
+                            <div class="header-box">{college_name}</div>
+                            <div class="sub-box exam-right">{exam_info}</div>
+                            <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
+                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
+                            <div class="foil-title">{foil_label}</div>
+                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                                <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
+                                <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
+                        """
+                        for idx_foil, item_val in enumerate(items, start=start_idx):
+                            block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                        for k in range(len(items) + start_idx, 30 + start_idx):
+                            block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
+                        block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
+                        return block
+
+                    left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
+                    right_block_html = generate_cce_html_block(right_side_data, 31, "FOIL", len(right_side_data) > 0)
+
+                    html_style = """<style>#foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
+                    
+                    full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadFoilAsPNG() {{ const element = document.getElementById("foil-capture-area"); html2canvas(element, {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet.png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button><button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button></div><div id="foil-capture-area">{left_block_html}{right_block_html}</div></body></html>"""
+                    st.components.v1.html(full_html, height=1600, scrolling=True)
+                else:
+                    st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
+        st.markdown("---")
