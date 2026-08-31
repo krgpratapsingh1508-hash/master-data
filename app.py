@@ -335,7 +335,7 @@ else:
             }
             target_year_text = mapping_logic[chosen_option]
             display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
-            exam_info = f"                                           {display_subject_heading} {chosen_option.upper()}"
+            exam_info = f"Examination :- CCE                                             {display_subject_heading} {chosen_option.upper()}"
 
             st.write("📊 CCE Processing Student Grid View:")
             preview_db = live_db.copy()
@@ -432,8 +432,8 @@ else:
                             <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
                             <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                             <div class="header-box">{college_name}</div>
-                            <div class="exam-info"><div>Examination :- CCE ........</div><div>{exam_info}</div>
-                            <div class="sub-info"><div>Subject:......................</div><div>Paper.........................</div></div>
+                            <div class="sub-box exam-right">{exam_info}</div>
+                            <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
                             <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
@@ -488,13 +488,11 @@ else:
                     st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
     # 🛠️ 4. FULL ADMIN MANAGEMENT PANEL - (Role: full_admin Only)
     # ----------------------------------------------------------------------
     if role == "full_admin":
         st.header("🛠️ Full Admin Management Panel")
-        
-        # --- PART A: DYNAMIC COLUMN & TEXT BOX LABEL CUSTOMIZER ---
         st.subheader("✏️ Dynamic Column & Text Box Label Customizer")
         with st.expander("कॉलम और टेक्स्ट बॉक्स के नाम (Labels) बदलने के लिए यहाँ क्लिक करें", expanded=False):
             st.info("💡 यहाँ आप ओरिजिनल कॉलम नेम को हिंदी या किसी अन्य कस्टम नाम में बदल सकते हैं। यह ग्रिड और डेटा एंट्री फॉर्म दोनों जगह लागू होगा।")
@@ -518,7 +516,6 @@ else:
                     st.success("✅ सभी कॉलम और इनपुट टेक्स्ट बॉक्स के नाम सफलतापूर्वक स्थायी रूप से अपडेट कर दिए गए हैं!")
                     st.rerun()
 
-        # --- PART B: GLOBAL PANEL VISIBILITY CONTROLLERS ---
         st.subheader("🛡️ Global Panels Visibility Controller")
         col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
         with col_vis1:
@@ -538,7 +535,6 @@ else:
                 st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
                 st.rerun()
 
-        # --- PART C: USER PASSWORD MANAGEMENT RESET ENGINE ---
         if not st.session_state.admin_hide_cred_panel:
             st.subheader("🔐 Change User Credentials System")
             with st.form(key="credentials_change_form"):
@@ -551,39 +547,31 @@ else:
                         save_credentials(st.session_state.credentials)
                         st.success(f"✅ '{target_user}' का पासवर्ड स्थायी अपडेट हुआ!")
 
-        # --- PART D: INTERACTIVE REORDERING & COLUMN MATRIX CONTROLS ---
         st.subheader("📊 Master Database List View & Advanced Controls")
-        
-        col_lock, col_edit, col_move = st.columns(3)
-        with col_lock:
+        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+        with col_ctrl1:
+            if st.button("📝 एडिट टेक्स्ट फंक्शन ऑन/ऑफ करें", use_container_width=True):
+                st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                st.rerun()
+        with col_ctrl2:
+            if st.button("🔀 कॉलम मूव बटन्स ऑन/ऑफ करें", use_container_width=True):
+                st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                st.rerun()
+        with col_ctrl3:
             lock_label = "🔒 लिस्ट लॉक करें" if not st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें"
-            if st.button(lock_label, use_container_width=True, key="admin_toggle_lock"):
+            if st.button(lock_label, use_container_width=True):
                 st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-                if st.session_state.admin_lock_state:
-                    st.session_state.admin_unhide_edit = False
                 st.rerun()
 
-        # ⚡ Condition Tier 1: Edit function button only reveals when the list is UNLOCKED
-        if not st.session_state.admin_lock_state:
-            with col_edit:
-                edit_btn_label = "❌ एडिट टेक्स्ट फंक्शन बंद करें" if st.session_state.admin_unhide_edit else "📝 एडिट टेक्स्ट फंक्शन चालू करें"
-                if st.button(edit_btn_label, use_container_width=True, key="admin_toggle_text_edit"):
-                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                    st.rerun()
-            with col_move:
-                if st.button("🔀 कॉलम मूव बटन्स ऑन/ऑफ करें", use_container_width=True, key="admin_toggle_col_shift"):
-                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                    st.rerun()
-
         if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
-            target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_box")
+            target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
             c_left, c_right = st.columns(2)
-            if c_left.button("⬅️ Shift Left", use_container_width=True, key="admin_shift_l_trigger"):
+            if c_left.button("⬅️ Shift Left", use_container_width=True):
                 idx = st.session_state.admin_columns_order.index(target_col)
                 if idx > 0:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                     st.rerun()
-            if c_right.button("➡️ Shift Right", use_container_width=True, key="admin_shift_r_trigger"):
+            if c_right.button("➡️ Shift Right", use_container_width=True):
                 idx = st.session_state.admin_columns_order.index(target_col)
                 if idx < len(st.session_state.admin_columns_order) - 1:
                     st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
@@ -595,20 +583,18 @@ else:
 
         st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-                # --- PART E: LIVE RENDER MATRIX MODE WITH DYNAMIC ACTIONS ---
+        # --- PART E: LIVE RENDER MATRIX MODE WITH DYNAMIC ACTIONS ---
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
             st.warning("⚠️ लाइव संपादन सक्रिय है।")
             
-            # बटन लेआउट मैट्रिक्स
-            col_act1, col_act2, col_act3 = st.columns(3)
+            # Action Buttons Layout for Select All and Delete
+            col_act1, col_act2 = st.columns(2)
             with col_act1:
-                if st.button("✅ Select All Rows (सभी पंक्तियाँ चुनें)", use_container_width=True, type="secondary", key="bulk_select_btn"):
+                if st.button("✅ Select All Rows (सभी पंक्तियाँ चुनें)", use_container_width=True, type="secondary"):
                     st.session_state["admin_select_all_active"] = True
-                    st.info("सभी रो सेलेक्ट मोड इनेबल हुआ।")
+                    st.info("सभी रो सेलेक्ट मोड इनेबल हुआ। नीचे दिए एडिटर में ग्रिड स्वतः हाइलाइट हो जाएगी।")
             with col_act2:
-                confirm_delete = st.button("🗑️ Delete Selected Rows (चुने रिकॉर्ड्स हटाएं)", use_container_width=True, type="primary", key="bulk_delete_btn")
-            with col_act3:
-                confirm_save_text = st.button("💾 Save Edited Changes (बदलाव सुरक्षित करें)", use_container_width=True, type="primary", key="bulk_save_text_btn")
+                confirm_delete = st.button("🗑️ Delete Selected Rows (चुने रिकॉर्ड्स हटाएं)", use_container_width=True, type="primary")
 
             edited_df = st.data_editor(
                 ordered_db, 
@@ -622,7 +608,7 @@ else:
             
             reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
             
-            # यदि Select All + Delete एक साथ दबाया गया हो
+            # Master Deletion Logic Trigger
             if confirm_delete and st.session_state.get("admin_select_all_active", False):
                 st.session_state["admin_select_all_active"] = False
                 empty_db = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -639,10 +625,9 @@ else:
             
             new_live_db = pd.DataFrame(synced_data)
             
-            if confirm_save_text or confirm_delete or len(new_live_db) != len(live_db):
+            if len(new_live_db) != len(live_db) or confirm_delete:
                 save_live_data(new_live_db)
-                st.success("✅ डेटाबेस रिकॉर्ड्स सफलतापूर्वक लाइव CSV फ़ाइल में सिंक और सहेज दिए गए हैं!")
+                st.success("✅ चुने गए रिकॉर्ड्स सफलतापूर्वक डिलीट / सिंक कर दिए गए हैं!")
                 st.rerun()
         else: 
-            # यदि लिस्ट लॉक है या एडिट बंद है, तो यह सुरक्षित रीड-ओनली व्यू दिखाएगा
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
