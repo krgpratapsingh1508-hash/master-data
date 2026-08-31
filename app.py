@@ -368,6 +368,8 @@ else:
                     roll = str(row.get('Roll No.', '')).strip()
                     name = str(row.get('Student Name', '')).strip()
                     status = str(row.get('Status', '')).strip().upper()
+                    
+                    # डेटाबेस की वैल्यू को साफ़ करें ताकि स्पेस मैचिंग की समस्या न हो
                     current_year_val = str(row.get('Current Year', '')).strip().lower()
                     student_sub = str(row.get('Subject', '')).strip()
                     sub_code = str(row.get('Subject Code', '')).strip()
@@ -377,11 +379,11 @@ else:
                     try: course_duration = int(float(str(row.get('Duration', '6'))))
                     except: course_duration = 6
 
-                    # 🎯 चरण 1: विषय (Subject) नाम मैच करें
+                    # चरण 1: विषय (Subject) नाम मैच करें
                     if selected_subject != "All Subjects" and student_sub != selected_subject: continue
                     if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": detected_subject_code = sub_code
 
-                    # लॉजिक A: EX-STUDENTS के लिए डायनेमिक कटऑफ वैलिडेशन
+                    # लॉजिक A: EX-STUDENTS के लिए कटऑफ वैलिडेशन
                     if status == "EX-STUDENT":
                         is_ex_match = False
                         try:
@@ -393,16 +395,31 @@ else:
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                    # लॉजिक B: REGULAR छात्रों के लिए नया सटीक कंडीशन इंजन
-                    if status == 'Regular Student':
-                        # 🎯 चरण 2: विषय मैच होने के बाद 'Current Year' कॉलम में वर्ष (Year) मैच करें
-                        if target_year_text.lower() in current_year_val:
-                            # 🎯 चरण 3: यदि 1 year का छात्र है और रोल नंबर कॉलम खाली है, तो छात्र का नाम (Student Name) लें
-                            if target_year_text.lower() == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
+                    # लॉजिक B: REGULAR छात्रों के लिए रीयल-टाइम सुधरा हुआ फ़िल्टरिंग इंजन
+                    if status == 'REGULAR':
+                        is_regular_year_match = False
+                        clean_target_text = target_year_text.strip().lower()
+                        
+                        # स्थिति 1: यदि करंट ईयर कॉलम में डायरेक्ट टेक्स्ट मैच हो जाता है
+                        if clean_target_text in current_year_val or current_year_val in clean_target_text:
+                            is_regular_year_match = True
+                        
+                        # स्थिति 2: यदि कॉलम खाली है, तो एडमिशन इयर और मैक्स इयर के अंतर से स्वतः वर्ष निकालें
+                        elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
+                            calculated_gap = max_year - adm_year
+                            if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
+                            elif clean_target_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
+                            elif clean_target_text == "3 year" and calculated_gap == 2: is_regular_year_match = True
+                            elif clean_target_text == "4 year" and calculated_gap == 3: is_regular_year_match = True
+                            elif clean_target_text == "5 year" and calculated_gap == 4: is_regular_year_match = True
+                            elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
+
+                        if is_regular_year_match:
+                            # स्थिति 3: यदि प्रथम वर्ष का छात्र है और रोल नंबर खाली है, तो नाम लें
+                            if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                 has_missing_roll_and_is_first_year_regular = True
                                 regular_records.append(name if name else "[Unknown Name]")
                             else:
-                                # बाकी सभी स्थितियों में केवल रोल नंबर लें
                                 if roll and roll.lower() != "nan" and roll != "":
                                     regular_records.append(roll)
 
@@ -416,7 +433,6 @@ else:
                 with col_m2: st.metric("Valid Regular Students", len(regular_records))
                 with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
-                # --- HTML फ़ॉइल शीट रेंडरिंग इंजन ---
                 if final_records_list:
                     st.subheader("🖨️ Generated Visual CCE Foil Sheet")
                     left_side_data = final_records_list[:30]
@@ -440,11 +456,21 @@ else:
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
+                        # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                        
+                        # 2. यदि छात्र 30 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
                         for k in range(len(items) + start_idx, 30 + start_idx):
                             block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
-                        block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
+                        
+                        # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
+                        block += f"""
+                            </table>
+                            <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div>
+                            <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
+                        </div>
+                        """
                         return block
 
                     left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
