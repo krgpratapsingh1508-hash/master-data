@@ -432,8 +432,8 @@ else:
                             <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
                             <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
                             <div class="header-box">{college_name}</div>
-                            <div class="sub-box exam-info"><div>Examination :- CCE ........</div><div>"sub-box exam-left">{exam_info}</div>
-                            <div class="sub-box"><div>Subject:......................</div><div>Paper.........................</div>
+                            <div class="exam-info"><div>Examination :- CCE ........</div><div>"sub-box exam-right">{exam_info}</div>
+                            <div class="sub-info"><div>Subject:......................</div><div>Paper.........................</div>
                             <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
