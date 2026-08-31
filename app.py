@@ -494,7 +494,8 @@ else:
                 ex_student_records = sorted(list(set(ex_student_records)))
                 regular_records = sorted(list(set(regular_records)))
                 final_records_list = ex_student_records + regular_records
-                                # 🎯 यहाँ से HTML Foil शीट रेंडर करने का लॉजिक बिना किसी स्पेस एरर के शुरू होता है
+
+                                 # 🎯 यहाँ से HTML Foil शीट रेंडर करने का लॉजिक बिना किसी स्पेस एरर के शुरू होता है
                 if final_records_list:
                     st.success(f"Total {len(final_records_list)} entries captured ({len(ex_student_records)} Ex-Students prioritized first).")
                     
@@ -597,131 +598,193 @@ else:
         else:
             st.error("Live database file khali hai.")
 
+import streamlit as st
+import pandas as pd
+import os
+import json
+
+# Define DB Target and Master Structure Reference
+DB_FILE = "shared_student_database.csv"
+CRED_FILE = "user_credentials.json"
+
+# 🎯 अपडेटेड कॉलम्स की मास्टर सूची (Subject Code को Subject के ठीक लेफ्ट साइड में रखा गया है)
+DEFAULT_COLUMNS = [
+    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
+    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
+    "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
+    "Category", "Subject Code", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
+    "Current Year"
+]
+
+# Database Read-Write Engines
+def load_live_data():
+    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
+        return pd.DataFrame(columns=DEFAULT_COLUMNS)
+    try:
+        df = pd.read_csv(DB_FILE, dtype=str)
+        # सुनिश्चित करें कि नया 'Subject Code' और अन्य सभी मास्टर कॉलम मौजूद हों
+        for col in DEFAULT_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
+        if not years_series.dropna().empty:
+            max_year = int(years_series.max())
+            mapping = {
+                max_year: "1 year", max_year - 1: "2 year", max_year - 2: "3 year",
+                max_year - 3: "4 year", max_year - 4: "5 year", max_year - 5: "6 year"
+            }
+            df["Current Year"] = years_series.map(mapping).fillna("EX-STUDENT")
+        else:
+            df["Current Year"] = "EX-STUDENT"
+        return df.fillna("").reset_index(drop=True)
+    except:
+        return pd.DataFrame(columns=DEFAULT_COLUMNS)
+
+def save_live_data(df_to_save):
+    df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
+
+def save_credentials(creds):
+    with open(CRED_FILE, "w") as f:
+        json.dump(creds, f)
+
+# Initialize Session Triggers if missing
+if "admin_columns_order" not in st.session_state:
+    st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
+if "admin_lock_state" not in st.session_state:
+    st.session_state.admin_lock_state = True  
+if "admin_unhide_edit" not in st.session_state:
+    st.session_state.admin_unhide_edit = False
+if "admin_unhide_move" not in st.session_state:
+    st.session_state.admin_unhide_move = False
+if "admin_hide_entry" not in st.session_state:
+    st.session_state.admin_hide_entry = False
+if "admin_hide_viewer" not in st.session_state:
+    st.session_state.admin_hide_viewer = False
+if "admin_hide_cce" not in st.session_state:
+    st.session_state.admin_hide_cce = False
+if "admin_hide_cred_panel" not in st.session_state:
+    st.session_state.admin_hide_cred_panel = False
+
+live_db = load_live_data()
+
 # ----------------------------------------------------------------------
 # 🛠️ 4. FULL ADMIN ROLE PANEL (SECURITY ENHANCED & COLUMN LOCKED)
 # ----------------------------------------------------------------------
-if role == "full_admin":
-    st.header("🛠️ Full Admin Management Panel")
-    
-    # --- PART A: GLOBAL PANEL VISIBILITY CONTROLLERS ---
-    st.subheader("🛡️ Global Panels Visibility Controller")
-    # 🎯 एरर फिक्स: यहाँ st.columns(4) पास किया गया है ताकि आपके ऐप पर कोई क्रैश या टाइप-एरर न आए
-    col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
-    
-    with col_vis1:
-        entry_btn_label = "👁️ Data Entry Panel: UNHIDDEN" if not st.session_state.admin_hide_entry else "🙈 Data Entry Panel: HIDDEN"
-        if st.button(entry_btn_label, use_container_width=True, key="admin_master_toggle_entry"):
-            st.session_state.admin_hide_entry = not st.session_state.admin_hide_entry
-            st.rerun()
-            
-    with col_vis2:
-        viewer_btn_label = "👁️ Viewer Panel: UNHIDDEN" if not st.session_state.admin_hide_viewer else "🙈 Viewer Panel: HIDDEN"
-        if st.button(viewer_btn_label, use_container_width=True, key="admin_master_toggle_viewer"):
-            st.session_state.admin_hide_viewer = not st.session_state.admin_hide_viewer
-            st.rerun()
-            
-    with col_vis3:
-        cce_btn_label = "👁️ CCE Panel: UNHIDDEN" if not st.session_state.admin_hide_cce else "🙈 CCE Panel: HIDDEN"
-        if st.button(cce_btn_label, use_container_width=True, key="admin_master_toggle_cce"):
-            st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
-            st.rerun()
+st.header("🛠️ Full Admin Management Panel")
 
-    with col_vis4:
-        cred_btn_label = "👁️ Password Panel: UNHIDDEN" if not st.session_state.admin_hide_cred_panel else "🙈 Password Panel: HIDDEN"
-        if st.button(cred_btn_label, use_container_width=True, key="admin_master_toggle_cred_panel"):
-            st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
-            st.rerun()
+# --- PART A: GLOBAL PANEL VISIBILITY CONTROLLERS ---
+st.subheader("🛡️ Global Panels Visibility Controller")
+# 🎯 एरर फिक्स: यहाँ st.columns(4) पास किया गया है ताकि आपके ऐप पर कोई क्रैश या टाइप-एरर न आए
+col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
 
+with col_vis1:
+    entry_btn_label = "👁️ Data Entry Panel: UNHIDDEN" if not st.session_state.admin_hide_entry else "🙈 Data Entry Panel: HIDDEN"
+    if st.button(entry_btn_label, use_container_width=True, key="admin_master_toggle_entry"):
+        st.session_state.admin_hide_entry = not st.session_state.admin_hide_entry
+        st.rerun()
+        
+with col_vis2:
+    viewer_btn_label = "👁️ Viewer Panel: UNHIDDEN" if not st.session_state.admin_hide_viewer else "🙈 Viewer Panel: HIDDEN"
+    if st.button(viewer_btn_label, use_container_width=True, key="admin_master_toggle_viewer"):
+        st.session_state.admin_hide_viewer = not st.session_state.admin_hide_viewer
+        st.rerun()
+        
+with col_vis3:
+    cce_btn_label = "👁️ CCE Panel: UNHIDDEN" if not st.session_state.admin_hide_cce else "🙈 CCE Panel: HIDDEN"
+    if st.button(cce_btn_label, use_container_width=True, key="admin_master_toggle_cce"):
+        st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
+        st.rerun()
+
+with col_vis4:
+    cred_btn_label = "👁️ Password Panel: UNHIDDEN" if not st.session_state.admin_hide_cred_panel else "🙈 Password Panel: HIDDEN"
+    if st.button(cred_btn_label, use_container_width=True, key="admin_master_toggle_cred_panel"):
+        st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
+        st.rerun()
+
+st.markdown("---")
+
+# --- PART B: PERSISTENT PASSWORD RESET MANAGEMENT SYSTEM ---
+if not st.session_state.admin_hide_cred_panel:
+    st.subheader("🔐 Change User Credentials System")
+    with st.form(key="credentials_change_form"):
+        target_user = st.selectbox("किस यूजर का क्रेडेंशियल बदलना चाहते हैं?", options=list(st.session_state.credentials.keys()))
+        new_password = st.text_input("नया पासवर्ड दर्ज करें:", type="password")
+        submit_cred = st.form_submit_button("Update Password Now", type="primary")
+        
+        if submit_cred:
+            if new_password.strip() == "":
+                st.error("पासवर्ड खाली नहीं हो सकता।")
+            else:
+                st.session_state.credentials[target_user]["password"] = new_password
+                save_credentials(st.session_state.credentials)
+                st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक बदला गया और फाइल में स्थायी सेव हो गया है!")
     st.markdown("---")
 
-    # --- PART B: PERSISTENT PASSWORD RESET MANAGEMENT SYSTEM ---
-    if not st.session_state.admin_hide_cred_panel:
-        st.subheader("🔐 Change User Credentials System")
-        with st.form(key="credentials_change_form"):
-            target_user = st.selectbox("किस यूजर का क्रेडेंशियल बदलना चाहते हैं?", options=list(st.session_state.credentials.keys()))
-            new_password = st.text_input("नया पासवर्ड दर्ज करें:", type="password")
-            submit_cred = st.form_submit_button("Update Password Now", type="primary")
-            
-            if submit_cred:
-                if new_password.strip() == "":
-                    st.error("पासवर्ड खाली नहीं हो सकता।")
-                else:
-                    st.session_state.credentials[target_user]["password"] = new_password
-                    save_credentials(st.session_state.credentials)
-                    st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक बदला गया और फाइल में स्थायी सेव हो गया है!")
-        st.markdown("---")
+# --- PART C: ADVANCED DATA CONTROLS AND SCHEMA MATRIX ---
+st.subheader("📊 Master Database List View & Advanced Controls")
 
-    # --- PART C: ADVANCED DATA CONTROLS AND SCHEMA MATRIX ---
-    st.subheader("📊 Master Database List View & Advanced Controls")
-    
-    col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-    with col_ctrl1:
-        if st.button("📝 एडिट टेक्स्ट फ़ंक्शन अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_text_edit"):
-            st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-            st.rerun()
-    with col_ctrl2:
-        if st.button("🔀 कॉलम稳 मूव बटन्स अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_column_move"):
-            st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-            st.rerun()
-    with col_ctrl3:
-        lock_label = "🔒 लिस्ट लॉक करें" if not st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें"
-        if st.button(lock_label, use_container_width=True, key="admin_btn_toggle_lock_state"):
-            st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-            st.rerun()
+col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+with col_ctrl1:
+    if st.button("📝 एडिट टेक्स्ट फ़ंक्शन अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_text_edit"):
+        st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+        st.rerun()
+with col_ctrl2:
+    if st.button("🔀 कॉलम मूव बटन्स अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_column_move"):
+        st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+        st.rerun()
+with col_ctrl3:
+    lock_label = "🔒 लिस्ट लॉक करें" if not st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें"
+    if st.button(lock_label, use_container_width=True, key="admin_btn_toggle_lock_state"):
+        st.session_state.admin_lock_state = not st.session_state.admin_lock_state
+        st.rerun()
 
-    # --- PART D: INTERACTIVE COLUMN REORDERING ENGINE (LOCK PROTECTED) ---
-    if st.session_state.admin_unhide_move:
-        # 🎯 सुरक्षा नियम: यदि लिस्ट लॉक है तो सुरक्षा चेतावनी दिखाएं और मूविंग प्रक्रिया ब्लॉक रखें
-        if st.session_state.admin_lock_state:
-            st.error("⚠️ लिस्ट वर्तमान में लॉक है! कॉलम को लेफ्ट या राइट मूव करने के लिए पहले ऊपर दिए गए बटन से 'लिस्ट अनलॉक' करें।")
-        else:
-            st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
-            target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
-            col_move_left, col_move_right = st.columns(2)
-            
-            if col_move_left.button("⬅️ सिलेक्ट कॉलम लेफ्ट (Shift Left)", use_container_width=True, key="admin_shift_left_trigger"):
-                idx = st.session_state.admin_columns_order.index(target_col)
-                if idx > 0:
-                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                    st.rerun()
-                    
-            if col_move_right.button("➡️ सिलेक्ट कॉलम राइट (Shift Right)", use_container_width=True, key="admin_shift_right_trigger"):
-                idx = st.session_state.admin_columns_order.index(target_col)
-                if idx < len(st.session_state.admin_columns_order) - 1:
-                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-                    st.rerun()
-
-    if "Subject Code" not in st.session_state.admin_columns_order:
-        st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
-
-    # Map sorted matrix representation
-    ordered_db = live_db[st.session_state.admin_columns_order].copy()
-    ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
-    
-    st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
-    
-    # --- PART E: CHOOSE RENDER MATRIX MODE (READ-ONLY VS LIVE DATA EDITOR) ---
-    if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-        st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे सेव हो जाएगा।")
-        edited_df = st.data_editor(
-            ordered_db,
-            use_container_width=True,
-            disabled=["S.No.", "Current Year"],
-            key="admin_live_data_editor",
-            hide_index=True
-        )
-        clean_edited = edited_df.drop(columns=["S.No."])
-        for col in clean_edited.columns:
-            if col != "Current Year":
-                live_db[col] = clean_edited[col].values
-        save_live_data(live_db)
-        
+# --- PART D: INTERACTIVE COLUMN REORDERING ENGINE (LOCK PROTECTED) ---
+if st.session_state.admin_unhide_move:
+    # 🎯 सुरक्षा नियम: यदि लिस्ट लॉक है तो सुरक्षा चेतावनी दिखाएं और मूविंग प्रक्रिया ब्लॉक रखें
+    if st.session_state.admin_lock_state:
+        st.error("⚠️ लिस्ट वर्तमान में लॉक है! कॉलम को लेफ्ट या राइट मूव करने के लिए पहले ऊपर दिए गए बटन से 'लिस्ट अनलॉक' करें।")
     else:
-        st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+        st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
+        target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
+        col_move_left, col_move_right = st.columns(2)
         
-            
-             
+        if col_move_left.button("⬅️ सिलेक्ट कॉलम लेफ्ट (Shift Left)", use_container_width=True, key="admin_shift_left_trigger"):
+            idx = st.session_state.admin_columns_order.index(target_col)
+            if idx > 0:
+                st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                st.rerun()
+                
+        if col_move_right.button("➡️ सिलेक्ट कॉलम राइट (Shift Right)", use_container_width=True, key="admin_shift_right_trigger"):
+            idx = st.session_state.admin_columns_order.index(target_col)
+            if idx < len(st.session_state.admin_columns_order) - 1:
+                st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                st.rerun()
 
+if "Subject Code" not in st.session_state.admin_columns_order:
+    st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 
-            
-                            
+# Map sorted matrix representation
+ordered_db = live_db[st.session_state.admin_columns_order].copy()
+ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+
+st.write(f"कुल मास्टर记录 संख्या: **{len(ordered_db)}**")
+
+# --- PART E: CHOOSE RENDER MATRIX MODE (READ-ONLY VS LIVE DATA EDITOR) ---
+if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
+    st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे सेव हो जाएगा।")
+    edited_df = st.data_editor(
+        ordered_db,
+        use_container_width=True,
+        disabled=["S.No.", "Current Year"],
+        key="admin_live_data_editor",
+        hide_index=True
+    )
+    clean_edited = edited_df.drop(columns=["S.No."])
+    for col in clean_edited.columns:
+        if col != "Current Year":
+            live_db[col] = clean_edited[col].values
+    save_live_data(live_db)
+    
+else:
+    st.dataframe(ordered_db, use_container_width=True, hide_index=True)
+        
