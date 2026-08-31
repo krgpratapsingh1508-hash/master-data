@@ -481,3 +481,127 @@ else:
                     st.components.v1.html(full_html, height=1600, scrolling=True)
                 else: st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
         st.markdown("---")
+
+# ----------------------------------------------------------------------
+    # 🛠️ 4. FULL ADMIN MANAGEMENT PANEL - (Role: full_admin Only)
+    # ----------------------------------------------------------------------
+    if role == "full_admin":
+        st.header("🛠️ Full Admin Management Panel")
+        
+        # --- PART A: DYNAMIC COLUMN & TEXT BOX LABEL CUSTOMIZER ---
+        st.subheader("✏️ Dynamic Column & Text Box Label Customizer")
+        with st.expander("कॉलम और टेक्स्ट बॉक्स के नाम (Labels) बदलने के लिए यहाँ क्लिक करें", expanded=False):
+            st.info("💡 यहाँ आप ओरिजिनल कॉलम नेम को हिंदी या किसी अन्य कस्टम नाम में बदल सकते हैं। यह ग्रिड और डेटा एंट्री फॉर्म दोनों जगह लागू होगा।")
+            
+            with st.form(key="col_rename_matrix_form"):
+                col_setup1, col_setup2 = st.columns(2)
+                temp_mappings = {}
+                
+                for index, internal_name in enumerate(DEFAULT_COLUMNS):
+                    current_val = st.session_state.column_mappings.get(internal_name, internal_name)
+                    if index % 2 == 0:
+                        with col_setup1:
+                            temp_mappings[internal_name] = st.text_input(f"Label for '{internal_name}':", value=current_val, key=f"ren_{internal_name}")
+                    else:
+                        with col_setup2:
+                            temp_mappings[internal_name] = st.text_input(f"Label for '{internal_name}':", value=current_val, key=f"ren_{internal_name}")
+                            
+                if st.form_submit_button("Save Schema Labels Permanently", type="primary"):
+                    st.session_state.column_mappings = temp_mappings
+                    save_column_mappings(temp_mappings)
+                    st.success("✅ सभी कॉलम और इनपुट टेक्स्ट बॉक्स के नाम सफलतापूर्वक स्थायी रूप से अपडेट कर दिए गए हैं!")
+                    st.rerun()
+
+        # --- PART B: GLOBAL PANEL VISIBILITY CONTROLLERS ---
+        st.subheader("🛡️ Global Panels Visibility Controller")
+        col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
+        with col_vis1:
+            if st.button("👁️ Data Entry: Toggle", use_container_width=True, key="t_entry"):
+                st.session_state.admin_hide_entry = not st.session_state.admin_hide_entry
+                st.rerun()
+        with col_vis2:
+            if st.button("👁️ Viewer Panel: Toggle", use_container_width=True, key="t_view"):
+                st.session_state.admin_hide_viewer = not st.session_state.admin_hide_viewer
+                st.rerun()
+        with col_vis3:
+            if st.button("👁️ CCE Panel: Toggle", use_container_width=True, key="t_cce"):
+                st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
+                st.rerun()
+        with col_vis4:
+            if st.button("👁️ Passwords: Toggle", use_container_width=True, key="t_cred"):
+                st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
+                st.rerun()
+
+        # --- PART C: USER PASSWORD MANAGEMENT RESET ENGINE ---
+        if not st.session_state.admin_hide_cred_panel:
+            st.subheader("🔐 Change User Credentials System")
+            with st.form(key="credentials_change_form"):
+                target_user = st.selectbox("यूजर चुनें:", options=list(st.session_state.credentials.keys()))
+                new_password = st.text_input("नया पासवर्ड:", type="password")
+                if st.form_submit_button("Update Password Now", type="primary"):
+                    if new_password.strip() == "": st.error("पासवर्ड खाली नहीं हो सकता।")
+                    else:
+                        st.session_state.credentials[target_user]["password"] = new_password
+                        save_credentials(st.session_state.credentials)
+                        st.success(f"✅ '{target_user}' का पासवर्ड स्थायी अपडेट हुआ!")
+
+        # --- PART D: INTERACTIVE REORDERING & COLUMN MATRIX CONTROLS ---
+        st.subheader("📊 Master Database List View & Advanced Controls")
+        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+        with col_ctrl1:
+            if st.button("📝 एडिट टेक्स्ट फंक्शन ऑन/ऑफ करें", use_container_width=True):
+                st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                st.rerun()
+        with col_ctrl2:
+            if st.button("🔀 कॉलम मूव बटन्स ऑन/ऑफ करें", use_container_width=True):
+                st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                st.rerun()
+        with col_ctrl3:
+            lock_label = "🔒 लिस्ट लॉक करें" if not st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें"
+            if st.button(lock_label, use_container_width=True):
+                st.session_state.admin_lock_state = not st.session_state.admin_lock_state
+                st.rerun()
+
+        if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
+            target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
+            c_left, c_right = st.columns(2)
+            if c_left.button("⬅️ Shift Left", use_container_width=True):
+                idx = st.session_state.admin_columns_order.index(target_col)
+                if idx > 0:
+                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                    st.rerun()
+            if c_right.button("➡️ Shift Right", use_container_width=True):
+                idx = st.session_state.admin_columns_order.index(target_col)
+                if idx < len(st.session_state.admin_columns_order) - 1:
+                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                    st.rerun()
+
+        ordered_db = live_db[st.session_state.admin_columns_order].copy()
+        
+        # Apply mapped label customizer scheme across master grid visualization outputs
+        ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+        ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+
+        # --- PART E: LIVE RENDER MATRIX MODE (READ-ONLY VS DATA EDITOR) ---
+        if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
+            st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है।")
+            edited_df = st.data_editor(ordered_db, use_container_width=True, disabled=["S.No.", get_display_name("Current Year")], hide_index=True)
+            clean_edited = edited_df.drop(columns=["S.No."])
+            
+            # Trace custom schema fields back to internal reference targets to bypass save exceptions
+            reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
+            
+            synced_data = {col: [] for col in DEFAULT_COLUMNS}
+            for _, row_edit in clean_edited.iterrows():
+                for display_name_key in clean_edited.columns:
+                    internal_key = reverse_mapping.get(display_name_key, display_name_key)
+                    if internal_key in synced_data:
+                        synced_data[internal_key].append(row_edit[display_name_key])
+            
+            for col_k in DEFAULT_COLUMNS:
+                if col_k != "Current Year" and col_k in synced_data and len(synced_data[col_k]) == len(live_db):
+                    live_db[col_k] = synced_data[col_k]
+                    
+            save_live_data(live_db)
+        else: 
+            st.dataframe(ordered_db, use_container_width=True, hide_index=True)
