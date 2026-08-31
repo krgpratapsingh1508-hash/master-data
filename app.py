@@ -426,16 +426,28 @@ else:
                     dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
                     def generate_cce_html_block(items, start_idx, foil_label):
-                        paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
-                        block = f"""
-                        <div class="foil-unit">
-                            <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
-                            <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
-                            <div class="header-box">{college_name}</div>
-                            <div class="exam-info"><div>Examination :- CCE ........</div><div>{exam_info}</div>
-                            <div class="sub-info"><div>Subject:......................</div><div>Paper.........................</div></div>
-                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
-                            <div class="foil-title">{foil_label}</div>
+                    def generate_cce_html_block(items, start_idx, foil_label):
+                paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
+                block = f"""
+                <div class="foil-unit">
+                    <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
+                    <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
+                    <div class="header-box">{college_name}</div>
+                    
+                    <!-- पहली लाइन: Examination बाएँ और Student List दाएँ -->
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 8px;">
+                        <div>Examination :- CCE ........</div>
+                        <div>{exam_info}</div>
+                    </div>
+                    
+                    <!-- दूसरी लाइन: Subject बाएँ और Paper दाएँ -->
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-top: 5px;">
+                        <div>Subject:......................</div>
+                        <div>Paper.........................</div>
+                    </div>
+                    
+                    <div class="marks-info" style="margin-top: 5px;"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
+                    <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
                                 <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
