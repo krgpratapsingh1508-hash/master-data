@@ -54,6 +54,7 @@ st.markdown(f"""
 
 DB_FILE = "shared_student_database.csv"
 CRED_FILE = "user_credentials.json"
+MAP_FILE = "column_mapping_schema.json"
 
 # 🔒 क्रेडेंशियल्स डिफ़ॉल्ट डेटा
 DEFAULT_CREDENTIALS = {
@@ -79,15 +80,32 @@ def save_credentials(creds):
     with open(CRED_FILE, "w") as f:
         json.dump(creds, f)
 
+# 🔄 डायनेमिक कॉलम मैपिंग लोडर और सेवर
+def load_column_mappings():
+    if os.path.exists(MAP_FILE):
+        try:
+            with open(MAP_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_column_mappings(mapping_dict):
+    with open(MAP_FILE, "w", encoding="utf-8") as f:
+        json.dump(mapping_dict, f, ensure_ascii=False, indent=4)
+
 if "credentials" not in st.session_state:
     st.session_state.credentials = load_credentials()
 
-# मास्टर कॉलम्स सूची
+if "column_mappings" not in st.session_state:
+    st.session_state.column_mappings = load_column_mappings()
+
+# 🎯 मास्टर कॉलम्स सूची (Subject ID को Subject के ठीक पहले लॉक किया गया है)
 DEFAULT_COLUMNS = [
     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
     "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
-    "Category", "Subject Code", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
+    "Category", "Subject Code", "Subject ID", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
     "Current Year"
 ]
 
@@ -137,6 +155,10 @@ if "admin_hide_cred_panel" not in st.session_state: st.session_state.admin_hide_
 if "show_login_panel" not in st.session_state: st.session_state.show_login_panel = True
 
 live_db = load_live_data()
+
+# 🛠️ हेल्पिंग हेल्पर फंक्शन: डिक्शनरी मैपिंग के अनुसार रीयल-टाइम नाम रिप्लेसमेंट करना
+def get_display_name(internal_col_name):
+    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 # ==========================================================
 # 🔒 लॉगिन गेटवे
@@ -207,17 +229,4 @@ else:
             with st.form(key="student_add_form", clear_on_submit=True):
                 col1, col2 = st.columns(2)
                 with col1:
-                    admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
-                    eligibility_name = st.text_input("Eligibility Name")
-                    admission_date = st.text_input("Admission Date")
-                    roll_no = st.text_input("Roll No.")
-                    enrollment_no = st.text_input("Enrollment No.")
-                    f_name = st.text_input("Father Name")
-                    dob = st.text_input("Date of Birth")
-                    subject_code = st.text_input("Subject Code")
-                    subject = st.text_input("Subject")
-                    mobile = st.text_input("Mobile Number")
-                with col2:
-                    admission_session = st.text_input("Admission Session")
-                    admission_app_no = st.text_input("Admission Application Number")
                     
