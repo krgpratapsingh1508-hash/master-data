@@ -300,7 +300,7 @@ else:
             st.warning("कोई रिकॉर्ड नहीं मिला।")
         st.markdown("---")
         
-# ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # 📝 3. COLLEGE CCE FOIL SHEET GENERATOR - (Role: cce_handler, full_admin)
     # ----------------------------------------------------------------------
     if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
@@ -335,8 +335,6 @@ else:
             }
             target_year_text = mapping_logic[chosen_option]
             display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
-            
-            # यहाँ से एक्स्ट्रा स्पेस हटा दिया गया है ताकि टेक्स्ट सही अलाइन हो
             exam_info = f"{display_subject_heading} {chosen_option.upper()}"
 
             st.write("📊 CCE Processing Student Grid View:")
@@ -421,11 +419,11 @@ else:
                 with col_m2: st.metric("Valid Regular Students", len(regular_records))
                 with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
+                # --- Dynamic Infinite Flow Foil Canvas Layout Generator ---
                 if final_records_list:
                     st.subheader("🖨️ Generated Visual CCE Foil Sheets")
                     dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
-                    # सही इंडेंटेशन (16 स्पेस) के साथ नया फंक्शन स्ट्रक्चर
                     def generate_cce_html_block(items, start_idx, foil_label):
                         paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
                         block = f"""
@@ -449,8 +447,7 @@ else:
                             <div class="marks-info" style="margin-top: 5px;"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
                             <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                                <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
-                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
+                                                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
                         # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
