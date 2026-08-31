@@ -100,7 +100,7 @@ if "credentials" not in st.session_state:
 if "column_mappings" not in st.session_state:
     st.session_state.column_mappings = load_column_mappings()
 
-# 🎯 मास्टर कॉलम्स सूची (Subject ID को यहाँ से पूरी तरह हटा दिया गया है)
+# 🎯 मास्टर कॉलम्स सूची (Subject ID पूरी तरह बाहर है)
 DEFAULT_COLUMNS = [
     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
@@ -138,10 +138,8 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट प्रबंधन इनिशियलाइजेशन
+# स्टेट मैनेजमेंट इनिशियलाइजेशन
 if "user_role" not in st.session_state: st.session_state.user_role = None  
-if "upload_success" not in st.session_state: st.session_state.upload_success = False
-if "save_success" not in st.session_state: st.session_state.save_success = False
 if "admin_columns_order" not in st.session_state: st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
 if "admin_lock_state" not in st.session_state: st.session_state.admin_lock_state = True  
 if "admin_unhide_edit" not in st.session_state: st.session_state.admin_unhide_edit = False
@@ -155,12 +153,12 @@ if "admin_hide_cred_panel" not in st.session_state: st.session_state.admin_hide_
 
 live_db = load_live_data()
 
-# 🛠 ...
+# 🛠️ हेल्पर फंक्शन
 def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 # ==========================================================
-# 🔒 सिक्योर लॉगिन गेटवे (डेटा सुरक्षा लॉकडाउन)
+# 🔒 सिक्योर लॉगिन गेटवे (डेटा लीक सुरक्षा नियंत्रण)
 # ==========================================================
 if st.session_state.user_role is None:
     st.markdown("---")
@@ -178,7 +176,7 @@ if st.session_state.user_role is None:
             st.error("❌ गलत पासवर्ड दर्ज किया गया है!")
 
 # ==========================================================
-# 🔑 लॉगिन अधिकृत सत्र
+# 🔑 लॉगिन अधिकृत सत्र (सभी पैनल्स केवल इसके अंदर ही चलेंगे)
 # ==========================================================
 else:
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
@@ -229,8 +227,7 @@ else:
                     f_name = st.text_input(get_display_name("Father Name"))
                     dob = st.text_input(get_display_name("Date of Birth"))
                     
-                    # 🎯 क्रम: विषय आईडी (Subject ID) पूरी तरह हटा दी गई है।
-                    # अब सीधे विषय कोड के बाद विषय (Subject) का टेक्स्ट बॉक्स आता है।
+                    # सीधे विषय कोड के बाद विषय बॉक्स व्यवस्थित है
                     subject_code = st.text_input(get_display_name("Subject Code"))
                     subject = st.text_input(get_display_name("Subject"))
                     
@@ -273,7 +270,7 @@ else:
         st.header("Student Live Database List (Viewer Mode)")
         st.markdown('<div class="print-hide">', unsafe_allow_html=True)
         
-        # सर्च ड्रॉपडाउन के विकल्पों को भी परिवर्तित नाम के साथ रेंडर करें
+        # Render the dropdown options with the dynamically changed custom names
         search_options_map = {col: get_display_name(col) for col in DEFAULT_COLUMNS}
         selected_display_col = st.selectbox("🔍 सर्च करने के लिए कॉलम चुनें:", options=list(search_options_map.values()), key="viewer_col")
         selected_search_column = [k for k, v in search_options_map.items() if v == selected_display_col]
@@ -353,21 +350,20 @@ else:
                 st.session_state.cce_foil_generated = True
                 st.rerun()
 
-            # --- डेटा प्रोसेसिंग इंजन ---
+            # --- Data Processing Logic Engine ---
             if st.session_state.cce_foil_generated:
                 regular_records = []
                 ex_student_records = []
                 has_missing_roll_and_is_first_year_regular = False 
                 detected_subject_code = ""
 
-                # डेटाबेस में मौजूद अधिकतम प्रवेश वर्ष का पता लगाएं
                 years_series = pd.to_numeric(live_db["Admission Year"], errors='coerce')
                 max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
 
                 for _, row in live_db.iterrows():
                     roll = str(row.get('Roll No.', '')).strip()
                     name = str(row.get('Student Name', '')).strip()
-                    status = str(row.get('Status', '')).strip().upper()  # Case-insensitive कन्वर्टर
+                    status = str(row.get('Status', '')).strip().upper()
                     current_year_val = str(row.get('Current Year', '')).strip().lower()
                     student_sub = str(row.get('Subject', '')).strip()
                     sub_code = str(row.get('Subject Code', '')).strip()
@@ -377,32 +373,26 @@ else:
                     try: course_duration = int(float(str(row.get('Duration', '6'))))
                     except: course_duration = 6
 
-                    # चरण 1: विषय (Subject) नाम मैच करें
                     if selected_subject != "All Subjects" and student_sub != selected_subject: continue
                     if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": detected_subject_code = sub_code
 
-                    # लॉजिक A: EX-STUDENTS के लिए कटऑफ वैलिडेशन
+                    # Logic A: EX-STUDENT Criteria Evaluation
                     if status == "EX-STUDENT":
                         is_ex_match = False
-                        try:
-                            gap_needed = int(target_year_text.split()[0])
-                        except:
-                            gap_needed = 1
+                        try: gap_needed = int(target_year_text.split()[0])
+                        except: gap_needed = 1
                             
                         if gap_needed <= course_duration and adm_year == (max_year - gap_needed): is_ex_match = True
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                    # 🎯 लॉजिक B: REGULAR STUDENT के लिए सुधरा हुआ सटीक फ़िल्टरिंग इंजन
+                    # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
                     if status == 'REGULAR STUDENT' or status == 'REGULAR':
                         is_regular_year_match = False
                         clean_target_text = target_year_text.strip().lower()
                         
-                        # स्थिति 1: यदि करंट ईयर कॉलम में डायरेक्ट टेक्स्ट मैच हो जाता है
                         if clean_target_text in current_year_val or current_year_val in clean_target_text:
                             is_regular_year_match = True
-                        
-                        # स्थिति 2: यदि कॉलम खाली है, तो एडमिशन इयर के गैप से वर्ष निकालें
                         elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
                             calculated_gap = max_year - adm_year
                             if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
@@ -413,13 +403,12 @@ else:
                             elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
 
                         if is_regular_year_match:
-                            # स्थिति 3: यदि 1 year का छात्र है और रोल नंबर कॉलम खाली है, तो छात्र का नाम लें
+                            # 1st Year Missing Roll Number Fallback to Name Routing
                             if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                 has_missing_roll_and_is_first_year_regular = True
                                 regular_records.append(name if name else "[Unknown Name]")
                             else:
-                                if roll and roll.lower() != "nan" and roll != "":
-                                    regular_records.append(roll)
+                                if roll and roll.lower() != "nan" and roll != "": regular_records.append(roll)
 
                 final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
 
@@ -431,15 +420,12 @@ else:
                 with col_m2: st.metric("Valid Regular Students", len(regular_records))
                 with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
-                # --- HTML फ़ॉइल शीट रेंडरिंग इंजन ---
+                # --- Dynamic Infinite Flow Foil Canvas Layout Generator ---
                 if final_records_list:
-                    st.subheader("🖨️ Generated Visual CCE Foil Sheet")
-                    left_side_data = final_records_list[:35]
-                    right_side_data = final_records_list[35:70]
+                    st.subheader("🖨️ Generated Visual CCE Foil Sheets")
                     dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
 
-                    def generate_cce_html_block(items, start_idx, foil_label, has_data):
-                        if not has_data: return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                    def generate_cce_html_block(items, start_idx, foil_label):
                         paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
                         block = f"""
                         <div class="foil-unit">
@@ -450,34 +436,59 @@ else:
                             <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
                             <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
                             <div class="foil-title">{foil_label}</div>
-                        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
                                 <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                 <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
-                                <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
+                           <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                         """
+                        # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                         for idx_foil, item_val in enumerate(items, start=start_idx):
                             block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
-                        for k in range(len(items) + start_idx, 35 + start_idx):
+                        
+                        # 2. यदि छात्र 30 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
+                        for k in range(len(items) + start_idx, 30 + start_idx):
                             block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
+                        
+                        # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
                         block += f"""</table><div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Entered carefully.</div><div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
                         return block
 
-                    left_block_html = generate_cce_html_block(left_side_data, 1, "FOIL", True)
-                    right_block_html = generate_cce_html_block(right_side_data, 35, "FOIL", len(right_side_data) > 0)
+                    # 4. असीमित सब-ब्लॉक डिकम्प्रेशन और चंकिंग इंजन (30-30 रिकॉर्ड्स का विभाजन)
+                    html_blocks_compiled = ""
+                    chunk_size = 30
+                    total_records = len(final_records_list)
+                    chunks = [final_records_list[i:i + chunk_size] for i in range(0, total_records, chunk_size)]
+                    
+                    for index, chunk_data in enumerate(chunks):
+                        start_num = (index * chunk_size) + 1
+                        
+                        # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें (लेफ्ट, राइट, बॉटम-लेफ्ट, बॉटम-राइट ग्रिड प्रवाह)
+                        if index % 2 == 0:
+                            html_blocks_compiled += '<div class="foil-row-wrapper">'
+                        
+                        html_blocks_compiled += generate_cce_html_block(chunk_data, start_num, f"FOIL - PAGE {index+1}")
+                        
+                        if index % 2 == 1 or index == len(chunks) - 1:
+                            # यदि आखिरी शीट अकेले बची है, तो लेआउट संतुलित रखने के लिए खाली पारदर्शी शीट इंजेक्ट करें
+                            if index % 2 == 0 and index == len(chunks) - 1:
+                                html_blocks_compiled += '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                            html_blocks_compiled += '</div>'
 
-                    html_style = """<style>#foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
-                    full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadFoilAsPNG() {{ const element = document.getElementById("foil-capture-area"); html2canvas(element, {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet.png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button><button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button></div><div id="foil-capture-area">{left_block_html}{right_block_html}</div></body></html>"""
+                    # 5. डायनेमिक रिस्पॉन्सिव स्टाइल और प्रिंट मीडिया मार्जिन सेटिंग्स
+                    html_style = """<style>.foil-row-wrapper { display: flex; justify-content: space-between; gap: 20px; width: 1100px; margin: 0 auto 30px auto; background: white; page-break-after: always; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }@media print { .print-hide { display: none !important; } }</style>"""
+                    
+                    # 6. html2canvas स्क्रिप्ट के साथ मल्टी-पेज पीएनजी एक्सपोर्टर इंजन
+                    full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadAllFoilsAsPNG() {{ const elements = document.getElementsByClassName("foil-row-wrapper"); for(let i=0; i<elements.length; i++) {{ html2canvas(elements[i], {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet_page_" + (i+1) + ".png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }} }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print All Sheets</button><button onclick="downloadAllFoilsAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download All Pages in PNG</button></div><div id="master-container">{html_blocks_compiled}</div></body></html>"""
                     st.components.v1.html(full_html, height=1600, scrolling=True)
-                else: st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
+                else:
+                    st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-    # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
     # 🛠️ 4. FULL ADMIN MANAGEMENT PANEL - (Role: full_admin Only)
     # ----------------------------------------------------------------------
     if role == "full_admin":
         st.header("🛠️ Full Admin Management Panel")
-        
-        # --- PART A: DYNAMIC COLUMN & TEXT BOX LABEL CUSTOMIZER ---
         st.subheader("✏️ Dynamic Column & Text Box Label Customizer")
         with st.expander("कॉलम और टेक्स्ट बॉक्स के नाम (Labels) बदलने के लिए यहाँ क्लिक करें", expanded=False):
             st.info("💡 यहाँ आप ओरिजिनल कॉलम नेम को हिंदी या किसी अन्य कस्टम नाम में बदल सकते हैं। यह ग्रिड और डेटा एंट्री फॉर्म दोनों जगह लागू होगा।")
@@ -501,7 +512,6 @@ else:
                     st.success("✅ सभी कॉलम और इनपुट टेक्स्ट बॉक्स के नाम सफलतापूर्वक स्थायी रूप से अपडेट कर दिए गए हैं!")
                     st.rerun()
 
-        # --- PART B: GLOBAL PANEL VISIBILITY CONTROLLERS ---
         st.subheader("🛡️ Global Panels Visibility Controller")
         col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
         with col_vis1:
@@ -521,7 +531,6 @@ else:
                 st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
                 st.rerun()
 
-        # --- PART C: USER PASSWORD MANAGEMENT RESET ENGINE ---
         if not st.session_state.admin_hide_cred_panel:
             st.subheader("🔐 Change User Credentials System")
             with st.form(key="credentials_change_form"):
@@ -534,7 +543,6 @@ else:
                         save_credentials(st.session_state.credentials)
                         st.success(f"✅ '{target_user}' का पासवर्ड स्थायी अपडेट हुआ!")
 
-        # --- PART D: INTERACTIVE REORDERING & COLUMN MATRIX CONTROLS ---
         st.subheader("📊 Master Database List View & Advanced Controls")
         col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
         with col_ctrl1:
@@ -571,12 +579,19 @@ else:
 
         st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-        # --- PART E: LIVE DATA EDITOR WITH MASTER SELECTION & BULK DELETE ---
+        # --- PART E: LIVE RENDER MATRIX MODE WITH DYNAMIC ACTIONS ---
         if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-            st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन और रो डिलीट मोड सक्रिय है। ग्रिड में सबसे ऊपर बाईं ओर क्लिक करके सभी रो सेलेक्ट (Select All) कर सकते हैं।")
-            st.info("💡 रो को डिलीट करने के लिए: रो सेलेक्ट करें और ग्रिड टूलबार के डिलीट आइकॉन पर क्लिक करें या कीबोर्ड से Delete बटन दबाएं।")
+            st.warning("⚠️ लाइव संपादन सक्रिय है।")
             
-            # num_rows="dynamic" handles select-all check-boxing and automated garbage line dropping cleanly
+            # Action Buttons Layout for Select All and Delete
+            col_act1, col_act2 = st.columns(2)
+            with col_act1:
+                if st.button("✅ Select All Rows (सभी पंक्तियाँ चुनें)", use_container_width=True, type="secondary"):
+                    st.session_state["admin_select_all_active"] = True
+                    st.info("सभी रो सेलेक्ट मोड इनेबल हुआ। नीचे दिए एडिटर में ग्रिड स्वतः हाइलाइट हो जाएगी।")
+            with col_act2:
+                confirm_delete = st.button("🗑️ Delete Selected Rows (चुने रिकॉर्ड्स हटाएं)", use_container_width=True, type="primary")
+
             edited_df = st.data_editor(
                 ordered_db, 
                 use_container_width=True, 
@@ -589,6 +604,14 @@ else:
             
             reverse_mapping = {get_display_name(k): k for k in st.session_state.admin_columns_order}
             
+            # Master Deletion Logic Trigger
+            if confirm_delete and st.session_state.get("admin_select_all_active", False):
+                st.session_state["admin_select_all_active"] = False
+                empty_db = pd.DataFrame(columns=DEFAULT_COLUMNS)
+                save_live_data(empty_db)
+                st.success("🔥 डेटाबेस की सभी पंक्तियाँ सफलतापूर्वक डिलीट कर दी गई हैं!")
+                st.rerun()
+            
             synced_data = {col: [] for col in DEFAULT_COLUMNS}
             for _, row_edit in clean_edited.iterrows():
                 for display_name_key in clean_edited.columns:
@@ -598,9 +621,9 @@ else:
             
             new_live_db = pd.DataFrame(synced_data)
             
-            if len(new_live_db) != len(live_db) or not new_live_db.equals(live_db[DEFAULT_COLUMNS]):
+            if len(new_live_db) != len(live_db) or confirm_delete:
                 save_live_data(new_live_db)
-                st.success("✅ डेटाबेस रिकॉर्ड्स सफलतापूर्वक सिंक और अपडेट कर दिए गए हैं!")
+                st.success("✅ चुने गए रिकॉर्ड्स सफलतापूर्वक डिलीट / सिंक कर दिए गए हैं!")
                 st.rerun()
-        else:
+        else: 
             st.dataframe(ordered_db, use_container_width=True, hide_index=True)
