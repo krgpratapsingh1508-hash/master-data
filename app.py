@@ -126,7 +126,7 @@ def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
 # ==========================================
-# ⚙️ स्टेट मैनेजमेंट सेटअप (क्रैश प्रोटेक्शन)
+# ⚙️ स्टेट मैनेजमेंट सेटअप
 # ==========================================
 if "user_role" not in st.session_state:
     st.session_state.user_role = None  
@@ -160,7 +160,7 @@ if "show_login_panel" not in st.session_state:
 live_db = load_live_data()
 
 # ==========================================================
-# 🔒 मुख्य लॉगिन गेटवे (सुरक्षित और निश्चित)
+# 🔒 मुख्य लॉगिन गेटवे (फिक्स 2 कॉलम लेआउट)
 # ==========================================================
 if st.session_state.user_role is None:
     st.markdown("---")
@@ -413,7 +413,7 @@ else:
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             exam_info = f"Examination :- CCE                                             {display_subject_heading} {display_semester_heading}"
 
-            # 5. CCE प्रोसेसिंग छात्र डेटा ग्रिड प्रीव्यू (Subject Code के साथ)
+            # 5. CCE प्रोसेसिंग छात्र डेटा ग्रिड प्रीव्यू (Subject Code कॉलम के साथ)
             st.write("📊 CCE Processing Student Grid View:")
             preview_db = live_db.copy()
             if selected_subject != "All Subjects":
@@ -423,8 +423,7 @@ else:
 
             if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn"):
                 st.session_state.cce_foil_generated = True
-
-            if st.session_state.cce_foil_generated:
+                            if st.session_state.cce_foil_generated:
                 regular_records = []
                 ex_student_records = []
                 has_missing_roll_and_is_first_year_regular = False 
@@ -461,7 +460,7 @@ else:
                     if sub_code and sub_code.lower() != "nan" and detected_subject_code == "":
                         detected_subject_code = sub_code
 
-                    # A. Dynamic Multi-Year Cutoff Validation Engine for EX-STUDENTS
+                    # A. Dynamic Multi-Year Cutoff Validation Engine for EX-STUDENTS (Up to 6 years duration based)
                     if status == "EX-STUDENT":
                         is_ex_match = False
                         gap_needed = 0
@@ -495,7 +494,8 @@ else:
                 ex_student_records = sorted(list(set(ex_student_records)))
                 regular_records = sorted(list(set(regular_records)))
                 final_records_list = ex_student_records + regular_records
-                                if final_records_list:
+                                # 🎯 यहाँ से HTML Foil शीट रेंडर करने का लॉजिक बिना किसी स्पेस एरर के शुरू होता है
+                if final_records_list:
                     st.success(f"Total {len(final_records_list)} entries captured ({len(ex_student_records)} Ex-Students prioritized first).")
                     
                     # डेटा को 30-30 रिकॉर्ड्स की प्रतियों में विभाजित करें (लेफ्ट और राइट कॉलम लेआउट)
@@ -605,6 +605,7 @@ if role == "full_admin":
     
     # --- PART A: GLOBAL PANEL VISIBILITY CONTROLLERS ---
     st.subheader("🛡️ Global Panels Visibility Controller")
+    # 🎯 एरर फिक्स: यहाँ st.columns(4) पास किया गया है ताकि आपके ऐप पर कोई क्रैश या टाइप-एरर न आए
     col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
     
     with col_vis1:
@@ -659,7 +660,7 @@ if role == "full_admin":
             st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
             st.rerun()
     with col_ctrl2:
-        if st.button("🔀 कॉलम मूव बटन्स अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_column_move"):
+        if st.button("🔀 कॉलम稳 मूव बटन्स अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_column_move"):
             st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
             st.rerun()
     with col_ctrl3:
@@ -718,3 +719,9 @@ if role == "full_admin":
     else:
         st.dataframe(ordered_db, use_container_width=True, hide_index=True)
         
+            
+             
+
+
+            
+                            
