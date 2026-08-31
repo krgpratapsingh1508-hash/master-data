@@ -386,14 +386,15 @@ else:
                         if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                         continue
 
-                    # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
-                    if status == 'REGULAR STUDENT' or status == 'REGULAR':
+                                        # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
+                    if status == 'REGULAR STUDENT' or status == 'REGULAR' or status == "" or status == "NAN":
                         is_regular_year_match = False
                         clean_target_text = target_year_text.strip().lower()
                         
+                        # आसान मैचिंग: अगर डेटाबेस का करंट ईयर सिलेक्टेड टेक्स्ट से मिलता है या खाली है तो गैप कैलकुलेट करे
                         if clean_target_text in current_year_val or current_year_val in clean_target_text:
                             is_regular_year_match = True
-                        elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
+                        else:
                             calculated_gap = max_year - adm_year
                             if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
                             elif clean_target_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
@@ -408,6 +409,7 @@ else:
                                 regular_records.append(name if name else "[Unknown Name]")
                             else:
                                 if roll and roll.lower() != "nan" and roll != "": regular_records.append(roll)
+
 
                 final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
 
