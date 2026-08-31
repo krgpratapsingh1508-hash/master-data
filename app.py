@@ -2002,58 +2002,57 @@ if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
             st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
             st.rerun()
 
-# डेटा रेंडरिंग ब्लॉक
-if st.session_state.admin_hide_master_data:
-    st.warning("🔒 एडमिन डेटा सुरक्षा के कारण वर्तमान में मास्टर सूची (Grid) हिडन (Hidden) की गई है।")
-else:
-    render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-    ordered_db = live_db[render_columns].copy()
-    ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
-                ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
+    # डेटा रेंडरिंग ब्लॉक
+    if st.session_state.admin_hide_master_data:
+        st.warning("🔒 एडमिन डेटा सुरक्षा के कारण वर्तमान में मास्टर सूची (Grid) हिडन (Hidden) की गई है। डेटा देखने के लिए ऊपर Unhide बटन दबाएं।")
+    else:
+        # सुनिश्चित करें कि डायनेमिक कॉलम भी रेंडर आर्डर सूची में सिंक रहें
+        render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+        ordered_db = live_db[render_columns].copy()
+        ordered_db = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+        ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
 
-            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db)}**")
+        st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db)}**")
 
-            # 🔄 लाइव डेटा संपादन/डिलीट मोड (Matrix Mode Engine)
-            if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-                st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है। आप पंक्तियाँ जोड़, एडिट या डिलीट कर सकते हैं।")
-                
-                edited_df = st.data_editor(
-                    ordered_db, 
-                    use_container_width=True, 
-                    disabled=["S.No."], 
-                    num_rows="dynamic", 
-                    key="admin_live_editor_grid", 
-                    hide_index=True
-                )
-                
-                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_df.drop(columns=["S.No."])
-                        reverse_mapping = {get_display_name(k): k for k in render_columns}
-                        
-                        # डिक्शनरी री-बिल्डर इंजन जो डेटाबेस स्कीमा स्ट्रक्चर को बनाए रखता है
-                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
-                        
-                        # मुख्य डेटाबेस के अन्य सभी एडिशनल डायनेमिक कॉलम्स को भी इसमें जोड़ें
-                        for col in live_db.columns:
-                            if col not in synced_data:
-                                synced_data[col] = []
+        # 🔄 लाइव डेटा संपादन/डिलीट मोड (Matrix Mode Engine)
+        if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
+            st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है। आप पंक्तियाँ जोड़, एडिट या डिलीट कर सकते हैं।")
+            
+            edited_df = st.data_editor(
+                ordered_db, 
+                use_container_width=True, 
+                disabled=["S.No."], 
+                num_rows="dynamic", 
+                key="admin_live_editor_grid", 
+                hide_index=True
+            )
+            
+            if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True):
+                try:
+                    clean_edited = edited_df.drop(columns=["S.No."])
+                    reverse_mapping = {get_display_name(k): k for k in render_columns}
+                    
+                    # डिक्शनरी री-बिल्डर जो डेटाबेस स्कीमा स्ट्रक्चर को बनाए रखता है
+                    synced_data = {col: [] for col in DEFAULT_COLUMNS}
+                    
+                    # मुख्य डेटाबेस के अन्य सभी एडिशनल डायनेमिक कॉलम्स को भी इसमें जोड़ें
+                    for col in live_db.columns:
+                        if col not in synced_data:
+                            synced_data[col] = []
 
-                        # एडिट की गई ग्रिड से वापस डेटा एक्सट्रेक्ट करना
-                        for _, row_edit in clean_edited.iterrows():
-                            for display_name_key in clean_edited.columns:
-                                internal_key = reverse_mapping.get(display_name_key, display_name_key)
-                                if internal_key in synced_data: 
-                                    synced_data[internal_key].append(row_edit[display_name_key])
-                        
-                        new_live_db = pd.DataFrame(synced_data)
-                        save_live_data(new_live_db)
-                        st.success("✅ संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-            else:
-                # नॉर्मल व्यू मोड (Non-Editable Grid View)
-                st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-
-
+                    # एडिट की गई ग्रिड से वापस डेटा एक्सट्रेक्ट करना
+                    for _, row_edit in clean_edited.iterrows():
+                        for display_name_key in clean_edited.columns:
+                            internal_key = reverse_mapping.get(display_name_key, display_name_key)
+                            if internal_key in synced_data: 
+                                synced_data[internal_key].append(row_edit[display_name_key])
+                    
+                    new_live_db = pd.DataFrame(synced_data)
+                    save_live_data(new_live_db)
+                    st.success("✅ संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+        else:
+            # नॉर्मल व्यू मोड (Non-Editable Grid View)
+            st.dataframe(ordered_db, use_container_width=True, hide_index=True)
