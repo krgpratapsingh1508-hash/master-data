@@ -394,7 +394,7 @@ else:
                         continue
 
                     # लॉजिक B: REGULAR छात्रों के लिए नया सटीक कंडीशन इंजन
-                    if status == 'REGULAR':
+                    if status == 'Regular Student':
                         # 🎯 चरण 2: विषय मैच होने के बाद 'Current Year' कॉलम में वर्ष (Year) मैच करें
                         if target_year_text.lower() in current_year_val:
                             # 🎯 चरण 3: यदि 1 year का छात्र है और रोल नंबर कॉलम खाली है, तो छात्र का नाम (Student Name) लें
