@@ -265,3 +265,40 @@ else:
                     st.success("✅ डेटा सुरक्षित सेव हुआ!")
                     st.rerun()
         st.markdown("---")
+
+# ----------------------------------------------------------------------
+    # 👁️ STUDENT LIVE DATABASE LIST PANEL - (Role: list_viewer, full_admin)
+    # ----------------------------------------------------------------------
+    if role in ["list_viewer", "full_admin"] and not st.session_state.admin_hide_viewer:
+        st.header("Student Live Database List (Viewer Mode)")
+        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        
+        # सर्च ड्रॉपडाउन के विकल्पों को भी परिवर्तित नाम के साथ रेंडर करें
+        search_options_map = {col: get_display_name(col) for col in DEFAULT_COLUMNS}
+        selected_display_col = st.selectbox("🔍 सर्च करने के लिए कॉलम चुनें:", options=list(search_options_map.values()), key="viewer_col")
+        selected_search_column = [k for k, v in search_options_map.items() if v == selected_display_col]
+        
+        search_query = st.text_input(f"'{selected_display_col}' में सर्च करें:", key="viewer_query")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        filtered_db = live_db.copy()
+        if search_query:
+            filtered_db = filtered_db[filtered_db[selected_search_column].str.contains(search_query, case=False, na=False)]
+            
+        st.write(f"कुल रिकॉर्ड संख्या: **{len(filtered_db)}**")
+        if not filtered_db.empty:
+            display_df = filtered_db.copy()
+            display_df = display_df.rename(columns={c: get_display_name(c) for c in display_df.columns})
+            display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
+            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                st.download_button("Download Student List (CSV)", filtered_db.to_csv(index=False).encode('utf-8'), "students.csv", "text/csv", use_container_width=True)
+            with col_btn2:
+                st.markdown('<button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Direct Print</button>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else: 
+            st.warning("कोई रिकॉर्ड नहीं मिला।")
+        st.markdown("---")
