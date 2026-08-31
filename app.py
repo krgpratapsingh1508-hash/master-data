@@ -335,7 +335,7 @@ else:
             }
             target_year_text = mapping_logic[chosen_option]
             display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
-            exam_info = f"                                           {display_subject_heading} {chosen_option.upper()}"
+            exam_info = f"{display_subject_heading} {chosen_option.upper()}"
 
             st.write("📊 CCE Processing Student Grid View:")
             preview_db = live_db.copy()
