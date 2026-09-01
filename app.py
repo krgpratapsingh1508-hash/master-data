@@ -1197,16 +1197,518 @@ else:
                     st.metric("Processed Applications", p10_processed)
                 with col_c3: st.metric("Awaiting Data Processing", len(live_db) - p10_processed)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P11: PANEL P11 MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
             st.header(f"📌 {get_panel_title('P11')} (Dynamic Extension Ledger Room 3)")
 
-            # Initialize dynamic tracking columns if they do not exist in the database schema
+            # यदि डेटाबेस स्कीमा में P11 से संबंधित डायनेमिक कॉलम्स नहीं हैं, तो उन्हें इनिशियलाइज़ करें
             p11_dynamic_fields = ["P11 Record Status", "P11 Custom Remarks"]
             for field in p11_dynamic_fields:
                 if field not in live_db.columns:
                     live_db[field] = ""
+
+            if live_db.empty:
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) के माध्यम से छात्रों का डेटा जोड़ें।")
+            else:
+                st.subheader("🔍 Filter & Shortlist Candidates")
+                col_f1, col_f2 = st.columns(2)
+                
+                with col_f1:
+                    unique_subjects = sorted(list(set(live_db["Subject"].dropna().astype(str))))
+                    selected_subject = st.selectbox("Subject (विषय) फ़िल्टर करें:", ["All"] + [sub for sub in unique_subjects if sub.strip() != ""], key="p11_sub_filter")
+                    
+                with col_f2:
+                    unique_p11_status = ["All Students", "Pending Updates Only", "Processed / Verified Records"]
+                    selected_p11_filter = st.selectbox("P11 Process Status फ़िल्टर:", unique_p11_status, key="p11_process_filter")
+
+                # फ़िल्टर निष्पादन लॉजिक
+                filtered_p11 = live_db.copy()
+                if selected_subject != "All":
+                    filtered_p11 = filtered_p11[filtered_p11["Subject"] == selected_subject]
+                    
+                if selected_p11_filter == "Pending Updates Only":
+                    filtered_p11 = filtered_p11[filtered_p11["P11 Record Status"].str.strip() == ""]
+                elif selected_p11_filter == "Processed / Verified Records":
+                    filtered_p11 = filtered_p11[filtered_p11["P11 Record Status"].str.strip() != ""]
+
+                st.write(f"फ़िल्टर के आधार पर कुल छात्र संख्या: **{len(filtered_p11)}**")
+
+                st.subheader("✏️ Bulk Entry Room: P11 Custom Operational Board")
+                st.info("💡 नीचे दी गई ग्रिड में आप सीधे छात्रों का 'P11 Record Status' ड्रापडाउन मेनू से चुन सकते हैं और कस्टम रिमार्क्स टाइप कर सकते हैं।")
+
+                p11_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", "P11 Record Status", "P11 Custom Remarks"]
+                display_cols = [c for c in p11_display_cols if c in filtered_p11.columns]
+                render_df = filtered_p11[display_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+
+                # इंटरैक्टिव डेटा एडिटर ग्रिड कॉन्फ़िगरेशन
+                edited_p11_df = st.data_editor(
+                    render_df,
+                    use_container_width=True,
+                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"],
+                    column_config={
+                        "P11 Record Status": st.column_config.SelectboxColumn(
+                            "Process Status",
+                            help="इस छात्र के लिए P11 चक्र की वर्तमान स्थिति चुनें",
+                            options=["Verified", "Pending", "Approved", "On Hold", "Rejected"],
+                            required=False,
+                        ),
+                        "P11 Custom Remarks": st.column_config.TextColumn(
+                            "Custom Logs / Remarks",
+                            help="कोई विशेष प्रविष्टि या टिप्पणी यहाँ टाइप करें",
+                            max_chars=100
+                        )
+                    },
+                    key="p11_record_live_editor",
+                    hide_index=True
+                )
+
+                # डेटा सिंक्रोनाइज़ेशन और मुख्य CSV में सुरक्षित सेविंग लॉजिक
+                if st.button("Save & Sync Panel 11 Records", type="primary", use_container_width=True):
+                    try:
+                        clean_edited = edited_p11_df.drop(columns=["S.No."])
+                        for _, row_edit in clean_edited.iterrows():
+                            idx_matches = live_db[live_db["Admission Application Number"] == row_edit["Admission Application Number"]].index
+                            if not idx_matches.empty:
+                                for match_idx in idx_matches:
+                                    live_db.at[match_idx, "P11 Record Status"] = row_edit["P11 Record Status"]
+                                    live_db.at[match_idx, "P11 Custom Remarks"] = row_edit["P11 Custom Remarks"]
+
+                        save_live_data(live_db)
+                        st.success("✅ Panel 11 का रिकॉर्ड लेजर सफलतापूर्वक मास्टर डेटाबेस फ़ाइल में सेव हो गया है!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"डेटाबेस सिंक करने में त्रुटि उत्पन्न हुई: {e}")
+
+                # त्वरित ऑपरेशनल एनालिटिक्स डैशबोर्ड
+                st.markdown("---")
+                st.subheader("📊 Panel P11 Operational Analytics")
+                col_c1, col_c2, col_c3 = st.columns(3)
+                with col_c1: 
+                    st.metric("Total Students Available", len(live_db))
+                with col_c2:
+                    p11_processed = len(live_db[live_db["P11 Record Status"].str.strip() != ""])
+                    st.metric("Processed Applications", p11_processed)
+                with col_c3: 
+                    st.metric("Awaiting Data Processing", len(live_db) - p11_processed)
+
+        # ----------------------------------------------------------------------
+        # P12: PANEL P12 MODULE
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P12":
+            st.header(f"📌 {get_panel_title('P12')} (Dynamic Extension Ledger Room 4)")
+
+            # Initialize dynamic tracking columns if they do not exist in the database schema
+            p12_dynamic_fields = ["P12 Record Status", "P12 Custom Remarks"]
+            for field in p12_dynamic_fields:
+                if field not in live_db.columns:
+                    live_db[field] = ""
+
+            if live_db.empty:
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) के माध्यम से छात्रों का डेटा जोड़ें।")
+            else:
+                st.subheader("🔍 Filter & Shortlist Candidates")
+                col_f1, col_f2 = st.columns(2)
+                
+                with col_f1:
+                    unique_subjects = sorted(list(set(live_db["Subject"].dropna().astype(str))))
+                    selected_subject = st.selectbox("Subject (विषय) फ़िल्टर करें:", ["All"] + [sub for sub in unique_subjects if sub.strip() != ""], key="p12_sub_filter")
+                    
+                with col_f2:
+                    unique_p12_status = ["All Students", "Pending Updates Only", "Processed / Verified Records"]
+                    selected_p12_filter = st.selectbox("P12 Process Status फ़िल्टर:", unique_p12_status, key="p12_process_filter")
+
+                # Filter execution
+                filtered_p12 = live_db.copy()
+                if selected_subject != "All":
+                    filtered_p12 = filtered_p12[filtered_p12["Subject"] == selected_subject]
+                    
+                if selected_p12_filter == "Pending Updates Only":
+                    filtered_p12 = filtered_p12[filtered_p12["P12 Record Status"].str.strip() == ""]
+                elif selected_p12_filter == "Processed / Verified Records":
+                    filtered_p12 = filtered_p12[filtered_p12["P12 Record Status"].str.strip() != ""]
+
+                st.write(f"फ़िल्टर के आधार पर कुल छात्र संख्या: **{len(filtered_p12)}**")
+
+                st.subheader("✏️ Bulk Entry Room: P12 Custom Operational Board")
+                st.info("💡 नीचे दी गई ग्रिड में आप सीधे छात्रों का 'P12 Record Status' ड्रापडाउन मेनू से चुन सकते हैं और कस्टम रिमार्क्स टाइप कर सकते हैं।")
+
+                p12_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", "P12 Record Status", "P12 Custom Remarks"]
+                display_cols = [c for c in p12_display_cols if c in filtered_p12.columns]
+                render_df = filtered_p12[display_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+
+                edited_p12_df = st.data_editor(
+                    render_df,
+                    use_container_width=True,
+                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"],
+                    column_config={
+                        "P12 Record Status": st.column_config.SelectboxColumn(
+                            "Process Status",
+                            help="इस छात्र के लिए P12 चक्र की वर्तमान स्थिति चुनें",
+                            options=["Verified", "Pending", "Approved", "On Hold", "Rejected"],
+                            required=False,
+                        ),
+                        "P12 Custom Remarks": st.column_config.TextColumn(
+                            "Custom Logs / Remarks",
+                            help="कोई विशेष प्रविष्टि या टिप्पणी यहाँ टाइप करें",
+                            max_chars=100
+                        )
+                    },
+                    key="p12_record_live_editor",
+                    hide_index=True
+                )
+
+                if st.button("Save & Sync Panel 12 Records", type="primary", use_container_width=True):
+                    try:
+                        clean_edited = edited_p12_df.drop(columns=["S.No."])
+                        for _, row_edit in clean_edited.iterrows():
+                            idx_matches = live_db[live_db["Admission Application Number"] == row_edit["Admission Application Number"]].index
+                            if not idx_matches.empty:
+                                for match_idx in idx_matches:
+                                    live_db.at[match_idx, "P12 Record Status"] = row_edit["P12 Record Status"]
+                                    live_db.at[match_idx, "P12 Custom Remarks"] = row_edit["P12 Custom Remarks"]
+
+                        save_live_data(live_db)
+                        st.success("✅ Panel 12 का रिकॉर्ड लेजर सफलतापूर्वक मास्टर डेटाबेस फ़ाइल में सेव हो गया है!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"डेटाबेस सिंक करने में त्रुटि उत्पन्न हुई: {e}")
+
+                st.markdown("---")
+                st.subheader("📊 Panel P12 Operational Analytics")
+                col_c1, col_c2, col_c3 = st.columns(3)
+                with col_c1: st.metric("Total Students Available", len(live_db))
+                with col_c2:
+                    p12_processed = len(live_db[live_db["P12 Record Status"].str.strip() != ""])
+                    st.metric("Processed Applications", p12_processed)
+                with col_c3: st.metric("Awaiting Data Processing", len(live_db) - p12_processed)
+
+                # ----------------------------------------------------------------------
+        # P13: PANEL Smart Merge MODULE
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P13":
+            st.header(f"🔀 {get_panel_title('P13')} (Database Smart Merge Panel)")
+            st.info("💡 इस पैनल के माध्यम से आप किसी भी अन्य बाहरी CSV डेटाबेस फ़ाइल को वर्तमान मास्टर डेटाबेस में सुरक्षित रूप से मर्ज कर सकते हैं।")
+
+            # 1. External File Uploader Engine
+            uploaded_merge_file = st.file_uploader("मर्ज करने के लिए नई CSV फ़ाइल चुनें:", type=["csv"])
+
+            if uploaded_merge_file is not None:
+                try:
+                    # Read the incoming data stream as strings to prevent structural parsing data drops
+                    incoming_df = pd.read_csv(uploaded_merge_file, dtype=str).fillna("")
+                    st.success("✅ बाहरी फ़ाइल सफलतापूर्वक रीड कर ली गई है!")
+                    
+                    st.subheader("📋 अपलोड की गई फ़ाइल का पूर्वावलोकन (Preview)")
+                    st.dataframe(incoming_df.head(5), use_container_width=True)
+                    
+                    st.markdown("---")
+                    st.subheader("⚙️ मर्जिंग और मैपिंग कॉन्फ़िगरेशन")
+                    
+                    # Selection matrix for conflict deduplication tracking values
+                    merge_key = st.selectbox(
+                        "🔑 डुप्लीकेट रिकॉर्ड्स की पहचान करने के लिए मुख्य कॉलम (Unique Key) चुनें:",
+                        options=["Admission Application Number", "Unique ID", "Roll No.", "Enrollment No."]
+                    )
+                    
+                    conflict_strategy = st.radio(
+                        "🛡️ यदि डेटाबेस में समान रिकॉर्ड (Duplicate Entry) मिलता है, तो क्या करें?",
+                        options=["Overwrite Existing Data (पुराने डेटा को नए से बदलें)", "Ignore New Records (मास्टर डेटा को सुरक्षित रखें, नया छोड़ दें)"],
+                        horizontal=True
+                    )
+
+                    st.markdown("#### 🔗 कॉलम मैपिंग मैट्रिक्स")
+                    st.caption("यदि बाहरी फ़ाइल के कॉलम का नाम अलग है, तो नीचे दिए गए बॉक्स से मिलान करें:")
+                    
+                    mapped_columns_dict = {}
+                    col_setup1, col_setup2 = st.columns(2)
+                    
+                    incoming_columns_list = ["-- Leave Empty / Don't Merge --"] + list(incoming_df.columns)
+                    
+                    # Render schema mapping components symmetrically
+                    for idx, master_col in enumerate(DEFAULT_COLUMNS):
+                        # Attempt to auto-match clean string patterns if names are completely identical
+                        default_idx = incoming_columns_list.index(master_col) if master_col in incoming_columns_list else 0
+                        
+                        if idx % 2 == 0:
+                            with col_setup1:
+                                selected_incoming_col = st.selectbox(f"Map Master '{master_col}' to:", options=incoming_columns_list, index=default_idx, key=f"map_{master_col}")
+                        else:
+                            with col_setup2:
+                                selected_incoming_col = st.selectbox(f"Map Master '{master_col}' to:", options=incoming_columns_list, index=default_idx, key=f"map_{master_col}")
+                        
+                        if selected_incoming_col != "-- Leave Empty / Don't Merge --":
+                            mapped_columns_dict[master_col] = selected_incoming_col
+
+                    # Execution Engine
+                    if st.button("Execute Smart Database Merge Now", type="primary", use_container_width=True):
+                        with st.spinner("डेटाबेस मर्ज किया जा रहा है..."):
+                            processed_incoming_data = pd.DataFrame(columns=DEFAULT_COLUMNS)
+                            
+                            # Standardize external column feeds into Master Schema Matrix
+                            for master_col, incoming_col in mapped_columns_dict.items():
+                                processed_incoming_data[master_col] = incoming_df[incoming_col]
+                            
+                            # Settle dynamic schema gaps with null-strings to prevent downstream dataframe merge type drops
+                            for master_col in DEFAULT_COLUMNS:
+                                if master_col not in processed_incoming_data.columns:
+                                    processed_incoming_data[master_col] = ""
+                            
+                            records_updated = 0
+                            records_added = 0
+                            
+                            # Clean tracking indices to eliminate false mismatch evaluations
+                            live_db[merge_key] = live_db[merge_key].astype(str).str.strip()
+                            processed_incoming_data[merge_key] = processed_incoming_data[merge_key].astype(str).str.strip()
+                            
+                            for _, row_incoming in processed_incoming_data.iterrows():
+                                key_value = row_incoming[merge_key]
+                                
+                                # Unindexed tracking entries get direct sequential append operations safely at the footer
+                                if key_value == "" or key_value.lower() == "nan":
+                                    live_db = pd.concat([live_db, pd.DataFrame([row_incoming])], ignore_index=True)
+                                    records_added += 1
+                                    continue
+                                
+                                match_indices = live_db[live_db[merge_key] == key_value].index
+                                
+                                if not match_indices.empty:
+                                    if conflict_strategy == "Overwrite Existing Data (पुराने डेटा को नए से बदलें)":
+                                        for match_idx in match_indices:
+                                            for col in DEFAULT_COLUMNS:
+                                                if row_incoming[col] != "":
+                                                    live_db.at[match_idx, col] = row_incoming[col]
+                                        records_updated += 1
+                                else:
+                                    # Safe append injection step for confirmed completely unique non-duplicated arrivals
+                                    live_db = pd.concat([live_db, pd.DataFrame([row_incoming])], ignore_index=True)
+                                    records_added += 1
+                            
+                            # Master Local Sync File Writer Commit
+                            save_live_data(live_db)
+                            st.success(f"🎉 डेटाबेस सफलतापूर्वक मर्ज हो गया! **{records_added}** नए रिकॉर्ड जोड़े गए और **{records_updated}** पुराने रिकॉर्ड अपडेट किए गए।")
+                            st.rerun()
+                            
+                except Exception as e:
+                    st.error(f"मर्जिंग प्रक्रिया में त्रुटि: {e}")
+                    
+            # 2. In-App Merged Matrix Operational Metrics Board
+            st.markdown("---")
+            st.subheader("📊 Merge Panel Database Metrics")
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.metric("Total Records in Live Database", len(live_db))
+            with col_m2:
+                st.metric("Master Engine Tracked Columns", len(DEFAULT_COLUMNS))
+
+        # ----------------------------------------------------------------------
+        # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P14":
+            st.header(f"👁️ {get_panel_title('P14')} (Multi-Panel Inspection Window)")
+
+            # Structure column configurations dynamically for selective module inspection
+            panel_options_list = {
+                "Panel 2: Panal admission": ["Admission Application Number", "Student Name", "Admission Year", "Admission Session", "Admission Date", "Status"],
+                "Panel 3: Panal enrollment": ["Admission Application Number", "Student Name", "Subject", "Application Enrollment No.", "Enrollment No."],
+                "Panel 4: Panal scholarship": ["Admission Application Number", "Student Name", "Category", "Scholarship Status"],
+                "Panel 5: Panal result": ["Roll No.", "Enrollment No.", "Student Name", "Subject", "Marks Obtained", "Result Status", "Exam Remarks"],
+                "Panel 6: Panal promotion": ["Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"],
+                "Panel 7: Panal foil": ["Roll No.", "Student Name", "Subject Code", "Subject", "Status"],
+                "Panel 8: Panal cce record": ["Admission Application Number", "Roll No.", "Student Name", "Subject", "CCE Marks Obtained", "CCE Attendance Status"],
+                "Panel 9: Panal P9 (Extension 1)": ["Admission Application Number", "Student Name", "P9 Record Status", "P9 Custom Remarks"],
+                "Panel 10: Panal P10 (Extension 2)": ["Admission Application Number", "Student Name", "P10 Record Status", "P10 Custom Remarks"],
+                "Panel 11: Panal P11 (Extension 3)": ["Admission Application Number", "Student Name", "P11 Record Status", "P11 Custom Remarks"],
+                "Panel 12: Panal P12 (Extension 4)": ["Admission Application Number", "Student Name", "P12 Record Status", "P12 Custom Remarks"],
+                "Panel 13: Database Smart Merge": ["Admission Year", "Admission Application Number", "Unique ID", "Roll No.", "Enrollment No.", "Student Name"]
+            }
+
+            st.subheader("📂 Select Panel Dashboard View")
+            selected_panel_view = st.selectbox(
+                "निरीक्षण करने के लिए पैनल सूची (P2 से P13) चुनें:",
+                options=list(panel_options_list.keys())
+            )
+
+            target_columns = panel_options_list[selected_panel_view]
+
+            # Prevent frame mismatch exceptions if dynamic extension fields are not initialized globally
+            for c_col in target_columns:
+                if c_col not in live_db.columns:
+                    live_db[c_col] = ""
+
+            st.markdown(f"### 📋 {selected_panel_view} - Records Table")
+            
+            # Search query filters
+            col_search1, col_search2 = st.columns(2)
+            with col_search1:
+                search_target_col = st.selectbox("खोजने के लिए फ़ील्ड चुनें:", options=target_columns, key="p14_search_col")
+            with col_search2:
+                search_query_text = st.text_input(f"'{search_target_col}' में प्रविष्टि खोजें:", key="p14_query_val")
+
+            # Execute string search match
+            view_filtered_df = live_db.copy()
+            if search_query_text.strip() != "":
+                view_filtered_df = view_filtered_df[
+                    view_filtered_df[search_target_col].astype(str).str.contains(search_query_text, case=False, na=False)
+                ]
+
+            st.write(f"वर्तमान ग्रिड में कुल उपलब्ध छात्र रिकॉर्ड संख्या: **{len(view_filtered_df)}**")
+
+            final_render_cols = [col for col in target_columns if col in view_filtered_df.columns]
+            
+            if not view_filtered_df.empty:
+                display_ready_df = view_filtered_df[final_render_cols].copy()
+                display_ready_df.insert(0, "S.No.", range(1, len(display_ready_df) + 1))
+                
+                # Secure Read-Only Lock Grid presentation
+                st.dataframe(
+                    display_ready_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Instant CSV Download Action Button
+                st.download_button(
+                    label=f"📥 Download {selected_panel_view.split(':')[0]} Report (CSV)",
+                    data=view_filtered_df[final_render_cols].to_csv(index=False).encode('utf-8'),
+                    file_name=f"{selected_panel_view.replace(' ', '_').lower()}_report.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            else:
+                st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
+
+        # ----------------------------------------------------------------------
+        # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P15":
+            st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
+            
+            # 👑 1. Dynamic 15 Panels Name & Label Customizer
+            st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
+            with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
+                with st.form(key="panel_rename_matrix_form"):
+                    p_setup1, p_setup2 = st.columns(2)
+                    temp_panel_mappings = {}
+                    for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
+                        current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
+                        if idx % 2 == 0:
+                            with p_setup1: temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                        else:
+                            with p_setup2: temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                    if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary"):
+                        st.session_state.panel_names = temp_panel_mappings
+                        save_panel_names(temp_panel_mappings)
+                        st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
+                        st.rerun()
+
+            # 🛡️ 2. Global 15 Panels Visibility Toggle Switch Board
+            st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
+            vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
+            with vis_tabs[0]:
+                c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+                for i, p_key in enumerate(["P1", "P2", "P3", "P4", "P5", "P6", "P7"]):
+                    with [c1, c2, c3, c4, c5, c6, c7][i]:
+                        status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
+                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
+                            st.rerun()
+            with vis_tabs[1]:
+                c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
+                for i, p_key in enumerate(["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]):
+                    with [c8, c9, c10, c11, c12, c13, c14, c15][i]:
+                        status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
+                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
+                            st.rerun()
+
+            # 📊 3. Master Database List View & Advanced Operational Controls
+            st.markdown("---")
+            st.subheader("📊 Master Database List View & Advanced Operational Controls")
+            
+            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+            with col_ctrl1:
+                lbl_edit = "👀 एडिट टेक्स्ट फंक्शन: active" if st.session_state.admin_unhide_edit else "🙈 एडिट टेक्स्ट फंक्शन: hidden"
+                if st.button(lbl_edit, use_container_width=True):
+                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                    st.rerun()
+            with col_ctrl2:
+                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
+                if st.button(lbl_move, use_container_width=True):
+                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                    st.rerun()
+            with col_ctrl3:
+                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
+                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary"):
+                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
+                    st.rerun()
+
+            # 🛠️ 🎯 Column Moving Mechanism Logical Block
+            if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
+                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें:")
+                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order)
+                c_left, c_right = st.columns(2)
+                
+                if c_left.button("⬅️ Shift Left", use_container_width=True):
+                    idx = st.session_state.admin_columns_order.index(target_col)
+                    if idx > 0:
+                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                        st.rerun()
+                        
+                if c_right.button("➡️ Shift Right", use_container_width=True):
+                    idx = st.session_state.admin_columns_order.index(target_col)
+                    if idx < len(st.session_state.admin_columns_order) - 1:
+                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                        st.rerun()
+
+            # 🛠️ 🎯 SEARCH ERROR & REVERSE MAPPING ENGINE FIX
+            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+            ordered_db = live_db[render_columns].copy()
+            ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+            ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
+
+            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db_display)}**")
+
+            if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
+                st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है।")
+                edited_df = st.data_editor(ordered_db_display, use_container_width=True, disabled=["S.No."], num_rows="dynamic", key="admin_live_editor_grid", hide_index=True)
+                
+                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True):
+                    try:
+                        clean_edited = edited_df.drop(columns=["S.No."])
+                        
+                        # 🎯 FIX: Absolute dictionary re-builder to completely secure custom schema naming variations from cracking
+                        reverse_mapping = {}
+                        for orig_col in render_columns:
+                            disp_name = get_display_name(orig_col)
+                            reverse_mapping[disp_name] = orig_col
+                        
+                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
+                        for extra_col in live_db.columns:
+                            if extra_col not in synced_data: synced_data[extra_col] = []
+
+                        for _, row_edit in clean_edited.iterrows():
+                            for display_name_key in clean_edited.columns:
+                                internal_key = reverse_mapping.get(display_name_key, display_name_key)
+                                if internal_key in synced_data:
+                                    synced_data[internal_key].append(row_edit[display_name_key])
+                        
+                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
+                        for k_key in synced_data.keys():
+                            while len(synced_data[k_key]) < max_len: synced_data[k_key].append("")
+                                
+                        new_live_db = pd.DataFrame(synced_data)
+                        save_live_data(new_live_db)
+                        st.success("✅ संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+            else:
+                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+
+
 
 
