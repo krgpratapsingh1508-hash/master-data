@@ -325,7 +325,7 @@ else:
                         save_live_data(updated_df)
                         st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P2: PANEL ADMISSION MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P2":
@@ -373,6 +373,81 @@ else:
                     save_live_data(live_db)
                     st.success("✅ एडमिशन डेटाबेस सफलतापूर्वक सिंक हो गया है!")
                     st.rerun()
+
+        # ----------------------------------------------------------------------
+        # P3: PANEL ENROLLMENT MODULE
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P3":
+            st.header(f"📑 {get_panel_title('P3')} (University Enrollment Manager)")
+            if live_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
+            else:
+                selected_subject = st.selectbox("Subject (विषय) चुनें:", ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str)))))
+                filtered_enrollment = live_db.copy()
+                if selected_subject != "All": 
+                    filtered_enrollment = filtered_enrollment[filtered_enrollment["Subject"] == selected_subject]
+                
+                enrollment_display_cols = ["Admission Application Number", "Student Name", "Father Name", "Subject", "Application Enrollment No.", "Enrollment No."]
+                render_df = filtered_enrollment[enrollment_display_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                
+                edited_enrollment_df = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=["S.No.", "Admission Application Number", "Student Name", "Father Name", "Subject"], 
+                    key="enrollment_live_editor", 
+                    hide_index=True
+                )
+                
+                if st.button("Save & Sync Enrollment Numbers", type="primary", use_container_width=True):
+                    clean_edited = edited_enrollment_df.drop(columns=["S.No."])
+                    for _, row_edit in clean_edited.iterrows():
+                        idx_matches = live_db[live_db["Admission Application Number"] == row_edit["Admission Application Number"]].index
+                        if not idx_matches.empty:
+                            for match_idx in idx_matches:
+                                live_db.at[match_idx, "Application Enrollment No."] = row_edit["Application Enrollment No."]
+                                live_db.at[match_idx, "Enrollment No."] = row_edit["Enrollment No."]
+                    save_live_data(live_db)
+                    st.success("✅ विश्वविद्यालय नामांकन नंबर सफलतापूर्वक अपडेट हो गया है!")
+                    st.rerun()
+
+        # ----------------------------------------------------------------------
+        # P4: PANEL SCHOLARSHIP MODULE
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P4":
+            st.header(f"💰 {get_panel_title('P4')} (Portal & Category Matrix Control)")
+            if "Scholarship Status" not in live_db.columns: 
+                live_db["Scholarship Status"] = "Not Applied"
+            
+            if live_db.empty:
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+            else:
+                selected_category = st.selectbox("Category (वर्ग) चुनें:", ["All"] + sorted(list(set(live_db["Category"].dropna().astype(str)))))
+                filtered_scholarship = live_db.copy()
+                if selected_category != "All": 
+                    filtered_scholarship = filtered_scholarship[filtered_scholarship["Category"] == selected_category]
+                
+                render_df = filtered_scholarship[["Admission Application Number", "Unique ID", "Student Name", "Category", "Scholarship Status"]].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                
+                edited_scholarship_df = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=["S.No.", "Admission Application Number", "Unique ID", "Student Name", "Category"], 
+                    column_config={"Scholarship Status": st.column_config.SelectboxColumn("Scholarship Status", options=["Not Applied", "Applied", "Sanctioned", "Disbursed", "Rejected"])}, 
+                    key="scholarship_live_editor", 
+                    hide_index=True
+                )
+                if st.button("Save & Sync Scholarship Matrix", type="primary", use_container_width=True):
+                    for _, row_edit in edited_scholarship_df.drop(columns=["S.No."]).iterrows():
+                        idx_matches = live_db[live_db["Admission Application Number"] == row_edit["Admission Application Number"]].index
+                        if not idx_matches.empty:
+                            for match_idx in idx_matches:
+                                live_db.at[match_idx, "Scholarship Status"] = row_edit["Scholarship Status"]
+                    save_live_data(live_db)
+                    st.success("✅ छात्रवृत्ति मैट्रिक्स सफलतापूर्वक अपडेट हो गया है!")
+                    st.rerun()
+
 
 
 
