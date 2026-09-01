@@ -176,7 +176,6 @@ def get_display_name(internal_col_name):
 def get_panel_title(panel_id):
     return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
-
 # ==========================================================
 # 🛑 लॉगिन से पहले का ब्लॉक
 # ==========================================================
