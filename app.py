@@ -849,7 +849,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-                      # ----------------------------------------------------------------------
+              # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -861,14 +861,18 @@ else:
                     p_setup1, p_setup2 = st.columns(2)
                     temp_panel_mappings = {}
                     
-                    for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
+                    # Convert keys to list to reference them by index safely
+                    panel_keys_list = list(DEFAULT_PANELS.keys())
+                    for idx, p_key in enumerate(panel_keys_list):
                         current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
+                        input_label = "Name for " + str(p_key) + ":"
+                        
                         if idx % 2 == 0:
                             with p_setup1: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                                temp_panel_mappings[p_key] = st.text_input(input_label, value=current_panel_name, key="p_ren_" + str(p_key))
                         else:
                             with p_setup2: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                                temp_panel_mappings[p_key] = st.text_input(input_label, value=current_panel_name, key="p_ren_" + str(p_key))
                                 
                     if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary"):
                         st.session_state.panel_names = temp_panel_mappings
@@ -879,23 +883,27 @@ else:
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
             
-            # 🎯 यहाँ सुधार किया गया है: [0] इंडेक्स जोड़ा गया है
+            # First tab configuration
             with vis_tabs[0]:
-                c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-                for i, p_key in enumerate(["P1", "P2", "P3", "P4", "P5", "P6", "P7"]):
-                    with [c1, c2, c3, c4, c5, c6, c7][i]:
+                c_p1_7 = st.columns(7)
+                p1_7_keys = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
+                for i, p_key in enumerate(p1_7_keys):
+                    with c_p1_7[i]:
                         status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                        btn_txt = str(p_key) + "\n(" + status_lbl + ")"
+                        if st.button(btn_txt, use_container_width=True, key="btn_v_" + str(p_key)):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
                             
-            # 🎯 यहाँ सुधार किया गया है: [1] इंडेक्स जोड़ा गया है
+            # Second tab configuration
             with vis_tabs[1]:
-                c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
-                for i, p_key in enumerate(["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]):
-                    with [c8, c9, c10, c11, c12, c13, c14, c15][i]:
+                c_p8_15 = st.columns(8)
+                p8_15_keys = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
+                for i, p_key in enumerate(p8_15_keys):
+                    with c_p8_15[i]:
                         status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                        btn_txt = str(p_key) + "\n(" + status_lbl + ")"
+                        if st.button(btn_txt, use_container_width=True, key="btn_v_" + str(p_key)):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
 
