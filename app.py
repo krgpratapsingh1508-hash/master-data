@@ -21,7 +21,7 @@ st.markdown("""
     }
     .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
     .header-text { display: flex; flex-direction: column; }
-    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
+    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #1465de; }
     .header-text h1 { margin: 0 !important; }
     
     /* नोटिस बोर्ड स्टाइल */
@@ -51,7 +51,7 @@ st.markdown(f"""
     <div class="header-container">
         {logo_html}
         <div class="header-text">
-            <h3>ॐ गुरुवर्य नमः</h3>
+            <h3>ॐ श्री गुरवे नमः</h3>
             <h1>Permanent Shared Live Database System</h1>
         </div>
     </div>
