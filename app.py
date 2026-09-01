@@ -849,7 +849,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-                # ----------------------------------------------------------------------
+                      # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -860,12 +860,16 @@ else:
                 with st.form(key="panel_rename_matrix_form"):
                     p_setup1, p_setup2 = st.columns(2)
                     temp_panel_mappings = {}
+                    
                     for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
                         current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
                         if idx % 2 == 0:
-                            with p_setup1: temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                            with p_setup1: 
+                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
                         else:
-                            with p_setup2: temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                            with p_setup2: 
+                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                                
                     if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary"):
                         st.session_state.panel_names = temp_panel_mappings
                         save_panel_names(temp_panel_mappings)
@@ -873,10 +877,9 @@ else:
                         st.rerun()
 
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
-            # === ठीक उसी खाली जगह पर इस नए कोड को पेस्ट करें ===
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
             
-            # पहले टैब (Index 0) के लिए विज़िबिलिटी बटन्स
+            # 🎯 यहाँ सुधार किया गया है: [0] इंडेक्स जोड़ा गया है
             with vis_tabs[0]:
                 c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
                 for i, p_key in enumerate(["P1", "P2", "P3", "P4", "P5", "P6", "P7"]):
@@ -886,7 +889,7 @@ else:
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
                             
-            # दूसरे टैब (Index 1) के लिए विज़िबिलिटी बटन्स
+            # 🎯 यहाँ सुधार किया गया है: [1] इंडेक्स जोड़ा गया है
             with vis_tabs[1]:
                 c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
                 for i, p_key in enumerate(["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]):
@@ -974,3 +977,4 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+
