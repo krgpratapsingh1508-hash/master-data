@@ -849,21 +849,20 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
             st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
             
             st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
-            with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
+            with st.expander("15 पैनल्स के नाम एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
                 with st.form(key="panel_rename_matrix_form"):
                     p_setup1, p_setup2 = st.columns(2)
                     
-                    # 🎯 यहाँ बदलाव किया गया है: {} के बजाय dict() का उपयोग किया है ताकि f-string एरर न आए
                     temp_panel_mappings = dict()
-                    
                     panel_keys_list = list(DEFAULT_PANELS.keys())
+                    
                     for idx, p_key in enumerate(panel_keys_list):
                         current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
                         input_label = "Name for " + str(p_key) + ":"
@@ -884,7 +883,6 @@ else:
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
             
-            # फर्स्ट टैब कॉन्फ़िगरेशन
             with vis_tabs[0]:
                 c_p1_7 = st.columns(7)
                 p1_7_keys = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
@@ -896,7 +894,6 @@ else:
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
                             
-            # सेकंड टैब कॉन्फ़िगरेशन
             with vis_tabs[1]:
                 c_p8_15 = st.columns(8)
                 p8_15_keys = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
@@ -950,10 +947,10 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db_display)}**")
+            st.write(f"डेटाबेस में कुल लाइव记录 संख्या: **{len(ordered_db_display)}**")
 
             if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-                st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है।")
+                st.warning("⚠️ लाइव संपादन सक्रिय है।")
                 edited_df = st.data_editor(ordered_db_display, use_container_width=True, disabled=["S.No."], num_rows="dynamic", key="admin_live_editor_grid", hide_index=True)
                 
                 if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True):
@@ -990,5 +987,6 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+
 
 
