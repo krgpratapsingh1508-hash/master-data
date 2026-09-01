@@ -70,32 +70,42 @@ DEFAULT_NOTICE = (
     "3. बिना लॉगिन के डेटाबेस तक पहुँच पूर्णतः प्रतिबंधित है। किसी भी समस्या के लिए सुपर-एडमिन से संपर्क करें।"
 )
 
-# 🔒 15 पैनल्स के हिसाब से 15 सेपरेटेड क्रेडेंशियल्स की मास्टर डिक्शनरी
+# 🔒 आपके द्वारा कस्टमाइज़ की गई 15 पैनल्स की नई सूची और उनके क्रेडेंशियल्स
 DEFAULT_CREDENTIALS = {
     "admin": {"password": "admin15master", "role": "full_admin", "label": "👑 Super Admin (All 15 Panels Control)"},
     "p1_entry": {"password": "entry1123", "role": "p1_role", "label": "📝 P1: Student Data Onboarding Operator"},
     "p2_admission": {"password": "adm2123", "role": "p2_role", "label": "🎓 P2: Admission Control Manager"},
-    "p3_enrollment": {"password": "enr3123", "role": "p3_role", "label": "📑 P3: University Enrollment Manager"},
-    "p4_scholarship": {"password": "sch4123", "role": "p4_role", "label": "💰 P4: Portal & Scholarship Tracker"},
-    "p5_result": {"password": "res5123", "role": "p5_role", "label": "📊 P5: Tabulation Register Exam Controller"},
-    "p6_promotion": {"password": "pro6123", "role": "p6_role", "label": "📈 P6: Batch Progression Controller"},
+    "p3_unique": {"password": "uniq3123", "role": "p3_role", "label": "🆔 P3: Unique ID Assignment Manager"},
+    "p4_roll": {"password": "roll4123", "role": "p4_role", "label": "🔢 P4: Roll Number Allocation Manager"},
+    "p5_enrollment": {"password": "enr5123", "role": "p5_role", "label": "📑 P5: University Enrollment Manager"},
+    "p6_scholarship": {"password": "sch6123", "role": "p6_role", "label": "💰 P6: Portal & Scholarship Tracker"},
     "p7_foil": {"password": "foil7123", "role": "p7_role", "label": "🖨️ P7: CCE Foil Sheet Generator"},
     "p8_cce_record": {"password": "cce8123", "role": "p8_role", "label": "📋 P8: Internal Assessment Ledger Entry"},
-    "p9_extension": {"password": "ext9123", "role": "p9_role", "label": "📌 P9: Extension Ledger Room 1"},
-    "p10_extension": {"password": "ext10123", "role": "p10_role", "label": "📌 P10: Extension Ledger Room 2"},
-    "p11_extension": {"password": "ext11123", "role": "p11_role", "label": "📌 P11: Extension Ledger Room 3"},
-    "p12_extension": {"password": "ext12123", "role": "p12_role", "label": "📌 P12: Extension Ledger Room 4"},
+    "p9_promotion": {"password": "pro9123", "role": "p9_role", "label": "📈 P9: Batch Progression Controller"},
+    "p10_result": {"password": "res10123", "role": "p10_role", "label": "📊 P10: Tabulation Register Exam Controller"},
+    "p11_notice": {"password": "not11123", "role": "p11_role", "label": "📢 P11: Notice Board Editor"},
+    "p12_login_view": {"password": "view12123", "role": "p12_role", "label": "🛠️ P12: Pre-Login View Configurator"},
     "p13_merge": {"password": "mrg13123", "role": "p13_role", "label": "🔀 P13: External Database Smart Merge"},
     "p14_viewer": {"password": "view14123", "role": "p14_role", "label": "👁️ P14: Multi-Panel Inspection Window"}
 }
 
-# 🛠️ डिफ़ॉल्ट 15 पैनल्स की डिक्शनरी मैपिंग (P1 से P15)
+# 🛠️ आपके द्वारा प्रदान की गई नई नेविगेशन मैपिंग (P1 से P15)
 DEFAULT_PANELS = {
-    "P1": "Panal entry", "P2": "Panal admission", "P3": "Panal enrollment",
-    "P4": "Panal scholarship", "P5": "Panal result", "P6": "Panal promotion",
-    "P7": "Panal foil", "P8": "Panal cce record", "P9": "Panal P9 Extension",
-    "P10": "Panal P10 Extension", "P11": "Panal P11 Extension", "P12": "Panal P12 Extension",
-    "P13": "Panal merge", "P14": "Panal viewer", "P15": "Panel admin"
+    "P1": "Panal entry", 
+    "P2": "Panal admission", 
+    "P3": "Panal unique",
+    "P4": "Panal roll", 
+    "P5": "Panal enrollment", 
+    "P6": "Panal scholarship",
+    "P7": "Panal foil", 
+    "P8": "Panal cce record", 
+    "P9": "Panal promotion",
+    "P10": "Panal result", 
+    "P11": "notice board edit", 
+    "P12": "login karne se phle jo view dikha hai use edit karne ka",
+    "P13": "Panal merge", 
+    "P14": "Panal viewer", 
+    "P15": "Panel admin"
 }
 
 # 🎯 मास्टर कॉलम्स सूची
@@ -215,7 +225,7 @@ if st.session_state.user_role is None:
         </div>
     """, unsafe_allow_html=True)
     
-    # लॉगिन विंडो खोलने का बटन नियंत्रण
+        # लॉगिन विंडो खोलने का बटन नियंत्रण
     if not st.session_state.show_login_form:
         if st.button("🔐 Click Here to Open Secure Login System", type="primary", use_container_width=True):
             st.session_state.show_login_form = True
@@ -355,49 +365,294 @@ else:
                         save_live_data(updated_df)
                         st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
-        # ----------------------------------------------------------------------
-        # P2: PANEL ADMISSION MODULE
+                # ----------------------------------------------------------------------
+        # P2: PANEL ADMISSION MODULE (Admission Control & Verification)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P2":
             st.header(f"🎓 {get_panel_title('P2')} (Admission Control & Verification)")
-            if live_db.empty: st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
-            else:
-                col_f1, col_f2, col_f3 = st.columns(3)
-                with col_f1: selected_year = st.selectbox("Admission Year चुनें:", ["All"] + sorted(list(set(live_db["Admission Year"].dropna().astype(str)))))
-                with col_f2: selected_session = st.selectbox("Admission Session चुनें:", ["All"] + sorted(list(set(live_db["Admission Session"].dropna().astype(str)))))
-                with col_f3: selected_status = st.selectbox("Current Status चुनें:", ["All"] + sorted(list(set(live_db["Status"].dropna().astype(str)))))
-                filtered_admission = live_db.copy()
-                if selected_year != "All": filtered_admission = filtered_admission[filtered_admission["Admission Year"] == selected_year]
-                if selected_session != "All": filtered_admission = filtered_admission[filtered_admission["Admission Session"] == selected_session]
-                if selected_status != "All": filtered_admission = filtered_admission[filtered_admission["Status"] == selected_status]
-                
-                admission_cols = ["Admission Application Number", "Admission Year", "Admission Session", "Student Name", "Father Name", "Admission Date", "Status", "Unique ID"]
-                display_cols = [c for c in admission_cols if c in filtered_admission.columns]
-                render_df = filtered_admission[display_cols].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
-                edited_admission_df = st.data_editor(render_df, use_container_width=True, disabled=["S.No.", "Student Name", "Father Name"], key="admission_live_editor", hide_index=True)
-                if st.button("Save & Sync Admission Changes", type="primary", use_container_width=True):
-                    clean_edited = edited_admission_df.drop(columns=["S.No."])
-                    for _, row_edit in clean_edited.iterrows():
-                        idx_matches = live_db[live_db["Admission Application Number"] == row_edit["Admission Application Number"]].index
-                        if not idx_matches.empty:
-                            for match_idx in idx_matches:
-                                for c in clean_edited.columns: live_db.at[match_idx, c] = row_edit[c]
-                    save_live_data(live_db)
-                    st.success("✅ एडमिशन डेटाबेस सफलतापूर्वक सिंक हो गया है!")
-
-               # ----------------------------------------------------------------------
-        # P3: PANEL ENROLLMENT MODULE (Complete Fixed Code)
-        # ----------------------------------------------------------------------
-        elif current_panel_id == "P3":
-            st.header(f"📑 {get_panel_title('P3')} (University Enrollment Manager)")
             
             if live_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
             else:
+                # 🛠️ Interactive Filtration Workspace Layout Row
+                col_f1, col_f2, col_f3 = st.columns(3)
+                with col_f1: 
+                    selected_year = st.selectbox(
+                        "Admission Year चुनें:", 
+                        options=["All"] + sorted(list(set(live_db["Admission Year"].dropna().astype(str).str.strip())))
+                    )
+                with col_f2: 
+                    selected_session = st.selectbox(
+                        "Admission Session चुनें:", 
+                        options=["All"] + sorted(list(set(live_db["Admission Session"].dropna().astype(str).str.strip())))
+                    )
+                with col_f3: 
+                    selected_status = st.selectbox(
+                        "Current Status चुनें:", 
+                        options=["All"] + sorted(list(set(live_db["Status"].dropna().astype(str).str.strip())))
+                    )
+                
+                # Apply isolated filtration rules onto database layout array clone
+                filtered_admission = live_db.copy()
+                if selected_year != "All": 
+                    filtered_admission = filtered_admission[filtered_admission["Admission Year"] == selected_year]
+                if selected_session != "All": 
+                    filtered_admission = filtered_admission[filtered_admission["Admission Session"] == selected_session]
+                if selected_status != "All": 
+                    filtered_admission = filtered_admission[filtered_admission["Status"] == selected_status]
+                
+                # Specific architecture rules mapping for Panel 2 operators view layout
+                admission_cols = [
+                    "Admission Application Number", "Admission Year", "Admission Session", 
+                    "Student Name", "Father Name", "Admission Date", "Status", "Unique ID"
+                ]
+                
+                # Auto-initialize array properties if they do not match schema memory profiles
+                for target_col in admission_cols:
+                    if target_col not in filtered_admission.columns:
+                        filtered_admission[target_col] = ""
+                        
+                # Extract clean target frame layout structure and inject row serial indicators
+                render_df = filtered_admission[admission_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                
+                # 📊 Interactive Live Data Transaction Spreadsheet Container
+                edited_admission_df = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=["S.No.", "Student Name", "Father Name"], 
+                    column_config={
+                        "Status": st.column_config.SelectboxColumn(
+                            "Status", 
+                            options=["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"],
+                            required=True
+                        )
+                    },
+                    key="admission_live_editor_grid_p2", 
+                    hide_index=True
+                )
+                
+                # Database live file synchronization operations pipeline trigger
+                if st.button("Save & Sync Admission Changes", type="primary", use_container_width=True, key="p2_save_btn"):
+                    try:
+                        clean_edited = edited_admission_df.drop(columns=["S.No."])
+                        
+                        # Route transactional modifications back into live state memory mapping
+                        for _, row_edit in clean_edited.iterrows():
+                            target_app_num = str(row_edit["Admission Application Number"]).strip()
+                            
+                            # Fetch relative alignment sequence indices based on Key matching
+                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
+                            
+                            if not idx_matches.empty:
+                                for match_idx in idx_matches:
+                                    # Sync allowable editable property structures safely
+                                    live_db.at[match_idx, "Admission Year"] = str(row_edit["Admission Year"])
+                                    live_db.at[match_idx, "Admission Session"] = str(row_edit["Admission Session"])
+                                    live_db.at[match_idx, "Admission Date"] = str(row_edit["Admission Date"])
+                                    live_db.at[match_idx, "Status"] = str(row_edit["Status"])
+                                    live_db.at[match_idx, "Unique ID"] = str(row_edit["Unique ID"])
+                        
+                        # Commit updated runtime data mutations directly into database storage file
+                        save_live_data(live_db)
+                        st.success("🎉 एडमिशन डेटाबेस सफलतापूर्वक मुख्य डेटाबेस (Live CSV) में सिंक और सुरक्षित कर दिया गया है!")
+                        st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+
+        # ----------------------------------------------------------------------
+        # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P3":
+            st.header(f"🆔 {get_panel_title('P3')} (Student Unique ID Mapping Engine)")
+            
+            if live_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र डेटा लोड करें।")
+            else:
+                st.markdown("""
+                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड का उपयोग करके केवल छात्रों की <b>Unique ID</b> प्रविष्टियों को सिंक करें। छात्र का नाम, पिता का नाम और आवेदन नंबर सुरक्षा कारणों से लॉक हैं।
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # 🔍 Real-time Search Filter Sub-system
+                col_s1, col_s2 = st.columns(2)
+                with col_s1:
+                    search_field = st.selectbox("खोजने का माध्यम चुनें (Search By):", ["Student Name", "Admission Application Number", "Father Name"], key="p3_search_field")
+                with col_s2:
+                    search_query = st.text_input(f"यहाँ {search_field} दर्ज करें:", key="p3_search_query").strip()
+                
+                # Apply dynamic string matching filter to keep runtime workspace clean
+                unique_filter_df = live_db.copy()
+                if search_query != "":
+                    unique_filter_df = unique_filter_df[
+                        unique_filter_df[search_field].astype(str).str.contains(search_query, case=False, na=False)
+                    ]
+                
+                # Define specific structural column mapping constraints for Panel 3
+                unique_cols = ["Admission Application Number", "Student Name", "Father Name", "Unique ID"]
+                
+                # Auto-verify column integrity inside current system dataframe mapping array
+                for col in unique_cols:
+                    if col not in unique_filter_df.columns:
+                        unique_filter_df[col] = ""
+                
+                # Format localized output frame canvas layout and inject incremental serial counters
+                render_df = unique_filter_df[unique_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                
+                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Matching Records): **{len(render_df)}**")
+                
+                # 📊 Transactional Isolated Read/Write Grid Spreadsheet Container
+                edited_unique_df = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=["S.No.", "Admission Application Number", "Student Name", "Father Name"], 
+                    column_config={
+                        "Unique ID": st.column_config.TextColumn(
+                            "Unique ID (Permanent Tracking Key)",
+                            help="संस्था द्वारा निर्धारित स्थायी विशिष्ट पहचान पत्र संख्या दर्ज करें",
+                            required=True
+                        )
+                    },
+                    key="unique_live_editor_grid_p3", 
+                    hide_index=True
+                )
+                
+                # Live master database serialization file updates trigger
+                if st.button("Save & Sync Unique IDs", type="primary", use_container_width=True, key="p3_save_btn"):
+                    try:
+                        clean_edited = edited_unique_df.drop(columns=["S.No."])
+                        sync_counter = 0
+                        
+                        # Loop through and map tracking mutations step-by-step
+                        for _, row_edit in clean_edited.iterrows():
+                            target_app_no = str(row_edit["Admission Application Number"]).strip()
+                            unique_val = str(row_edit["Unique ID"]).strip()
+                            
+                            # Locate structural alignment match indices inside central repository files
+                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_no].index
+                            
+                            if not idx_matches.empty:
+                                for match_idx in idx_matches:
+                                    # Overwrite the isolated specific unique id record parameter
+                                    live_db.at[match_idx, "Unique ID"] = unique_val
+                                    sync_counter += 1
+                        
+                        # Execute permanent file-write storage stream sequence
+                        save_live_data(live_db)
+                        st.success(f"🎉 सफलता! कुल {sync_counter} छात्र रिकॉर्ड्स की Unique ID मुख्य डेटाबेस (Live CSV) में सुरक्षित सिंक हो गई है।")
+                        st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+
+        # ----------------------------------------------------------------------
+        # P4: PANEL ROLL NO MODULE (University Roll Number Allocation)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P4":
+            st.header(f"🔢 {get_panel_title('P4')} (University Roll Number Allocation Engine)")
+            
+            if live_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र डेटा लोड करें।")
+            else:
+                st.markdown("""
+                    <div style="background-color: #f7f9fa; border-left: 5px solid #28a745; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड का उपयोग करके विश्वविद्यालय द्वारा जारी <b>Roll No.</b> प्रविष्टियों को अपडेट करें। त्रुटियों से बचने के लिए नाम और विशिष्ट पहचान पत्र संख्या (Unique ID) को लॉक किया गया है।
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # 🔍 Real-time Local Filtering Sub-system
+                col_r1, col_r2 = st.columns(2)
+                with col_r1:
+                    roll_search_field = st.selectbox("खोजने का माध्यम चुनें (Filter By):", ["Student Name", "Unique ID", "Admission Application Number"], key="p4_search_field")
+                with col_r2:
+                    roll_search_query = st.text_input(f"यहाँ {roll_search_field} प्रविष्टि खोजें:", key="p4_search_query").strip()
+                
+                # Apply dynamic string matching filter onto target schema copy array
+                roll_filter_df = live_db.copy()
+                if roll_search_query != "":
+                    roll_filter_df = roll_filter_df[
+                        roll_filter_df[roll_search_field].astype(str).str.contains(roll_search_query, case=False, na=False)
+                    ]
+                
+                # Define specific column mapping constraints layout configurations for Panel 4
+                roll_cols = ["Admission Application Number", "Unique ID", "Student Name", "Roll No."]
+                
+                # Verify structure uniform constraints prior to grid binding operations
+                for col in roll_cols:
+                    if col not in roll_filter_df.columns:
+                        roll_filter_df[col] = ""
+                
+                # Extract targeted frame layouts and inject visual row sequence indicators
+                render_df = roll_filter_df[roll_cols].copy()
+                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                
+                st.write(f"ग्रिड में प्रदर्शित कुल मैचिंग छात्र रिकॉर्ड संख्या (Active Matrix Records): **{len(render_df)}**")
+                
+                # 📊 Transactional Isolated Read/Write Grid Spreadsheet Container
+                edited_roll_df = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=["S.No.", "Admission Application Number", "Unique ID", "Student Name"], 
+                    column_config={
+                        "Roll No.": st.column_config.TextColumn(
+                            "University Roll No.",
+                            help="विश्वविद्यालय द्वारा आवंटित आधिकारिक परीक्षा रोल नंबर दर्ज करें",
+                            required=True
+                        )
+                    },
+                    key="roll_live_editor_grid_p4", 
+                    hide_index=True
+                )
+                
+                # Live master structural updates compilation file write pipeline trigger
+                if st.button("Save & Sync Roll Numbers", type="primary", use_container_width=True, key="p4_save_btn"):
+                    try:
+                        clean_edited = edited_roll_df.drop(columns=["S.No."])
+                        roll_sync_counter = 0
+                        
+                        # Loop through and map tracking mutations layer by layer
+                        for _, row_edit in clean_edited.iterrows():
+                            target_app_num = str(row_edit["Admission Application Number"]).strip()
+                            roll_number_val = str(row_edit["Roll No."]).strip()
+                            
+                            # Locate matching transaction references alignment rows indexes inside registry records
+                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
+                            
+                            if not idx_matches.empty:
+                                for match_idx in idx_matches:
+                                    # Overwrite the isolated university roll number data record property parameter
+                                    live_db.at[match_idx, "Roll No."] = roll_number_val
+                                    roll_sync_counter += 1
+                        
+                        # Execute permanent local physical save stream write operations
+                        save_live_data(live_db)
+                        st.success(f"🎉 सफलता! कुल {roll_sync_counter} छात्र रिकॉर्ड्स की Roll No. मुख्य डेटाबेस (Live CSV) में सफलतापूर्वक सिंक और अपडेट हो गई है।")
+                        st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+
+        # ----------------------------------------------------------------------
+        # P5: PANEL ENROLLMENT MODULE (University Enrollment Manager)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P5":
+            st.header(f"📑 {get_panel_title('P5')} (University Enrollment Manager)")
+            
+            if live_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+            else:
+                st.markdown("""
+                    <div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड का उपयोग करके विश्वविद्यालय <b>Application Enrollment No.</b> और <b>Enrollment No.</b> प्रविष्टियों को अपडेट करें। विषय (Subject) के आधार पर डेटा को फ़िल्टर किया जा सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
+                
                 # यूनीक विषयों (Subjects) की सूची निकालकर फ़िल्टर तैयार करना
                 available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_subject = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects)
+                selected_subject = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p5_subject_filter_select")
                 
                 # फ़िल्टर के आधार पर डेटा को अलग करना
                 filtered_enrollment = live_db.copy()
@@ -416,19 +671,26 @@ else:
                 render_df = filtered_enrollment[enrollment_display_cols].copy()
                 render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
                 
+                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Enrollment Records): **{len(render_df)}**")
+                
                 # डेटा एडिटर ग्रिड जहाँ केवल नामांकन संख्या ही एडिट की जा सकती है
                 edited_enrollment_df = st.data_editor(
                     render_df, 
                     use_container_width=True, 
                     disabled=["S.No.", "Admission Application Number", "Student Name", "Father Name", "Subject"], 
-                    key="enrollment_live_editor", 
+                    column_config={
+                        "Application Enrollment No.": st.column_config.TextColumn("Application Enrollment No.", help="विश्वविद्यालय आवेदन पंजीकरण संख्या दर्ज करें"),
+                        "Enrollment No.": st.column_config.TextColumn("University Enrollment No.", help="विश्वविद्यालय द्वारा आवंटित स्थायी नामांकन संख्या दर्ज करें")
+                    },
+                    key="enrollment_live_editor_grid_p5", 
                     hide_index=True
                 )
                 
                 # डेटाबेस में लाइव सिंक करने का बटन
-                if st.button("Save & Sync Enrollment Numbers", type="primary", use_container_width=True):
+                if st.button("Save & Sync Enrollment Numbers", type="primary", use_container_width=True, key="p5_save_btn"):
                     try:
                         clean_edited = edited_enrollment_df.drop(columns=["S.No."])
+                        enroll_sync_counter = 0
                         
                         # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
                         for _, row_edit in clean_edited.iterrows():
@@ -441,31 +703,38 @@ else:
                                 for match_idx in idx_matches:
                                     live_db.at[match_idx, "Application Enrollment No."] = str(row_edit["Application Enrollment No."])
                                     live_db.at[match_idx, "Enrollment No."] = str(row_edit["Enrollment No."])
+                                    enroll_sync_counter += 1
                         
                         # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
                         save_live_data(live_db)
-                        st.success("🎉 विश्वविद्यालय नामांकन नंबर सफलतापूर्वक मुख्य डेटाबेस में सिंक और अपडेट हो गया है!")
+                        st.success(f"🎉 सफलता! कुल {enroll_sync_counter} छात्र रिकॉर्ड्स का विश्वविद्यालय नामांकन नंबर मुख्य डेटाबेस (Live CSV) में सिंक और अपडेट हो गया है!")
                         st.rerun()
                         
                     except Exception as e:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P4: PANEL SCHOLARSHIP MODULE (Complete Fixed Code)
+        # P6: PANEL SCHOLARSHIP MODULE (Portal & Scholarship Tracker)
         # ----------------------------------------------------------------------
-        elif current_panel_id == "P4":
-            st.header(f"💰 {get_panel_title('P4')} (Portal & Category Matrix Control)")
+        elif current_panel_id == "P6":
+            st.header(f"💰 {get_panel_title('P6')} (Portal & Category Matrix Control)")
             
-            # सुनिश्चित करना कि डेटाबेस में छात्रवृत्ति स्टेटस का कॉलम मौजूद हो
+            # Ensure specialized tracking property fields exist inside live memory arrays
             if "Scholarship Status" not in live_db.columns: 
                 live_db["Scholarship Status"] = "Not Applied"
             
             if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र डेटा लोड करें।")
             else:
+                st.markdown("""
+                    <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड का उपयोग करके श्रेणीवार छात्रवृत्ति आवेदन स्थिति (<b>Scholarship Status</b>) अपडेट करें। विज़ुअलाइज़ेशन फ़िल्टर का उपयोग करके विशिष्ट वर्गों का चयन किया जा सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
+                
                 # यूनीक श्रेणियों (Category जैसे General, OBC, SC, ST) की सूची निकालकर फ़िल्टर तैयार करना
                 available_categories = ["All"] + sorted(list(set(live_db["Category"].dropna().astype(str).str.strip())))
-                selected_category = st.selectbox("Category (वर्ग) फ़िल्टर चुनें:", options=available_categories)
+                selected_category = st.selectbox("Category (वर्ग) फ़िल्टर चुनें:", options=available_categories, key="p6_category_filter_select")
                 
                 # फ़िल्टर के आधार पर डेटा को अलग करना
                 filtered_scholarship = live_db.copy()
@@ -484,6 +753,8 @@ else:
                 render_df = filtered_scholarship[scholarship_display_cols].copy()
                 render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
                 
+                st.write(f"ग्रिड में प्रदर्शित कुल सक्रिय रिकॉर्ड संख्या (Active Matrix Profiles): **{len(render_df)}**")
+                
                 # डेटा एडिटर ग्रिड जहाँ केवल छात्रवृत्ति स्टेटस ही एडिट किया जा सकता है
                 edited_scholarship_df = st.data_editor(
                     render_df, 
@@ -493,17 +764,19 @@ else:
                         "Scholarship Status": st.column_config.SelectboxColumn(
                             "Scholarship Status", 
                             options=["Not Applied", "Applied", "Sanctioned", "Disbursed", "Rejected"],
-                            required=True
+                            required=True,
+                            help="छात्र के वर्तमान पोर्टल वेरिफिकेशन प्रोग्रेस स्टेटस का चयन करें"
                         )
                     }, 
-                    key="scholarship_live_editor", 
+                    key="scholarship_live_editor_grid_p6", 
                     hide_index=True
                 )
                 
                 # डेटाबेस में लाइव सिंक करने का बटन
-                if st.button("Save & Sync Scholarship Matrix", type="primary", use_container_width=True):
+                if st.button("Save & Sync Scholarship Matrix", type="primary", use_container_width=True, key="p6_save_btn"):
                     try:
                         clean_edited = edited_scholarship_df.drop(columns=["S.No."])
+                        scholarship_sync_counter = 0
                         
                         # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
                         for _, row_edit in clean_edited.iterrows():
@@ -515,174 +788,18 @@ else:
                             if not idx_matches.empty:
                                 for match_idx in idx_matches:
                                     live_db.at[match_idx, "Scholarship Status"] = str(row_edit["Scholarship Status"])
+                                    scholarship_sync_counter += 1
                         
                         # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
                         save_live_data(live_db)
-                        st.success("🎉 छात्रवृत्ति मैट्रिक्स सफलतापूर्वक मुख्य डेटाबेस में सिंक और अपडेट हो गया है!")
+                        st.success(f"🎉 सफलता! कुल {scholarship_sync_counter} छात्र रिकॉर्ड्स का छात्रवृत्ति ट्रैकिंग मैट्रिक्स मुख्य डेटाबेस (Live CSV) में सिंक और सुरक्षित कर दिया गया है!")
                         st.rerun()
                         
                     except Exception as e:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P5: PANEL RESULT MODULE (Complete Fixed Code)
-        # ----------------------------------------------------------------------
-        elif current_panel_id == "P5":
-            st.header(f"📊 {get_panel_title('P5')} (Tabulation Register & Exam Controller)")
-            
-            # सुनिश्चित करना कि परीक्षा से जुड़े आवश्यक कॉलम्स डेटाबेस में मौजूद हों
-            for f in ["Marks Obtained", "Result Status", "Exam Remarks"]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
-            else:
-                # यूनीक विषयों (Subjects) की सूची निकालकर फ़िल्टर तैयार करना
-                available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p5_subject_filter")
-                
-                # फ़िल्टर के आधार पर डेटा को अलग करना
-                filtered_res = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_res = filtered_res[filtered_res["Subject"].str.strip() == selected_sub]
-                
-                # प्रदर्शित किए जाने वाले आवश्यक कॉलम्स की सूची
-                result_display_cols = ["Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Subject", "Marks Obtained", "Result Status", "Exam Remarks"]
-                
-                # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
-                for col in result_display_cols:
-                    if col not in filtered_res.columns:
-                        filtered_res[col] = ""
-                
-                # रेंडर टेबल तैयार करना और क्रम संख्या (S.No.) जोड़ना
-                render_df = filtered_res[result_display_cols].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
-                
-                # डेटा एडिटर ग्रिड जहाँ केवल प्राप्तांक, स्टेटस और रिमार्क ही एडिट किए जा सकते हैं
-                edited_res = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Subject"], 
-                    column_config={
-                        "Result Status": st.column_config.SelectboxColumn(
-                            "Result Status", 
-                            options=["Pass", "Fail", "ATKT", "Withheld", "Absent"],
-                            required=True
-                        )
-                    }, 
-                    key="result_live_editor", 
-                    hide_index=True
-                )
-                
-                # डेटाबेस में लाइव सिंक करने का बटन
-                if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_res.drop(columns=["S.No."])
-                        
-                        # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            # 'Admission Application Number' के आधार पर इंडेक्स मैच खोजना
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, "Marks Obtained"] = str(r_edit["Marks Obtained"])
-                                    live_db.at[match_idx, "Result Status"] = str(r_edit["Result Status"])
-                                    live_db.at[match_idx, "Exam Remarks"] = str(r_edit["Exam Remarks"])
-                        
-                        # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
-                        save_live_data(live_db)
-                        st.success("🎉 परीक्षा परिणाम पंजी (Tabulation Register) सफलतापूर्वक मुख्य डेटाबेस में सिंक और अपडेट हो गई है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-
-        # ----------------------------------------------------------------------
-        # P6: PANEL PROMOTION MODULE (Complete Fixed Code)
-        # ----------------------------------------------------------------------
-        elif current_panel_id == "P6":
-            st.header(f"📈 {get_panel_title('P6')} (Academic Year Batch Progression Control)")
-            
-            # सुनिश्चित करना कि प्रमोशन से जुड़े आवश्यक कॉलम्स डेटाबेस में मौजूद हों
-            if "Promotion Status" not in live_db.columns: 
-                live_db["Promotion Status"] = "Eligible"
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
-            else:
-                # यूनीक वर्तमान वर्षों (Current Year जैसे 1st Year, 2nd Year, 3rd Year) की सूची निकालकर फ़िल्टर तैयार करना
-                available_years = ["All"] + sorted(list(set(live_db["Current Year"].dropna().astype(str).str.strip())))
-                selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p6_year_filter")
-                
-                # फ़िल्टर के आधार पर डेटा को अलग करना
-                filtered_promo = live_db.copy()
-                if selected_year != "All":
-                    filtered_promo = filtered_promo[filtered_promo["Current Year"].str.strip() == selected_year]
-                
-                # प्रदर्शित किए जाने वाले आवश्यक कॉलम्स की सूची
-                promotion_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"]
-                
-                # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
-                for col in promotion_display_cols:
-                    if col not in filtered_promo.columns:
-                        filtered_promo[col] = ""
-                
-                # रेंडर टेबल तैयार करना और क्रम संख्या (S.No.) जोड़ना
-                render_df = filtered_promo[promotion_display_cols].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
-                
-                # डेटा एडिटर ग्रिड जहाँ केवल छात्र का Status और Promotion Status ही बदला जा सकता है
-                edited_promo = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Current Year"], 
-                    column_config={
-                        "Status": st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Regular", "EX-STUDENT", "Pass", "Pending"],
-                            required=True
-                        ),
-                        "Promotion Status": st.column_config.SelectboxColumn(
-                            "Promotion Status", 
-                            options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"],
-                            required=True
-                        )
-                    }, 
-                    key="promotion_live_editor", 
-                    hide_index=True
-                )
-                
-                # डेटाबेस में लाइव सिंक करने का बटन
-                if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_promo.drop(columns=["S.No."])
-                        
-                        # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            # 'Admission Application Number' के आधार पर इंडेक्स मैच खोजना
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, "Status"] = str(r_edit["Status"])
-                                    live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"])
-                        
-                        # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
-                        save_live_data(live_db)
-                        st.success("🎉 छात्र बैच प्रमोशन पंजी सफलतापूर्वक मुख्य डेटाबेस में सिंक और अपडेट हो गई है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-
-        # ----------------------------------------------------------------------
-        # P7: PANEL FOIL SHEET GENERATOR MODULE (Complete Fixed Code)
+        # P7: PANEL FOIL SHEET GENERATOR MODULE (University CCE Foil Sheet Generator)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
@@ -691,7 +808,7 @@ else:
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             
             if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+                st.warning("⚠️ मास्टर डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
             else:
                 # प्रिंट छुपाने वाले इनपुट कंट्रोल्स बॉक्स
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
@@ -717,7 +834,7 @@ else:
                 # जनरेट और प्रिंट बटन्स का पैनल
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
-                    if st.button("🔄 Generate Foil Sheets Canvas Now", use_container_width=True, type="primary"):
+                    if st.button("🔄 Generate Foil Sheets Canvas Now", use_container_width=True, type="primary", key="p7_generate_canvas_btn"):
                         st.session_state.cce_foil_generated = True
                 with btn_col2:
                     # केवल तभी दिखाई देगा जब फॉयल शीट जनरेट हो चुकी हो
@@ -769,7 +886,7 @@ else:
                         for idx, row in foil_filter_df.reset_index(drop=True).iterrows():
                             # यदि छात्र अनुपस्थित है, तो नंबर की जगह ABSENT दिखाएं
                             att_status = str(row["CCE Attendance Status"]).strip().upper()
-                            display_marks = "ABSENT" if att_status in ["ABSENT", "A"] else str(row["CCE Marks Obtained"])
+                            display_marks = "ABSENT" if att_status in ["ABSENT", "A", "ABS"] else str(row["CCE Marks Obtained"])
                             if display_marks == "" or display_marks == "nan":
                                 display_marks = "-"
                                 
@@ -820,13 +937,8 @@ else:
                         <div style="margin-top: 50px; display: flex; justify-content: space-between; padding: 0 30px; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold;">
                             <div style="text-align: center;">
                                 <br><br>
-                                <span>-------------------------------------</span><br>
+                                                                <span>-------------------------------------</span><br>
                                 <span>Internal Examiner Signature</span>
-                            </div>
-                            <div style="text-align: center;">
-                                <br><br>
-                                <span>-------------------------------------</span><br>
-                                                                <span>Internal Examiner Signature</span>
                             </div>
                             <div style="text-align: center;">
                                 <br><br>
@@ -846,565 +958,374 @@ else:
                         st.markdown(footer_html, unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
-        # P8: PANEL CCE RECORD MODULE (Complete Fixed Code)
+        # P8: PANEL CCE RECORD MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
             st.header(f"📋 {get_panel_title('P8')} (Internal Assessment Marks Ledger)")
-            
-            # Ensure CCE related tracking fields exist within the live schema
             for f in ["CCE Marks Obtained", "CCE Attendance Status"]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+                if f not in live_db.columns: live_db[f] = ""
+            if live_db.empty: st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # Extract unique subjects to generate an isolated subject filter
                 available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p8_subject_filter")
-                
-                # Filter data matrix based on user selection
+                selected_sub = st.selectbox("Subject फ़िल्टर चुनें:", options=available_subjects, key="p8_subject_filter")
                 filtered_cce = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_cce = filtered_cce[filtered_cce["Subject"].str.strip() == selected_sub]
+                if selected_sub != "All": filtered_cce = filtered_cce[filtered_cce["Subject"].str.strip() == selected_sub]
                 
-                # Essential fields list to render on screen for the operator
                 cce_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", "CCE Marks Obtained", "CCE Attendance Status"]
-                
-                # Verify column architecture to avoid unexpected visualization errors
-                for col in cce_display_cols:
-                    if col not in filtered_cce.columns:
-                        filtered_cce[col] = ""
-                
-                # Generate render DataFrame and inject a sequential serial number
                 render_df = filtered_cce[cce_display_cols].copy()
                 render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
                 
-                # Data editor grid configurations (Locks everything except marks and attendance dropdown)
-                edited_cce = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], 
-                    column_config={
-                        "CCE Attendance Status": st.column_config.SelectboxColumn(
-                            "CCE Attendance Status", 
-                            options=["Present", "Absent", "Detained"],
-                            required=True
-                        )
-                    }, 
-                    key="cce_record_live_editor", 
-                    hide_index=True
-                )
-                
-                # Database live synchronization trigger
-                if st.button("Save & Sync CCE Assessment Ledger", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_cce.drop(columns=["S.No."])
-                        
-                        # Sync each row back into the master database mapping index
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            # Fetch index match based on Unique Admission Application Number
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, "CCE Marks Obtained"] = str(r_edit["CCE Marks Obtained"])
-                                    live_db.at[match_idx, "CCE Attendance Status"] = str(r_edit["CCE Attendance Status"])
-                        
-                        # Commit operations down into the physical master CSV database file
-                        save_live_data(live_db)
-                        st.success("🎉 सीसीई आंतरिक मूल्यांकन पंजी (Internal Ledger) सफलतापूर्वक मुख्य डेटाबेस में सिंक हो गई है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                edited_cce = st.data_editor(render_df, use_container_width=True, disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], column_config={"CCE Attendance Status": st.column_config.SelectboxColumn("CCE Attendance Status", options=["Present", "Absent", "Detained"], required=True)}, key="cce_record_live_editor", hide_index=True)
+                if st.button("Save & Sync CCE Assessment Ledger", type="primary", use_container_width=True, key="p8_save_btn"):
+                    for _, r_edit in edited_cce.drop(columns=["S.No."]).iterrows():
+                        idx_matches = live_db[live_db["Admission Application Number"] == r_edit["Admission Application Number"]].index
+                        if not idx_matches.empty:
+                            for idx in idx_matches:
+                                live_db.at[idx, "CCE Marks Obtained"] = r_edit["CCE Marks Obtained"]
+                                live_db.at[idx, "CCE Attendance Status"] = r_edit["CCE Attendance Status"]
+                    save_live_data(live_db)
+                    st.success("🎉 सीसीई आंतरिक मूल्यांकन पंजी सफलतापूर्वक अपडेट हो गई!")
+                    st.rerun()
 
         # ----------------------------------------------------------------------
-        # P9: PANEL EXTENSION MODULE ROOM 1 (Complete Fixed Code)
+        # P9: PANEL PROMOTION MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P9":
-            st.header(f"📌 {get_panel_title('P9')} (Dynamic Extension Ledger Room 1)")
-            
-            # Formulate dynamic localized unique field IDs for tracking
-            p_status_col = "P9 Record Status"
-            p_remark_col = "P9 Custom Remarks"
-            
-            # Inject schema placeholders if columns are absent in historical files
-            for f in [p_status_col, p_remark_col]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+            st.header(f"📈 {get_panel_title('P9')} (Academic Year Batch Progression Control)")
+            if "Promotion Status" not in live_db.columns: live_db["Promotion Status"] = "Eligible"
+            if live_db.empty: st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # Isolate records based on unique Subject names loaded in memory
-                available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter")
+                available_years = ["All"] + sorted(list(set(live_db["Current Year"].dropna().astype(str).str.strip())))
+                selected_year = st.selectbox("Current Year फ़िल्टर चुनें:", options=available_years, key="p9_year_filter")
+                filtered_promo = live_db.copy()
+                if selected_year != "All": filtered_promo = filtered_promo[filtered_promo["Current Year"].str.strip() == selected_year]
                 
-                # Apply filter to isolated dataset array
-                filtered_ext = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_ext = filtered_ext[filtered_ext["Subject"].str.strip() == selected_sub]
-                
-                # Setup display list grid schema
-                ext_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", p_status_col, p_remark_col]
-                
-                # Verify schema constraints prior to front-end data binding
-                for col in ext_display_cols:
-                    if col not in filtered_ext.columns:
-                        filtered_ext[col] = ""
-                
-                # Form rendering base frame and assign sequence serial counters
-                render_df = filtered_ext[ext_display_cols].copy()
+                promotion_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"]
+                render_df = filtered_promo[promotion_display_cols].copy()
                 render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
                 
-                # Interactive matrix canvas configurations
-                edited_ext = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], 
-                    column_config={
-                        p_status_col: st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Verified", "Pending", "Approved", "On Hold"],
-                            required=True
-                        )
-                    }, 
-                    key="p9_live_editor", 
-                    hide_index=True
-                )
-                
-                # Synchronize dataset updates execution trigger
-                if st.button(f"Save & Sync {get_panel_title('P9')} Records", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_ext.drop(columns=["S.No."])
-                        
-                        # Search indices match mapping allocations loop
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, p_status_col] = str(r_edit[p_status_col])
-                                    live_db.at[match_idx, p_remark_col] = str(r_edit[p_remark_col])
-                        
-                        # Physical commit storage write operations
-                        save_live_data(live_db)
-                        st.success(f"🎉 {get_panel_title('P9')} का रिकॉर्ड सफलतापूर्वक मुख्य डेटाबेस में अपडेट और सिंक हो गया है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                edited_promo = st.data_editor(render_df, use_container_width=True, disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Current Year"], column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)}, key="promotion_live_editor", hide_index=True)
+                if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p9_save_btn"):
+                    for _, r_edit in edited_promo.drop(columns=["S.No."]).iterrows():
+                        idx_matches = live_db[live_db["Admission Application Number"] == r_edit["Admission Application Number"]].index
+                        if not idx_matches.empty:
+                            for idx in idx_matches:
+                                live_db.at[idx, "Status"] = r_edit["Status"]
+                                live_db.at[idx, "Promotion Status"] = r_edit["Promotion Status"]
+                    save_live_data(live_db)
+                    st.success("🎉 छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई!")
+                    st.rerun()
 
         # ----------------------------------------------------------------------
-        # P10: PANEL EXTENSION MODULE ROOM 2 (Complete Fixed Code)
+        # P10: PANEL RESULT MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P10":
-            st.header(f"📌 {get_panel_title('P10')} (Dynamic Extension Ledger Room 2)")
-            
-            # Formulate dynamic localized unique field IDs for tracking
-            p_status_col = "P10 Record Status"
-            p_remark_col = "P10 Custom Remarks"
-            
-            # Inject schema placeholders if columns are absent in historical files
-            for f in [p_status_col, p_remark_col]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
+            st.header(f"📊 {get_panel_title('P10')} (Tabulation Register & Exam Controller)")
+            for f in ["Marks Obtained", "Result Status", "Exam Remarks"]:
+                if f not in live_db.columns: live_db[f] = ""
+            if live_db.empty: st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # Isolate records based on unique Subject names loaded in memory
                 available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p10_subject_filter")
+                selected_sub = st.selectbox("Subject फ़िल्टर चुनें:", options=available_subjects, key="p10_subject_filter")
+                filtered_res = live_db.copy()
+                if selected_sub != "All": filtered_res = filtered_res[filtered_res["Subject"].str.strip() == selected_sub]
                 
-                # Apply filter to isolated dataset array
-                filtered_ext = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_ext = filtered_ext[filtered_ext["Subject"].str.strip() == selected_sub]
-                
-                # Setup display list grid schema
-                ext_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", p_status_col, p_remark_col]
-                
-                # Verify schema constraints prior to front-end data binding
-                for col in ext_display_cols:
-                    if col not in filtered_ext.columns:
-                        filtered_ext[col] = ""
-                
-                # Form rendering base frame and assign sequence serial counters
-                render_df = filtered_ext[ext_display_cols].copy()
+                result_display_cols = ["Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Subject", "Marks Obtained", "Result Status", "Exam Remarks"]
+                render_df = filtered_res[result_display_cols].copy()
                 render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
                 
-                # Interactive matrix canvas configurations
-                edited_ext = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], 
-                    column_config={
-                        p_status_col: st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Verified", "Pending", "Approved", "On Hold"],
-                            required=True
-                        )
-                    }, 
-                    key="p10_live_editor", 
-                    hide_index=True
-                )
-                
-                # Synchronize dataset updates execution trigger
-                if st.button(f"Save & Sync {get_panel_title('P10')} Records", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_ext.drop(columns=["S.No."])
-                        
-                        # Search indices match mapping allocations loop
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, p_status_col] = str(r_edit[p_status_col])
-                                    live_db.at[match_idx, p_remark_col] = str(r_edit[p_remark_col])
-                        
-                        # Physical commit storage write operations
-                        save_live_data(live_db)
-                        st.success(f"🎉 {get_panel_title('P10')} का रिकॉर्ड सफलतापूर्वक मुख्य डेटाबेस में अपडेट और सिंक हो गया है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                edited_res = st.data_editor(render_df, use_container_width=True, disabled=["S.No.", "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Subject"], column_config={"Result Status": st.column_config.SelectboxColumn("Result Status", options=["Pass", "Fail", "ATKT", "Withheld", "Absent"], required=True)}, key="result_live_editor", hide_index=True)
+                if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True, key="p10_save_btn"):
+                    for _, r_edit in edited_res.drop(columns=["S.No."]).iterrows():
+                        idx_matches = live_db[live_db["Admission Application Number"] == r_edit["Admission Application Number"]].index
+                        if not idx_matches.empty:
+                            for idx in idx_matches:
+                                live_db.at[idx, "Marks Obtained"] = r_edit["Marks Obtained"]
+                                live_db.at[idx, "Result Status"] = r_edit["Result Status"]
+                                live_db.at[idx, "Exam Remarks"] = r_edit["Exam Remarks"]
+                    save_live_data(live_db)
+                    st.success("🎉 परीक्षा परिणाम पंजी सफलतापूर्वक लाइव डेटाबेस में सिंक हो गई!")
+                    st.rerun()
 
         # ----------------------------------------------------------------------
-        # P11: PANEL EXTENSION MODULE ROOM 3 (Complete Fixed Code)
+        # P11: NOTICE BOARD EDIT MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
-            st.header(f"📌 {get_panel_title('P11')} (Dynamic Extension Ledger Room 3)")
-            
-            # Formulate dynamic localized unique field IDs for tracking
-            p_status_col = "P11 Record Status"
-            p_remark_col = "P11 Custom Remarks"
-            
-            # Inject schema placeholders if columns are absent in historical files
-            for f in [p_status_col, p_remark_col]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
-            else:
-                # Isolate records based on unique Subject names loaded in memory
-                available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p11_subject_filter")
-                
-                # Apply filter to isolated dataset array
-                filtered_ext = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_ext = filtered_ext[filtered_ext["Subject"].str.strip() == selected_sub]
-                
-                # Setup display list grid schema
-                ext_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", p_status_col, p_remark_col]
-                
-                # Verify schema constraints prior to front-end data binding
-                for col in ext_display_cols:
-                    if col not in filtered_ext.columns:
-                        filtered_ext[col] = ""
-                
-                # Form rendering base frame and assign sequence serial counters
-                render_df = filtered_ext[ext_display_cols].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
-                
-                # Interactive matrix canvas configurations
-                edited_ext = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], 
-                    column_config={
-                        p_status_col: st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Verified", "Pending", "Approved", "On Hold"],
-                            required=True
-                        )
-                    }, 
-                    key="p11_live_editor", 
-                    hide_index=True
-                )
-                
-                # Synchronize dataset updates execution trigger
-                if st.button(f"Save & Sync {get_panel_title('P11')} Records", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_ext.drop(columns=["S.No."])
-                        
-                        # Search indices match mapping allocations loop
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, p_status_col] = str(r_edit[p_status_col])
-                                    live_db.at[match_idx, p_remark_col] = str(r_edit[p_remark_col])
-                        
-                        # Physical commit storage write operations
-                        save_live_data(live_db)
-                        st.success(f"🎉 {get_panel_title('P11')} का रिकॉर्ड सफलतापूर्वक मुख्य डेटाबेस में अपडेट और सिंक हो गया है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+            st.header(f"📢 {get_panel_title('P11')} (Official Notice Board Customizer)")
+            with st.form(key="p11_notice_form"):
+                updated_notice = st.text_area("होम स्क्रीन के लिए सूचना पटल टेक्स्ट लिखें:", value=st.session_state.notice_text, height=200)
+                if st.form_submit_button("Publish Notice Live Now", type="primary", use_container_width=True):
+                    st.session_state.notice_text = updated_notice
+                    save_notice_board(updated_notice)
+                    st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है!")
+                    st.rerun()
 
         # ----------------------------------------------------------------------
-        # P12: PANEL EXTENSION MODULE ROOM 4 (Complete Fixed Code)
+               # ----------------------------------------------------------------------
+        # P12: PRE-LOGIN VIEW CUSTOMIZER MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P12":
-            st.header(f"📌 {get_panel_title('P12')} (Dynamic Extension Ledger Room 4)")
+            st.header(f"⚙️ {get_panel_title('P12')} (Pre-Login Landing Screen Editor)")
             
-            # Formulate dynamic localized unique field IDs for tracking
-            p_status_col = "P12 Record Status"
-            p_remark_col = "P12 Custom Remarks"
+            st.markdown("""
+                <div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    📌 <b>प्रशासक निर्देश:</b> इस कंट्रोल रूम का उपयोग करके आप बिना लॉगिन किए दिखने वाले वेलकम पेज, आध्यात्मिक हेडर मंत्र, सिस्टम टाइटल और नोटिस बोर्ड की स्टाइलिंग थीम को लाइव बदल सकते हैं।
+                </div>
+            """, unsafe_allow_html=True)
             
-            # Inject schema placeholders if columns are absent in historical files
-            for f in [p_status_col, p_remark_col]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
-            else:
-                # Isolate records based on unique Subject names loaded in memory
-                available_subjects = ["All"] + sorted(list(set(live_db["Subject"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Subject (विषय) फ़िल्टर चुनें:", options=available_subjects, key="p12_subject_filter")
+            # Form setup for capturing structural metadata transformations safely
+            with st.form(key="p12_landing_view_editor_form"):
+                st.subheader("🖼️ Header Elements Configuration")
                 
-                # Apply filter to isolated dataset array
-                filtered_ext = live_db.copy()
-                if selected_sub != "All": 
-                    filtered_ext = filtered_ext[filtered_ext["Subject"].str.strip() == selected_sub]
+                col_view1, col_view2 = st.columns(2)
+                with col_view1:
+                    header_toggle = st.checkbox(
+                        "शो हेडर टेक्स्ट (Display Institutional Header text block)", 
+                        value=st.session_state.pre_login_config.get("show_header_text", True)
+                    )
+                    mantra_text = st.text_input(
+                        "शीर्ष मंत्र टेक्स्ट (Spiritual Invocation / Mantra text):", 
+                        value=st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
+                    )
+                with col_view2:
+                    system_title_text = st.text_input(
+                        "सिस्टम का मुख्य नाम (Main Gateway Application Title):", 
+                        value=st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
+                    )
                 
-                # Setup display list grid schema
-                ext_display_cols = ["Admission Application Number", "Roll No.", "Student Name", "Subject", p_status_col, p_remark_col]
+                st.markdown("---")
+                st.subheader("🎨 Notice Board Branding & Themes (Official Notice Board Style)")
                 
-                # Verify schema constraints prior to front-end data binding
-                for col in ext_display_cols:
-                    if col not in filtered_ext.columns:
-                        filtered_ext[col] = ""
+                col_theme1, col_theme2 = st.columns(2)
+                with col_theme1:
+                    border_color = st.color_picker(
+                        "नोटिस बोर्ड लेफ्ट बॉर्डर हाइलाइट रंग (Left accent boundary border color):", 
+                        value=st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
+                    )
+                with col_theme2:
+                    bg_color = st.color_picker(
+                        "नोटिस बोर्ड बैकग्राउंड शेड रंग (Container surface background hex color):", 
+                        value=st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
+                    )
                 
-                # Form rendering base frame and assign sequence serial counters
-                render_df = filtered_ext[ext_display_cols].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
-                
-                # Interactive matrix canvas configurations
-                edited_ext = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"], 
-                    column_config={
-                        p_status_col: st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Verified", "Pending", "Approved", "On Hold"],
-                            required=True
-                        )
-                    }, 
-                    key="p12_live_editor", 
-                    hide_index=True
+                # Execution confirmation action trigger layer
+                st.markdown("<br>", unsafe_allow_html=True)
+                submit_settings = st.form_submit_button(
+                    "💾 Apply & Save Landing View Settings Permanently", 
+                    type="primary", 
+                    use_container_width=True
                 )
                 
-                # Synchronize dataset updates execution trigger
-                if st.button(f"Save & Sync {get_panel_title('P12')} Records", type="primary", use_container_width=True):
-                    try:
-                        clean_edited = edited_ext.drop(columns=["S.No."])
-                        
-                        # Search indices match mapping allocations loop
-                        for _, r_edit in clean_edited.iterrows():
-                            app_num = str(r_edit["Admission Application Number"]).strip()
-                            
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    live_db.at[match_idx, p_status_col] = str(r_edit[p_status_col])
-                                    live_db.at[match_idx, p_remark_col] = str(r_edit[p_remark_col])
-                        
-                        # Physical commit storage write operations
-                        save_live_data(live_db)
-                        st.success(f"🎉 {get_panel_title('P12')} का रिकॉर्ड सफलतापूर्वक मुख्य डेटाबेस में अपडेट और सिंक हो गया है!")
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                if submit_settings:
+                    # Update local runtime workspace dictionary context elements
+                    updated_config = {
+                        "show_header_text": header_toggle,
+                        "header_mantra": mantra_text,
+                        "system_title": system_title_text,
+                        "notice_board_border_color": border_color,
+                        "notice_board_bg_color": bg_color
+                    }
+                    
+                    st.session_state.pre_login_config = updated_config
+                    save_pre_login_config(updated_config)
+                    
+                    st.success("🎉 वेलकम व्यू सेटिंग्स सफलतापूर्वक सेव हो गई हैं! अब बिना लॉगिन वाले मुख्य होम पेज पर ये बदलाव लाइव काम करेंगे।")
+                    st.rerun()
 
         # ----------------------------------------------------------------------
-        # P13: PANEL MERGE MODULE (Complete Fixed Code)
+        # P13: PANEL MERGE MODULE (Database Smart Merge Panel)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
             st.header(f"🔀 {get_panel_title('P13')} (Database Smart Merge Panel)")
             
             st.markdown("""
-                This module lets you upload an external CSV file and merge its columns into the live database. 
-                Matching is handled using a unique tracking key, ensuring existing records are systematically updated.
-            """)
+                <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    📌 <b>ऑपरेटर निर्देश (Smart Merge Instructions):</b> यह मॉड्यूल आपको बाहरी एक्सेल/CSV फ़ाइल को मुख्य लाइव डेटाबेस में मिलाने की अनुमति देता है। 
+                    चुनी गई <b>Unique Key</b> (जैसे Admission Application Number, Unique ID, या Roll No.) के आधार पर सिस्टम डेटाबेस की मैचिंग रोज़ (Rows) को स्वचालित रूप से ढूंढकर नए और पुराने कॉलम्स अपडेट कर देगा।
+                </div>
+            """, unsafe_allow_html=True)
             
-            # File uploader widget for incoming CSV dataset
-            uploaded_merge_file = st.file_uploader("मर्ज करने के लिए नई CSV फ़ाइल चुनें (Select CSV File to Merge):", type=["csv"], key="p13_csv_uploader")
+            # File uploader widget container interface layer targeting source files
+            uploaded_merge_file = st.file_uploader(
+                "मर्ज करने के लिए नई CSV फ़ाइल का चयन करें (Select CSV File to Merge):", 
+                type=["csv"], 
+                key="p13_csv_uploader_widget"
+            )
             
             if uploaded_merge_file is not None:
                 try:
-                    # Read the incoming dataset as string to avoid parsing errors
+                    # Parse raw file text stream inputs into pandas dataframe using string datatype to preserve formatting
                     incoming_df = pd.read_csv(uploaded_merge_file, dtype=str).fillna("")
                     
-                    st.write("📋 **Incoming Dataset Preview (First 3 Rows):**")
+                    st.markdown("### 📋 Incoming Dataset Preview (First 3 Rows)")
                     st.dataframe(incoming_df.head(3), use_container_width=True, hide_index=True)
                     
-                    # Available columns from both sides to pick as a unique identifier key
+                    # Available identification metrics setup mapping definitions
                     merge_options = ["Admission Application Number", "Unique ID", "Roll No."]
                     valid_keys = [col for col in merge_options if col in incoming_df.columns and col in live_db.columns]
                     
                     if not valid_keys:
-                        st.error("❌ The uploaded CSV must contain at least one valid tracking key column: 'Admission Application Number', 'Unique ID', or 'Roll No.'")
+                        st.error("❌ त्रुटि: अपलोड की गई CSV फ़ाइल में मिलान के लिए 'Admission Application Number', 'Unique ID', या 'Roll No.' में से कम से कम एक की (Key) कॉलम होना अनिवार्य है!")
                     else:
                         col_m1, col_m2 = st.columns(2)
                         with col_m1:
-                            merge_key = st.selectbox("🔑 Unique Key चुनें (Select Unique Key for Matching):", options=valid_keys, key="p13_merge_key")
+                            merge_key = st.selectbox(
+                                "🔑 मिलान के लिए Unique Identifier Key चुनें:", 
+                                options=valid_keys, 
+                                key="p13_selected_merge_key_dropdown"
+                            )
                         with col_m2:
-                            st.info(f"Matching rows using: **{merge_key}**")
+                            st.info(f"रो-मैपिंग मिलान फ़ील्ड: **{merge_key}**")
                             
-                        # Smart merge execution logic trigger
-                        if st.button("Execute Smart Database Merge Now", type="primary", use_container_width=True):
-                            with st.spinner("Processing smart database merge operation..."):
-                                # Clean tracking keys from both DataFrames to ensure precise matching
+                        # Smart merge execution logic validation trigger button
+                        if st.button("Execute Smart Database Merge Now", type="primary", use_container_width=True, key="p13_execute_merge_btn"):
+                            with st.spinner("मास्टर डेटाबेस संकलन और लिंकिंग प्रक्रिया चल रही है, कृपया प्रतीक्षा करें..."):
+                                
+                                # Clean tracking keys from both DataFrames to ensure precise row matching
                                 live_db[merge_key] = live_db[merge_key].astype(str).str.strip()
                                 incoming_df[merge_key] = incoming_df[merge_key].astype(str).str.strip()
                                 
                                 merge_counter = 0
                                 new_columns_added = []
                                 
-                                # Scan columns present in incoming sheet but missing from master layout schema
+                                # Scan structural fields array blocks present in incoming sheet but missing from master layout schema
                                 for col in incoming_df.columns:
                                     if col not in live_db.columns:
                                         live_db[col] = ""
                                         new_columns_added.append(col)
                                 
-                                # Match and map tracking properties row by row
+                                # Iterative sequence loop traversing lines inside source input frame matrix arrays
                                 for _, row_incoming in incoming_df.iterrows():
-                                    incoming_key_val = row_incoming[merge_key]
+                                    incoming_key_val = str(row_incoming[merge_key]).strip()
                                     
-                                    # Skip mapping if the record's primary match value is blank
+                                    # Skip current operation cycle if primary indexing string token is blank
                                     if incoming_key_val == "":
                                         continue
                                         
-                                    # Locate matching row indexes within master dataframe registry
+                                    # Query alignment match pointer locations across repository structures
                                     idx_matches = live_db[live_db[merge_key] == incoming_key_val].index
                                     
                                     if not idx_matches.empty:
                                         merge_counter += 1
                                         for match_idx in idx_matches:
-                                            # Update columns map dynamically except the matching key itself
+                                            # Safely pass specific parameters down into active cell rows, excluding index itself
                                             for col in incoming_df.columns:
                                                 if col != merge_key:
-                                                    live_db.at[match_idx, col] = str(row_incoming[col])
+                                                    live_db.at[match_idx, col] = str(row_incoming[col]).strip()
                                 
-                                # Write updated structured table data directly into storage
+                                # Commit finalized active structures updates back down into permanent physical storage mapping CSV
                                 save_live_data(live_db)
                                 
-                                # Display detailed structural sync report summaries
-                                st.success(f"🎉 Smart Merge Completed Successfully!")
-                                st.write(f"✅ Total Matched Rows Updated: **{merge_counter}**")
-                                if new_columns_added:
-                                    st.info(f"🆕 New columns dynamically injected into schema layout: {', '.join([f'*{c}*' for c in new_columns_added])}")
+                                # Visual summaries display compilation feedback panels layout
+                                st.success(f"🎉 Smart Database Merge ऑपरेशन सफलतापूर्वक पूरा हुआ!")
                                 
+                                col_res1, col_res2 = st.columns(2)
+                                with col_res1:
+                                    st.metric(label="सफलतापूर्वक अपडेटेड छात्र पंक्तियाँ (Matched Rows Updated)", value=merge_counter)
+                                with col_res2:
+                                    st.metric(label="कुल कॉलम्स की संख्या (Total Schema Columns Now)", value=len(live_db.columns))
+                                    
+                                if new_columns_added:
+                                    st.info(f"🆕 <b>डेटाबेस स्कीमा में जुड़े नए डायनेमिक कॉलम्स:</b> {', '.join([f'<i>{c}</i>' for c in new_columns_added])}", icon="ℹ️")
+                                
+                                # Clear workspace execution parameters state cache tracking flags
                                 st.rerun()
                                 
                 except Exception as e:
-                    st.error(f"An unexpected error occurred during database compilation analysis: {e}")
+                    st.error(f"डेटाबेस कंपाइलेशन और मर्जिंग चक्र में अनपेक्षित तकनीकी त्रुटि आई: {e}")
 
-        # ----------------------------------------------------------------------
-        # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Complete Fixed Code)
+                          # ----------------------------------------------------------------------
+        # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P14":
             st.header(f"👁️ {get_panel_title('P14')} (Multi-Panel Inspection Window)")
 
-            # Master dictionary mapping each panel to its designated columns
+            # Master dictionary mapping each panel to its designated columns layout framework
             panel_options_list = {
-                "Panel 2: Panal admission": ["Admission Application Number", "Student Name", "Admission Year", "Admission Session", "Admission Date", "Status"],
-                "Panel 3: Panal enrollment": ["Admission Application Number", "Student Name", "Subject", "Application Enrollment No.", "Enrollment No."],
-                "Panel 4: Panal scholarship": ["Admission Application Number", "Student Name", "Category", "Scholarship Status"],
-                "Panel 5: Panal result": ["Roll No.", "Enrollment No.", "Student Name", "Subject", "Marks Obtained", "Result Status", "Exam Remarks"],
-                "Panel 6: Panal promotion": ["Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"],
-                "Panel 7: Panal foil": ["Roll No.", "Student Name", "Subject Code", "Subject", "Status"],
-                "Panel 8: Panal cce record": ["Admission Application Number", "Roll No.", "Student Name", "Subject", "CCE Marks Obtained", "CCE Attendance Status"],
-                "Panel 9: Panal P9 (Extension 1)": ["Admission Application Number", "Student Name", "P9 Record Status", "P9 Custom Remarks"],
-                "Panel 10: Panal P10 (Extension 2)": ["Admission Application Number", "Student Name", "P10 Record Status", "P10 Custom Remarks"],
-                "Panel 11: Panal P11 (Extension 3)": ["Admission Application Number", "Student Name", "P11 Record Status", "P11 Custom Remarks"],
-                "Panel 12: Panal P12 (Extension 4)": ["Admission Application Number", "Student Name", "P12 Record Status", "P12 Custom Remarks"],
-                "Panel 13: Database Smart Merge": ["Admission Year", "Admission Application Number", "Unique ID", "Roll No.", "Enrollment No.", "Student Name"]
+                "Panel 2: Admission View": ["Admission Application Number", "Student Name", "Admission Year", "Admission Session", "Admission Date", "Status"],
+                "Panel 3: Unique ID View": ["Admission Application Number", "Student Name", "Father Name", "Unique ID"],
+                "Panel 4: Roll No View": ["Admission Application Number", "Unique ID", "Student Name", "Roll No."],
+                "Panel 5: Enrollment View": ["Admission Application Number", "Student Name", "Subject", "Application Enrollment No.", "Enrollment No."],
+                "Panel 6: Scholarship View": ["Admission Application Number", "Unique ID", "Student Name", "Category", "Scholarship Status"],
+                "Panel 7: CCE Foil View": ["Roll No.", "Student Name", "Subject Code", "Subject", "Status"],
+                "Panel 8: CCE Record View": ["Admission Application Number", "Roll No.", "Student Name", "Subject", "CCE Marks Obtained", "CCE Attendance Status"],
+                "Panel 9: Promotion View": ["Admission Application Number", "Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"],
+                "Panel 10: Result View": ["Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Subject", "Marks Obtained", "Result Status", "Exam Remarks"],
+                "Panel 11: Notice Board View": ["Admission Application Number", "Student Name", "Status"],
+                "Panel 12: Landing Configuration View": ["Admission Year", "Admission Session", "Student Name", "Status"],
+                "Panel 13: Database Smart Merge View": ["Admission Year", "Admission Application Number", "Unique ID", "Roll No.", "Enrollment No.", "Student Name"]
             }
 
             st.subheader("📂 Select Panel Dashboard View")
             selected_panel_view = st.selectbox(
                 "निरीक्षण करने के लिए पैनल सूची (P2 से P13) चुनें (Select Dashboard to Inspect):",
                 options=list(panel_options_list.keys()),
-                key="p14_panel_selector"
+                key="p14_panel_selector_dropdown"
             )
 
-            # Retrieve schema targeting rules based on the dropdown selection
+            # Retrieve targeted schema properties matching user selection mapping profiles
             target_columns = panel_options_list[selected_panel_view]
 
-            # Enforce schema uniformity by auto-initializing column blocks if absent
+            # Enforce schema uniform layout by auto-initializing missing value data fields 
             for c_col in target_columns:
                 if c_col not in live_db.columns:
                     live_db[c_col] = ""
 
-            st.markdown(f"### 📋 {selected_panel_view} - Records Table")
+            st.markdown(f"### 📋 {selected_panel_view} - Active Transactions Grid")
             
-            # Interactive filtering layout row split
+            # Interactive metadata text query filtration split row controls
             col_search1, col_search2 = st.columns(2)
             with col_search1:
-                search_target_col = st.selectbox("खोजने के लिए फ़ील्ड चुनें (Search Column Filter):", options=target_columns, key="p14_search_col")
+                search_target_col = st.selectbox(
+                    "खोजने के लिए फ़ील्ड चुनें (Search Column Filter):", 
+                    options=target_columns, 
+                    key="p14_search_col_target_dropdown"
+                )
             with col_search2:
-                search_query_text = st.text_input(f"'{search_target_col}' में प्रविष्टि खोजें (Type Search Query):", key="p14_query_val")
+                search_query_text = st.text_input(
+                    f"'{search_target_col}' में प्रविष्टि खोजें (Type Search Query):", 
+                    key="p14_query_val_text_input"
+                ).strip()
 
-            # Clone matrix array to keep cache clean during local keyword evaluation
+            # Clone operational source array blocks to keep cache clear of data degradation
             view_filtered_df = live_db.copy()
-            if search_query_text.strip() != "":
+            if search_query_text != "":
                 view_filtered_df = view_filtered_df[
                     view_filtered_df[search_target_col].astype(str).str.contains(search_query_text, case=False, na=False)
                 ]
 
             st.write(f"वर्तमान ग्रिड में कुल उपलब्ध छात्र रिकॉर्ड संख्या (Total Matching Student Records): **{len(view_filtered_df)}**")
 
-            # Filter schema fields to display only active column configurations
+            # Isolate matching framework variables prior to rendering grid transformations
             final_render_cols = [col for col in target_columns if col in view_filtered_df.columns]
             
             if not view_filtered_df.empty:
-                # Format final display array layout mapping and insert sequence rows
+                # Extract clean targeting segments properties copy profiles array
                 display_ready_df = view_filtered_df[final_render_cols].copy()
                 
-                # Apply display labels if configured via super-admin parameters mapping
+                # Apply localized display label text conversions configured via admin mapping schemas
                 display_ready_df = display_ready_df.rename(columns={c: get_display_name(c) for c in display_ready_df.columns})
                 display_ready_df.insert(0, "S.No.", range(1, len(display_ready_df) + 1))
                 
-                # Render unified read-only transaction grid output canvas
+                # Render structured final lookup spreadsheet framework canvas onto viewport
                 st.dataframe(
                     display_ready_df,
                     use_container_width=True,
                     hide_index=True
                 )
                 
-                # Export localized file format download button control layer
+                # 📥 Localized platform download compilation transactional trigger layer
                 st.download_button(
-                    label=f"📥 Download Selected Dashboard Report (CSV)",
+                    label=f"📥 Download Selected Dashboard Report ({selected_panel_view.split(':')[0]} Snapshot CSV)",
                     data=view_filtered_df[final_render_cols].to_csv(index=False).encode('utf-8'),
-                    file_name=f"{selected_panel_view.replace(' ', '_').replace(':', '').lower()}_report.csv",
+                    file_name=f"{selected_panel_view.split(':')[0].replace(' ', '_').lower()}_inspection_report.csv",
                     mime="text/csv",
                     use_container_width=True,
-                    key="p14_download_btn"
+                    key="p14_download_compiled_report_btn"
                 )
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला। (No records found matching specified target filters.)")
+
 
         # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
@@ -1415,12 +1336,12 @@ else:
             # 📢 Live Notice Board Manager Panel Area
             st.subheader("📢 Live Notice Board Manager")
             with st.expander("कॉलेज सूचना पटल (Official Notice Board) की गाइडलाइंस एडिट करें", expanded=True):
-                with st.form(key="notice_board_edit_form"):
+                with st.form(key="p15_notice_board_edit_form"):
                     updated_notice_input = st.text_area(
                         "सूचना पटल की पंक्तियाँ लिखें (प्रत्येक नई लाइन मुख्य पेज पर एक नया पॉइंट बनेगी):",
                         value=st.session_state.notice_text,
                         height=150,
-                        key="p15_notice_text_area"
+                        key="p15_notice_text_area_input"
                     )
                     if st.form_submit_button("Publish & Save Notice Board Permanently", type="primary", use_container_width=True):
                         st.session_state.notice_text = updated_notice_input
@@ -1431,17 +1352,17 @@ else:
             st.markdown("---")
             st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
             with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                with st.form(key="panel_rename_matrix_form"):
+                with st.form(key="p15_panel_rename_matrix_form"):
                     p_setup1, p_setup2 = st.columns(2)
                     temp_panel_mappings = {}
                     for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
                         current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
                         if idx % 2 == 0:
                             with p_setup1: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_{p_key}")
                         else:
                             with p_setup2: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p_ren_{p_key}")
+                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_{p_key}")
                     
                     if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
                         st.session_state.panel_names = temp_panel_mappings
@@ -1461,7 +1382,7 @@ else:
                 for i, p_key in enumerate(panels_p1_p7):
                     with cols_p1_p7[i]:
                         status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_{p_key}"):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
                             
@@ -1473,7 +1394,7 @@ else:
                 for i, p_key in enumerate(panels_p8_p15):
                     with cols_p8_p15[i]:
                         status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
+                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_{p_key}"):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
 
@@ -1484,33 +1405,33 @@ else:
             col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
             with col_ctrl1:
                 lbl_edit = "👀 एडिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडिट टेक्स्ट FUNCTION: hidden"
-                if st.button(lbl_edit, use_container_width=True, key="p15_edit_toggle_btn"):
+                if st.button(lbl_edit, use_container_width=True, key="p15_edit_toggle_master_btn"):
                     st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
                     st.rerun()
             with col_ctrl2:
                 lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
-                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_btn"):
+                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn"):
                     st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
                     st.rerun()
             with col_ctrl3:
                 lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
-                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_btn"):
+                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn"):
                     st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                     st.rerun()
 
-            # Dynamic Row Column Order Shifting Controller Engine Block
+            # Dynamic Row/Column Order Shifting Controller Engine Block
             if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
                 st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
-                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select")
+                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box")
                 c_left, c_right = st.columns(2)
                 
-                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_btn"):
+                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx > 0:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                         st.rerun()
                         
-                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_btn"):
+                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx < len(st.session_state.admin_columns_order) - 1:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
@@ -1532,11 +1453,11 @@ else:
                     use_container_width=True, 
                     disabled=["S.No."], 
                     num_rows="dynamic", 
-                    key="admin_live_editor_grid", 
+                    key="p15_admin_live_editor_grid_container", 
                     hide_index=True
                 )
                 
-                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_btn"):
+                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn"):
                     try:
                         clean_edited = edited_df.drop(columns=["S.No."])
                         reverse_mapping = {get_display_name(c): c for c in render_columns}
@@ -1552,10 +1473,10 @@ else:
                                 if internal_key in synced_data:
                                     synced_data[internal_key].append(row_edit[display_name_key])
                         
-                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
+                                                max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
                         for k_key in synced_data.keys():
                             while len(synced_data[k_key]) < max_len: 
-                                                                synced_data[k_key].append("")
+                                synced_data[k_key].append("")
                                 
                         new_live_db = pd.DataFrame(synced_data)
                         save_live_data(new_live_db)
@@ -1565,3 +1486,7 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+
+                
+        
+                                    
