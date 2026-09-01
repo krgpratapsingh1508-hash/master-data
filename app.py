@@ -567,7 +567,14 @@ else:
                 unique_subjects = [s for s in unique_subjects if s != ""]
                 
                 selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + unique_subjects, key="cce_sub")
-                chosen_option = st.selectbox("📆 Select Semester / Year:", ["1 Semester", "2 Semester", "1 year", "2 year", "3 year", "4 year"])
+                                # 🎯 1 से 12 सेमेस्टर और 1 से 6 साल की पूरी लिस्ट यहाँ जोड़ दी गई है
+                semester_options = [
+                    "1 Semester", "2 Semester", "3 Semester", "4 Semester", 
+                    "5 Semester", "6 Semester", "7 Semester", "8 Semester", 
+                    "9 Semester", "10 Semester", "11 Semester", "12 Semester",
+                    "1 year", "2 year", "3 year", "4 year", "5 year", "6 year"
+                ]
+                chosen_option = st.selectbox("📆 Select Semester / Year:", options=semester_options, key="cce_sem_year")
                 
                 generate_clicked = st.button("Generate Foil Sheets Now", use_container_width=True, type="primary")
                 
