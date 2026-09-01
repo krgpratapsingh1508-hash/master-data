@@ -227,13 +227,66 @@ else:
     with col_top1:
         st.success(f"🔑 सक्रिय सत्र: {username.upper()} | भूमिका अधिकार: {role.upper()}")
     with col_top2:
-        if st.button("🔒 Secure Logout / Exit System", type="primary", use_container_width=True):
-            st.session_state.user_role = None
-            st.session_state.logged_username = None
-            st.session_state.cce_foil_generated = False
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("---")
+           if not active_tabs_names:
+        st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
+    else:
+        selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
+        current_panel_id = selected_tab_ui.split(" : ")[0]
+
+        # ----------------------------------------------------------------------
+        # P1: PANEL ENTRY MODULE
+        # ----------------------------------------------------------------------
+        if current_panel_id == "P1":
+            st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
+            entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
+            if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+                uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+                if uploaded_file is not None:
+                    if st.button("Upload CSV Now", type="primary", use_container_width=True):
+                        try:
+                            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                            for col in DEFAULT_COLUMNS:
+                                if col not in uploaded_df.columns: uploaded_df[col] = ""
+                            cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                            updated_df = pd.concat([load_live_data(), cleaned_uploaded_df], ignore_index=True)
+                            save_live_data(updated_df)
+                            st.success("✅ CSV डेटा सफलतापूर्वक मुख्य डेटाबेस में अपलोड हो गया है!")
+                        except Exception as e: st.error(f"त्रुटि: {e}")
+            elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+                with st.form(key="student_add_form", clear_on_submit=True):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        admission_year = st.text_input("Admission Year")
+                        eligibility_name = st.text_input("Eligibility Name")
+                        admission_date = st.text_input("Admission Date")
+                        roll_no = st.text_input("Roll No.")
+                        enrollment_no = st.text_input("Enrollment No.")
+                        f_name = st.text_input("Father Name")
+                        dob = st.text_input("Date of Birth")
+                        subject_code = st.text_input("Subject Code")
+                        subject = st.text_input("Subject")
+                        mobile = st.text_input("Mobile Number")
+                    with col2:
+                        admission_session = st.text_input("Admission Session")
+                        admission_app_no = st.text_input("Admission Application Number")
+                        unique_id = st.text_input("Unique ID")
+                        app_enroll_no = st.text_input("Application Enrollment No.")
+                        s_name = st.text_input("Student Name")
+                        m_name = st.text_input("Mother Name")
+                        category = st.selectbox("Category", ["General", "OBC", "SC", "ST"])
+                        duration = st.text_input("Duration")
+                        email = st.text_input("Email ID")
+                        address = st.text_input("Address")
+                        status_input = st.selectbox("Status", ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
+                    submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
+                if submit_student:
+                    if s_name.strip() == "": st.warning("Student Name भरना अनिवार्य है।")
+                    else:
+                        new_row = {c: "" for c in DEFAULT_COLUMNS}
+                        new_row.update({"Admission Year": admission_year, "Admission Session": admission_session, "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no, "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject Code": subject_code, "Subject": subject, "Duration": duration, "Mobile Number": mobile, "Email ID": email, "Address": address, "Status": status_input})
+                        updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
+                        save_live_data(updated_df)
+                        st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE
