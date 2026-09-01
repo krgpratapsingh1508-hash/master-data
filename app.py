@@ -549,17 +549,16 @@ else:
                     st.success("✅ छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई है!")
                     st.rerun()
 
-              # ----------------------------------------------------------------------
+               # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
-            st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
+            st.header("College CCE Foil Sheet Generator")
             st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
+
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
-            
-            if live_db.empty:
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
-            else:
+
+            if not live_db.empty:
                 unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
                 unique_subjects = [sub for sub in unique_subjects if sub != ""]
                 selected_subject = st.selectbox("📚 Select Subject (विषय चुनें):", options=["All Subjects"] + unique_subjects, key="cce_sub")
@@ -584,30 +583,33 @@ else:
                     "11 Semester": "6 year", "12 Semester": "6 year", "6 year": "6 year"
                 }
                 target_year_text = mapping_logic[chosen_option]
+                display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
+                exam_info = f"Examination :- CCE                                             {display_subject_heading} {chosen_option.upper()}"
 
                 st.write("📊 CCE Processing Student Grid View:")
                 preview_db = live_db.copy()
                 if selected_subject != "All Subjects":
-                    preview_db = preview_db[preview_db['Subject'].astype(str).str.strip() == selected_subject.strip()]
+                    preview_db = preview_db[preview_db['Subject'].str.strip() == selected_subject]
                 
                 preview_render = preview_db[["Roll No.", "Student Name", "Subject Code", "Subject", "Status", "Current Year"]].copy()
                 preview_render = preview_render.rename(columns={c: get_display_name(c) for c in preview_render.columns})
                 st.dataframe(preview_render, use_container_width=True, hide_index=True)
 
-                if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="p7_gen_btn"):
+                if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="p7_legacy_gen_btn"):
                     st.session_state.cce_foil_generated = True
                     st.rerun()
 
+                # --- Data Processing Logic Engine ---
                 if st.session_state.cce_foil_generated:
                     regular_records = []
                     ex_student_records = []
                     has_missing_roll_and_is_first_year_regular = False 
                     detected_subject_code = ""
 
-                    years_series = pd.to_numeric(preview_db["Admission Year"], errors='coerce')
+                    years_series = pd.to_numeric(live_db["Admission Year"], errors='coerce')
                     max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
 
-                    for _, row in preview_db.iterrows():
+                    for _, row in live_db.iterrows():
                         roll = str(row.get('Roll No.', '')).strip()
                         name = str(row.get('Student Name', '')).strip()
                         status = str(row.get('Status', '')).strip().upper()
@@ -620,9 +622,10 @@ else:
                         try: course_duration = int(float(str(row.get('Duration', '6'))))
                         except: course_duration = 6
 
-                        if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": 
-                            detected_subject_code = sub_code
+                        if selected_subject != "All Subjects" and student_sub != selected_subject: continue
+                        if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": detected_subject_code = sub_code
 
+                        # Logic A: EX-STUDENT Criteria Evaluation
                         if status == "EX-STUDENT":
                             is_ex_match = False
                             try: gap_needed = int(target_year_text.split()[0])
@@ -632,13 +635,14 @@ else:
                             if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                             continue
 
-                        if status in ['REGULAR STUDENT', 'REGULAR']:
+                        # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
+                        if status == 'REGULAR STUDENT' or status == 'REGULAR':
                             is_regular_year_match = False
                             clean_target_text = target_year_text.strip().lower()
                             
                             if clean_target_text in current_year_val or current_year_val in clean_target_text:
                                 is_regular_year_match = True
-                            elif current_year_val in ["", "ex-student", "nan"]:
+                            elif current_year_val == "" or current_year_val == "ex-student" or current_year_val == "nan":
                                 calculated_gap = max_year - adm_year
                                 if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
                                 elif clean_target_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
@@ -648,6 +652,7 @@ else:
                                 elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
 
                             if is_regular_year_match:
+                                # 1st Year Missing Roll Number Fallback to Name Routing
                                 if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                     has_missing_roll_and_is_first_year_regular = True
                                     regular_records.append(name if name else "[Unknown Name]")
@@ -664,73 +669,73 @@ else:
                     with col_m2: st.metric("Valid Regular Students", len(regular_records))
                     with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
+                    # --- Dynamic Infinite Flow Foil Canvas Layout Generator ---
                     if final_records_list:
                         st.subheader("🖨️ Generated Visual CCE Foil Sheets")
                         dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
-                        paper_code_display = detected_subject_code if detected_subject_code else "N/A"
 
-                        html_table_rows = ""
-                        for idx, item in enumerate(final_records_list):
-                            html_table_rows += f"""
-                            <tr>
-                                <td style='border: 1px solid black; padding: 6px; text-align: center; color: black;'>{idx + 1}</td>
-                                <td style='border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; color: black;'>{item}</td>
-                                <td style='border: 1px solid black; padding: 6px;'></td>
-                                <td style='border: 1px solid black; padding: 6px;'></td>
-                            </tr>
+                        def generate_cce_html_block(items, start_idx, foil_label):
+                            paper_code_display = f"Paper Code: <b>{detected_subject_code}</b>" if detected_subject_code else "Paper Code...................."
+                            block = f"""
+                            <div class="foil-unit">
+                                <div class="top-fields"><div></div><div>{paper_code_display}</div></div>
+                                <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
+                                <div class="header-box">{college_name}</div>
+                                <div class="sub-box exam-right">{exam_info}</div>
+                                <div class="sub-box">Subject: {selected_subject if selected_subject != 'All Subjects' else '......................'} Paper.........................</div>
+                                <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
+                                <div class="foil-title">{foil_label}</div>
+                                <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                                    <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
+                                                                        <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
+                                    <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
                             """
-                        
-                        full_block_html = f"""
-                        <div style='border: 3px double #000; padding: 15px; margin-bottom: 30px; background-color: white; color: black; font-family: Arial, sans-serif;'>
-                            <h2 style='text-align: center; margin: 0; font-size: 20px; color: black;'>{college_name}</h2>
-                            <h4 style='text-align: center; margin: 5px 0 15px 0; font-size: 14px; text-decoration: underline; color: black;'>CCE FOIL SHEET (STATUS: ELIGIBLE STUDENTS)</h4>
-                            <table style='width: 100%; margin-bottom: 15px; font-size: 13px; border-collapse: collapse; color: black;'>
-                                <tr>
-                                    <td style='padding: 4px; color: black;'><b>Subject:</b> {selected_subject}</td>
-                                    <td style='padding: 4px; text-align: right; color: black;'><b>Semester/Year:</b> {chosen_option}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 4px; color: black;'><b>Paper Code:</b> {paper_code_display}</td>
-                                                                        <td style='padding: 4px; text-align: right; color: black;'><b>Max Marks:</b> 20 / 30</td>
-                                </tr>
-                            </table>
-                            <table style='width: 100%; border-collapse: collapse; font-size: 13px; color: black;'>
-                                <thead>
-                                    <tr style='background-color: #f2f2f2; color: black;'>
-                                        <th style='border: 1px solid black; padding: 8px; width: 10%; text-align: center; color: black;'>S.No.</th>
-                                        <th style='border: 1px solid black; padding: 8px; width: 40%; text-align: center; color: black;'>{dynamic_th_label}</th>
-                                        <th style='border: 1px solid black; padding: 8px; width: 25%; text-align: center; color: black;'>Marks Obtained (In Figures)</th>
-                                        <th style='border: 1px solid black; padding: 8px; width: 25%; text-align: center; color: black;'>Marks Obtained (In Words)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {html_table_rows}
-                                </tbody>
-                            </table>
-                            <div style='margin-top: 50px; display: flex; justify-content: space-between; font-size: 13px; color: black;'>
-                                <div style='color: black;'><b>Signature of Evaluator:</b> ___________________</div>
-                                <div style='color: black;'><b>Signature of HOD/Controller:</b> ___________________</div>
-                            </div>
-                        </div>
-                        """
+                            # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
+                            for idx_foil, item_val in enumerate(items, start=start_idx):
+                                block += f"<tr><td style='border:1px solid black; padding:4px; color:black;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px; color:black;'>{item_val}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
+                            
+                            # 2. यदि छात्र 35 से कम हैं, तो फ़ॉर्मेट को बराबर रखने के लिए बची हुई खाली पंक्तियाँ (Blank Rows) जोड़ना
+                            for k in range(len(items) + start_idx, 35 + start_idx):
+                                block += "<tr><td style='border:1px solid black; padding:4px; color:black;'>&nbsp;</td><td style='border:1px solid black; padding:4px; color:black;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
+                            
+                            # 3. फ़ॉइल ब्लॉक के फुटर और परीक्षक के हस्ताक्षर क्षेत्र का संयोजन
+                            block += f"""</table><div class="note" style="font-size:10px; margin-top:10px; color:black;"><b>Note:</b> Roll Number and Marks awarded to the candidate
+                may be entered under respective columns very 
+                carefully. Marks and Roll Number should be legible.
+                These may be checked again to ensure that no
+                mistake remains.</div><div class="footer-fields" style="color:black;">Signature of Examiner......................................<br>Date: ___/___/2026</div></div>"""
+                            return block
 
-                        st.markdown("### 📄 Print Preview Window")
-                        st.markdown(full_block_html, unsafe_allow_html=True)
+                        # 4. असीमित सब-ब्लॉक डिकम्प्रेशन और चंकिंग इंजन (35-35 रिकॉर्ड्स का विभाजन)
+                        html_blocks_compiled = ""
+                        chunk_size = 35
+                        total_records = len(final_records_list)
+                        chunks = [final_records_list[i:i + chunk_size] for i in range(0, total_records, chunk_size)]
                         
-                        export_df = pd.DataFrame({dynamic_th_label: final_records_list})
-                        st.download_button(
-                            label="📥 Download Eligible Student List for Foil (CSV)",
-                            data=export_df.to_csv(index=False).encode('utf-8'),
-                            file_name=f"cce_foil_list_{chosen_option.lower().replace(' ', '_')}.csv",
-                            mime="text/csv",
-                            use_container_width=True,
-                            key="p7_download_btn"
-                        )
+                        for index, chunk_data in enumerate(chunks):
+                            start_num = (index * chunk_size) + 1
+                            
+                            # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें (लेफ्ट, राइट, बॉटम-लेफ्ट, बॉटम-राइट ग्रिड प्रवाह)
+                            if index % 2 == 0:
+                                html_blocks_compiled += '<div class="foil-row-wrapper">'
+                            
+                            html_blocks_compiled += generate_cce_html_block(chunk_data, start_num, f"FOIL - PAGE {index+1}")
+                            
+                            if index % 2 == 1 or index == len(chunks) - 1:
+                                # यदि आखिरी शीट अकेले बची है, तो लेआउट संतुलित रखने के लिए खाली पारदर्शी शीट इंजेक्ट करें
+                                if index % 2 == 0 and index == len(chunks) - 1:
+                                    html_blocks_compiled += '<div class="foil-unit" style="border:none; background:transparent;"></div>'
+                                html_blocks_compiled += '</div>'
+
+                        # 5. डायनेमिक रिस्पॉन्सिव स्टाइल और प्रिंट मीडिया मार्जिन सेटिंग्स
+                        html_style = """<style>.foil-row-wrapper { display: flex; justify-content: space-between; gap: 20px; width: 1100px; margin: 0 auto 30px auto; background: white; page-break-after: always; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; color: black; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; color: black; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; color: black; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; color: black; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; color: black; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; color: black; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; color: black; }@media print { .print-hide { display: none !important; } }</style>"""
+                        
+                        # 6. html2canvas स्क्रिप्ट के साथ मल्टी-पेज पीएनजी एक्सपोर्टर इंजन
+                        full_html = f"""<html><head>{html_style}<script src="https://cloudflare.com"></script><script>function downloadAllFoilsAsPNG() {{ const elements = document.getElementsByClassName("foil-row-wrapper"); for(let i=0; i<elements.length; i++) {{ html2canvas(elements[i], {{ scale: 2 }}).then(canvas => {{ let link = document.createElement("a"); link.download = "cce_foil_sheet_page_" + (i+1) + ".png"; link.href = canvas.toDataURL("image/png"); link.click(); }}); }} }}</script></head><body><div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;"><button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print All Sheets</button><button onclick="downloadAllFoilsAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download All Pages in PNG</button></div><div id="master-container">{html_blocks_compiled}</div></body></html>"""
+                        st.components.v1.html(full_html, height=1600, scrolling=True)
                     else:
-                        st.warning("⚠️ चुने गए मापदंडों (Filters) के आधार पर फॉयल शीट के लिए कोई भी योग्य छात्र नहीं मिला।")
-
-
-
+                        st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
+        st.markdown("---")
 
         # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
