@@ -737,7 +737,7 @@ else:
                         st.error("कोई छात्र रिकॉर्ड नहीं मिला।")
         st.markdown("---")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
@@ -818,7 +818,7 @@ else:
                 if st.button("Execute Smart Database Merge Now", type="primary", use_container_width=True):
                     st.success("✅ डेटाबेस सफलतापूर्वक मर्ज हो गया!")
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P14":
@@ -880,7 +880,7 @@ else:
                 )
                 
                 st.download_button(
-                    label=f"📥 Download Report (CSV)",
+                    label="📥 Download Report (CSV)",
                     data=view_filtered_df[final_render_cols].to_csv(index=False).encode('utf-8'),
                     file_name=f"{selected_panel_view.replace(' ', '_').lower()}_report.csv",
                     mime="text/csv",
@@ -889,7 +889,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -987,7 +987,7 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-            st.write(f"डेटाबेस में कुल लाइव记录 संख्या: **{len(ordered_db_display)}**")
+            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या: **{len(ordered_db_display)}**")
 
             if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
                 st.warning("⚠️ लाइव संपादन सक्रिय है।")
@@ -1027,6 +1027,5 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-
 
 
