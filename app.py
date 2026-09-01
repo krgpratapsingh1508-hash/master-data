@@ -849,7 +849,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-              # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -859,9 +859,10 @@ else:
             with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
                 with st.form(key="panel_rename_matrix_form"):
                     p_setup1, p_setup2 = st.columns(2)
-                    temp_panel_mappings = {}
                     
-                    # Convert keys to list to reference them by index safely
+                    # 🎯 यहाँ बदलाव किया गया है: {} के बजाय dict() का उपयोग किया है ताकि f-string एरर न आए
+                    temp_panel_mappings = dict()
+                    
                     panel_keys_list = list(DEFAULT_PANELS.keys())
                     for idx, p_key in enumerate(panel_keys_list):
                         current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
@@ -883,7 +884,7 @@ else:
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
             
-            # First tab configuration
+            # फर्स्ट टैब कॉन्फ़िगरेशन
             with vis_tabs[0]:
                 c_p1_7 = st.columns(7)
                 p1_7_keys = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
@@ -895,7 +896,7 @@ else:
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
                             
-            # Second tab configuration
+            # सेकंड टैब कॉन्फ़िगरेशन
             with vis_tabs[1]:
                 c_p8_15 = st.columns(8)
                 p8_15_keys = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
@@ -958,14 +959,17 @@ else:
                 if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True):
                     try:
                         clean_edited = edited_df.drop(columns=["S.No."])
-                        reverse_mapping = {}
+                        reverse_mapping = dict()
                         for orig_col in render_columns:
                             disp_name = get_display_name(orig_col)
                             reverse_mapping[disp_name] = orig_col
                         
-                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
+                        synced_data = dict()
+                        for col in DEFAULT_COLUMNS:
+                            synced_data[col] = []
                         for extra_col in live_db.columns:
-                            if extra_col not in synced_data: synced_data[extra_col] = []
+                            if extra_col not in synced_data: 
+                                synced_data[extra_col] = []
 
                         for _, row_edit in clean_edited.iterrows():
                             for display_name_key in clean_edited.columns:
@@ -975,7 +979,8 @@ else:
                         
                         max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
                         for k_key in synced_data.keys():
-                            while len(synced_data[k_key]) < max_len: synced_data[k_key].append("")
+                            while len(synced_data[k_key]) < max_len: 
+                                synced_data[k_key].append("")
                                 
                         new_live_db = pd.DataFrame(synced_data)
                         save_live_data(new_live_db)
@@ -985,4 +990,5 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+
 
