@@ -1473,7 +1473,8 @@ else:
                                 if internal_key in synced_data:
                                     synced_data[internal_key].append(row_edit[display_name_key])
 
-                                                            max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
+                        # Cleanly aligned with your database synchronization mapping rules
+                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
                         for k_key in synced_data.keys():
                             while len(synced_data[k_key]) < max_len: 
                                 synced_data[k_key].append("")
@@ -1487,5 +1488,3 @@ else:
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
                 
-                        
-                                                                           
