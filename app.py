@@ -549,7 +549,7 @@ else:
                     st.success("✅ छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई है!")
                     st.rerun()
 
-             # ----------------------------------------------------------------------
+              # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
@@ -560,12 +560,10 @@ else:
             if live_db.empty:
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # विषय की सूची लोड करें
                 unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
                 unique_subjects = [sub for sub in unique_subjects if sub != ""]
                 selected_subject = st.selectbox("📚 Select Subject (विषय चुनें):", options=["All Subjects"] + unique_subjects, key="cce_sub")
 
-                # 1 से 12 सेमेस्टर और 1 से 6 साल की पूरी ड्रॉपडाउन लिस्ट
                 year_sem_options = [
                     "1 Semester", "2 Semester", "3 Semester", "4 Semester", "5 Semester", "6 Semester",
                     "7 Semester", "8 Semester", "9 Semester", "10 Semester", "11 Semester", "12 Semester",
@@ -577,7 +575,6 @@ else:
 
                 chosen_option = st.selectbox("📆 Select Semester / Year:", year_sem_options, key="cce_year_sem", on_change=on_cce_param_change)
 
-                # सेमेस्टर और ईयर मैपिंग लॉजिक
                 mapping_logic = {
                     "1 Semester": "1 year", "2 Semester": "1 year", "1 year": "1 year",
                     "3 Semester": "2 year", "4 Semester": "2 year", "2 year": "2 year",
@@ -587,7 +584,6 @@ else:
                     "11 Semester": "6 year", "12 Semester": "6 year", "6 year": "6 year"
                 }
                 target_year_text = mapping_logic[chosen_option]
-                display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
 
                 st.write("📊 CCE Processing Student Grid View:")
                 preview_db = live_db.copy()
@@ -602,14 +598,12 @@ else:
                     st.session_state.cce_foil_generated = True
                     st.rerun()
 
-                # --- Processing Logic Engine ---
                 if st.session_state.cce_foil_generated:
                     regular_records = []
                     ex_student_records = []
                     has_missing_roll_and_is_first_year_regular = False 
                     detected_subject_code = ""
 
-                    # आधार वर्ष की गणना
                     years_series = pd.to_numeric(preview_db["Admission Year"], errors='coerce')
                     max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
 
@@ -629,7 +623,6 @@ else:
                         if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": 
                             detected_subject_code = sub_code
 
-                        # Logic A: EX-STUDENT Criteria Evaluation
                         if status == "EX-STUDENT":
                             is_ex_match = False
                             try: gap_needed = int(target_year_text.split()[0])
@@ -639,7 +632,6 @@ else:
                             if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
                             continue
 
-                        # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
                         if status in ['REGULAR STUDENT', 'REGULAR']:
                             is_regular_year_match = False
                             clean_target_text = target_year_text.strip().lower()
@@ -656,7 +648,6 @@ else:
                                 elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
 
                             if is_regular_year_match:
-                                # 1st Year Missing Roll Number Fallback to Name Routing
                                 if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
                                     has_missing_roll_and_is_first_year_regular = True
                                     regular_records.append(name if name else "[Unknown Name]")
@@ -673,28 +664,72 @@ else:
                     with col_m2: st.metric("Valid Regular Students", len(regular_records))
                     with col_m3: st.metric("Total Records Captured", len(final_records_list))
 
-                    # --- विजुअल फॉयल कैनवास लेआउट जनरेटर ---
                     if final_records_list:
                         st.subheader("🖨️ Generated Visual CCE Foil Sheets")
                         dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
                         paper_code_display = detected_subject_code if detected_subject_code else "N/A"
 
-                        # एचटीएमएल ब्लॉक जनरेशन फंक्शन (पेज-वाइज टेबल ब्रेक के साथ)
-                        def generate_cce_html_block(items, start_idx, foil_label):
-                            html_table_rows = ""
-                            for idx, item in enumerate(items):
-                                html_table_rows += f"""
+                        html_table_rows = ""
+                        for idx, item in enumerate(final_records_list):
+                            html_table_rows += f"""
+                            <tr>
+                                <td style='border: 1px solid black; padding: 6px; text-align: center; color: black;'>{idx + 1}</td>
+                                <td style='border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; color: black;'>{item}</td>
+                                <td style='border: 1px solid black; padding: 6px;'></td>
+                                <td style='border: 1px solid black; padding: 6px;'></td>
+                            </tr>
+                            """
+                        
+                        full_block_html = f"""
+                        <div style='border: 3px double #000; padding: 15px; margin-bottom: 30px; background-color: white; color: black; font-family: Arial, sans-serif;'>
+                            <h2 style='text-align: center; margin: 0; font-size: 20px; color: black;'>{college_name}</h2>
+                            <h4 style='text-align: center; margin: 5px 0 15px 0; font-size: 14px; text-decoration: underline; color: black;'>CCE FOIL SHEET (STATUS: ELIGIBLE STUDENTS)</h4>
+                            <table style='width: 100%; margin-bottom: 15px; font-size: 13px; border-collapse: collapse; color: black;'>
                                 <tr>
-                                    <td style="border: 1px solid black; padding: 6px; text-align: center; color: black;">{start_idx + idx}</td>
-                                    <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; color: black;">{item}</td>
-                                    <td style="border: 1px solid black; padding: 6px;"></td>
-                                    <td style="border: 1px solid black; padding: 6px;"></td>
+                                    <td style='padding: 4px; color: black;'><b>Subject:</b> {selected_subject}</td>
+                                    <td style='padding: 4px; text-align: right; color: black;'><b>Semester/Year:</b> {chosen_option}</td>
                                 </tr>
-                                """
-                            
-                            full_block_html = f"""
-                            <div style="border: 3px double #000; padding: 15px; margin-bottom: 30px; background-color: white; color: black; font-family: Arial, sans-serif;">
-                                <h2 style="text-align: center; margin: 0; font-size: 20px; color: black;">{college_name}</h2>
+                                <tr>
+                                    <td style='padding: 4px; color: black;'><b>Paper Code:</b> {paper_code_display}</td>
+                                                                        <td style='padding: 4px; text-align: right; color: black;'><b>Max Marks:</b> 20 / 30</td>
+                                </tr>
+                            </table>
+                            <table style='width: 100%; border-collapse: collapse; font-size: 13px; color: black;'>
+                                <thead>
+                                    <tr style='background-color: #f2f2f2; color: black;'>
+                                        <th style='border: 1px solid black; padding: 8px; width: 10%; text-align: center; color: black;'>S.No.</th>
+                                        <th style='border: 1px solid black; padding: 8px; width: 40%; text-align: center; color: black;'>{dynamic_th_label}</th>
+                                        <th style='border: 1px solid black; padding: 8px; width: 25%; text-align: center; color: black;'>Marks Obtained (In Figures)</th>
+                                        <th style='border: 1px solid black; padding: 8px; width: 25%; text-align: center; color: black;'>Marks Obtained (In Words)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {html_table_rows}
+                                </tbody>
+                            </table>
+                            <div style='margin-top: 50px; display: flex; justify-content: space-between; font-size: 13px; color: black;'>
+                                <div style='color: black;'><b>Signature of Evaluator:</b> ___________________</div>
+                                <div style='color: black;'><b>Signature of HOD/Controller:</b> ___________________</div>
+                            </div>
+                        </div>
+                        """
+
+                        st.markdown("### 📄 Print Preview Window")
+                        st.markdown(full_block_html, unsafe_allow_html=True)
+                        
+                        export_df = pd.DataFrame({dynamic_th_label: final_records_list})
+                        st.download_button(
+                            label="📥 Download Eligible Student List for Foil (CSV)",
+                            data=export_df.to_csv(index=False).encode('utf-8'),
+                            file_name=f"cce_foil_list_{chosen_option.lower().replace(' ', '_')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            key="p7_download_btn"
+                        )
+                    else:
+                        st.warning("⚠️ चुने गए मापदंडों (Filters) के आधार पर फॉयल शीट के लिए कोई भी योग्य छात्र नहीं मिला।")
+
+
 
 
         # ----------------------------------------------------------------------
