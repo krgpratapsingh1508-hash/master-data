@@ -143,10 +143,20 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# स्टेट मैनेजमेंट इनिशियलाइजेशन
-if "credentials" not in st.session_state: st.session_state.credentials = load_credentials()
-if "panel_names" not in st.session_state: st.session_state.panel_names = load_panel_names()
-if "column_mappings" not in st.session_state: st.session_state.column_mappings = load_column_mappings()
+# --- उसकी जगह पर यह नया सुरक्षित ब्लॉक पेस्ट करें ---
+# यह कोड पुराने कैश मेमोरी को जबरन क्लियर करके नए 15 यूज़र्स लोड करेगा
+if "credentials" not in st.session_state or len(st.session_state.credentials) < 15:
+    st.session_state.credentials = DEFAULT_CREDENTIALS.copy()
+else:
+    st.session_state.credentials = load_credentials()
+
+if "column_mappings" not in st.session_state: 
+    st.session_state.column_mappings = load_column_mappings()
+
+if "panel_names" not in st.session_state or len(st.session_state.panel_names) < 15:
+    st.session_state.panel_names = DEFAULT_PANELS.copy()
+else:
+    st.session_state.panel_names = load_panel_names()
 if "user_role" not in st.session_state: st.session_state.user_role = None  
 if "logged_username" not in st.session_state: st.session_state.logged_username = None
 if "show_login_form" not in st.session_state: st.session_state.show_login_form = False
