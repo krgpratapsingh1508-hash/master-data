@@ -62,7 +62,7 @@ CRED_FILE = "user_credentials.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
 
-# 15 पैनल्स के हिसाब से 15 सेपरेटेड क्रेडेंशियल्स की मास्टर डिक्शनरी
+# 🔒 पुराना DEFAULT_CREDENTIALS हटाकर ठीक उसी जगह यह नया ब्लॉक पेस्ट करें
 DEFAULT_CREDENTIALS = {
     "admin": {"password": "admin15master", "role": "full_admin", "label": "👑 Super Admin (All 15 Panels Control)"},
     "p1_entry": {"password": "entry1123", "role": "p1_role", "label": "📝 P1: Student Data Onboarding Operator"},
