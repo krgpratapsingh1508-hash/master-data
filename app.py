@@ -689,6 +689,7 @@ else:
                                     <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                                                         <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                     <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
+                                </table>
                             """
                             # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                             for idx_foil, item_val in enumerate(items, start=start_idx):
@@ -715,7 +716,7 @@ else:
                         for index, chunk_data in enumerate(chunks):
                             start_num = (index * chunk_size) + 1
                             
-                            # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें (लेफ्ट, राइट, बॉटम-लेफ्ट, बॉटम-राइट ग्रिड प्रवाह)
+                            # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें
                             if index % 2 == 0:
                                 html_blocks_compiled += '<div class="foil-row-wrapper">'
                             
@@ -727,7 +728,7 @@ else:
                                     html_blocks_compiled += '<div class="foil-unit" style="border:none; background:transparent;"></div>'
                                 html_blocks_compiled += '</div>'
 
-                        # 5. डायनेमिक रिस्पॉन्सिव स्टाइल और प्रिंट मीडिया मार्जिन सेटिंग्स
+                        # 5. डायनेमिक रिस्पॉन्सिव स्टाइल और प्रिंट media मार्जिन सेटिंग्स
                         html_style = """<style>.foil-row-wrapper { display: flex; justify-content: space-between; gap: 20px; width: 1100px; margin: 0 auto 30px auto; background: white; page-break-after: always; }.foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; color: black; }.top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; color: black; }.header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; color: black; }.sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; color: black; }.exam-right { text-align: right; }.marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; color: black; }.foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; color: black; }.footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; color: black; }@media print { .print-hide { display: none !important; } }</style>"""
                         
                         # 6. html2canvas स्क्रिप्ट के साथ मल्टी-पेज पीएनजी एक्सपोर्टर इंजन
