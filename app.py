@@ -549,7 +549,7 @@ else:
                     st.success("✅ छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई है!")
                     st.rerun()
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
@@ -559,18 +559,22 @@ else:
             if live_db.empty:
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
+                # डेटाबेस से सभी सब्जेक्ट्स की लिस्ट निकालना
                 unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
-                selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="cce_sub")
+                unique_subjects = [s for s in unique_subjects if s != ""]
+                
+                selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + unique_subjects, key="cce_sub")
                 chosen_option = st.selectbox("📆 Select Semester / Year:", ["1 Semester", "2 Semester", "1 year", "2 year", "3 year", "4 year"])
                 
-                if st.button("Generate Foil Sheets Now", use_container_width=True, type="primary"):
-                    st.session_state.cce_foil_generated = True
+                # कनवर्टर बटन
+                generate_clicked = st.button("Generate Foil Sheets Now", use_container_width=True, type="primary")
                 
-                if st.session_state.cce_foil_generated:
-                    # 🎯 डेटाबेस से रिकॉर्ड्स को सावधानीपूर्वक फ़िल्टर करना
-                    foil_df = live_db.copy()
+                # यदि बटन दबाया गया हो या स्टेट पहले से एक्टिव हो
+                if generate_clicked or st.session_state.cce_foil_generated:
+                    st.session_state.cce_foil_generated = True
                     
-                    # स्पेलिंग और स्पेस की गड़बड़ी से बचने के लिए strip() का उपयोग
+                    # डेटाबेस से रिकॉर्ड्स को सावधानीपूर्वक फ़िल्टर करना
+                    foil_df = live_db.copy()
                     if selected_subject != "All Subjects":
                         foil_df = foil_df[foil_df["Subject"].astype(str).str.strip() == selected_subject.strip()]
                     
@@ -583,12 +587,16 @@ else:
                         # आवश्यक कॉलम जो फॉयल शीट में दिखने चाहिए
                         foil_cols = ["Roll No.", "Enrollment No.", "Student Name", "Father Name", "Subject"]
                         
-                        # चेक करें कि CCE के मार्क्स डेटाबेस में हैं या नहीं
+                        # चेक करें कि CCE के मार्क्स डेटाबेस में उपलब्ध हैं या नहीं
                         for col in ["CCE Marks Obtained", "CCE Attendance Status"]:
-                            if col in live_db.columns:
-                                foil_cols.append(col)
-                                
-                        render_foil = foil_df[[c for c in foil_cols if c in foil_df.columns]].copy()
+                            if col not in foil_df.columns:
+                                foil_df[col] = "" # अगर कॉलम नहीं है तो खाली बना दे
+                            foil_cols.append(col)
+                        
+                        # डुप्लीकेट कॉलम हटाने के लिए list(dict.fromkeys())
+                        foil_cols = list(dict.fromkeys(foil_cols))
+                        
+                        render_foil = foil_df[foil_cols].copy()
                         render_foil.insert(0, "S.No.", range(1, len(render_foil) + 1))
                         
                         # 🖥️ स्क्रीन पर फॉयल शीट की टेबल दिखाना
@@ -603,8 +611,8 @@ else:
                             use_container_width=True
                         )
                     else:
-                        # ⚠️ यदि उस सब्जेक्ट का कोई छात्र नहीं मिला तो यह एरर दिखेगी
-                        st.error(f"🔍 डेटाबेस में '{selected_subject}' विषय के लिए कोई भी छात्र रिकॉर्ड नहीं मिला। कृपया 'Panel 1' में जाकर चेक करें कि छात्रों के 'Subject' कॉलम में यही सटीक नाम लिखा है या नहीं।")
+                        # ⚠️ यदि उस सब्जेक्ट का कोई छात्र नहीं मिला
+                        st.error(f"🔍 डेटाबेस में '{selected_subject}' विषय के लिए कोई भी छात्र रिकॉर्ड नहीं मिला। कृपया P1 या P15 (Admin) पैनल में जाकर चेक करें कि छात्रों के 'Subject' वाले कॉलम में क्या लिखा है।")
 
         # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
