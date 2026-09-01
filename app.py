@@ -365,7 +365,7 @@ else:
                         save_live_data(updated_df)
                         st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P2: PANEL ADMISSION MODULE (Admission Control & Verification)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P2":
@@ -432,34 +432,145 @@ else:
                     hide_index=True
                 )
                 
-                # Database live file synchronization operations pipeline trigger
-                if st.button("Save & Sync Admission Changes", type="primary", use_container_width=True, key="p2_save_btn"):
+        # ----------------------------------------------------------------------
+        # P2: PANEL ADMISSION MODULE (Admission Control, Verification & Fees Data)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P2":
+            st.header(f"🎓 {get_panel_title('P2')} (Admission Control & Payment Tracker)")
+            
+            if live_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) या Panel 13 (Merge) से छात्र लोड करें।")
+            else:
+                # सुनिश्चित करें कि पेमेंट डेट का कॉलम स्कीमा में मौजूद हो
+                if "admitted payment date" not in live_db.columns:
+                    live_db["admitted payment date"] = ""
+                
+                # 📅 डेट रेंज फ़िल्टर सब-सिस्टम
+                st.subheader("📆 Filter Records By Payment Date Range")
+                use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)")
+                
+                # बेस डेटा कॉपी बनाएँ
+                admission_display_db = live_db.copy()
+                
+                if use_date_filter:
+                    col_dt1, col_dt2 = st.columns(2)
+                    with col_dt1:
+                        start_date = st.date_input("इस तिथि से (From Date):", value=pd.to_datetime("2024-01-01"))
+                    with col_dt2:
+                        end_date = st.date_input("इस तिथि तक (To Date):", value=pd.to_datetime("2026-12-31"))
+                    
+                    # तिथि के आधार पर डेटा को फ़िल्टर करने की कोशिश
                     try:
-                        clean_edited = edited_admission_df.drop(columns=["S.No."])
-                        
-                        # Route transactional modifications back into live state memory mapping
-                        for _, row_edit in clean_edited.iterrows():
-                            target_app_num = str(row_edit["Admission Application Number"]).strip()
+                        # अस्थाई कॉलम बनाकर उसे डेटटाइम में बदलें
+                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["admitted payment date"], errors="coerce")
+                        admission_display_db = admission_display_db[
+                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
+                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
+                        ]
+                        # अस्थाई कॉलम को हटा दें
+                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"])
+                    except Exception as date_err:
+                        st.error(f"तिथि फ़ॉर्मेट मिलान में त्रुटि: {date_err}")
+
+                st.markdown("---")
+                
+                # 🎛️ डायनेमिक कॉलम सिलेक्शन सब-सिस्टम (कंट्रोल कि कौन से कॉलम्स प्रिंट/डाउनलोड में रहेंगे)
+                st.subheader("⚙️ Select Columns for View, Print & Export")
+                
+                # डिफ़ॉल्ट रूप से प्रदर्शित होने वाले कॉलम्स का चयन
+                default_visible_cols = [
+                    "Admission Application Number", "Admission Year", "Admission Session", 
+                    "Student Name", "Father Name", "Status", "admitted payment date"
+                ]
+                
+                # सुनिश्चित करें कि उपलब्ध कॉलम्स केवल वही हों जो डेटाफ़्रेम में मौजूद हैं
+                available_to_select = [c for c in live_db.columns if c in DEFAULT_COLUMNS or c == "admitted payment date"]
+                
+                selected_columns_to_show = st.multiselect(
+                    "प्रिंट या एक्सपोर्ट में रखने के लिए कॉलम्स चुनें / हटाएँ:",
+                    options=available_to_select,
+                    default=[c for c in default_visible_cols if c in available_to_select]
+                )
+                
+                if not selected_columns_to_show:
+                    st.warning("⚠️ कृपया प्रदर्शित करने के लिए कम से कम एक कॉलम अवश्य चुनें।")
+                else:
+                    # फ़िल्टर्ड और सिलेक्टेड डेटा का रेंडर फ्रेम तैयार करना
+                    render_df = admission_display_db[selected_columns_to_show].copy()
+                    render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                    
+                    st.write(f"📊 वर्तमान फ़िल्टर्ड डेटा में कुल छात्र रिकॉर्ड्स: **{len(render_df)}**")
+                    
+                    # 📊 इंटरएक्टिव लाइव डेटा स्प्रेडशीट कंटेनर (एडमिशन ऑपरेटर केवल स्टेटस या पेमेंट डेट एडिट कर सकते हैं)
+                    # सिलेक्टेड कॉलम्स के आधार पर डिसेबल्ड लिस्ट को डायनेमिक बनाना
+                    disabled_cols = [c for c in selected_columns_to_show if c not in ["Status", "admitted payment date"]]
+                    disabled_cols.append("S.No.")
+                    
+                    edited_admission_df = st.data_editor(
+                        render_df, 
+                        use_container_width=True, 
+                        disabled=disabled_cols,
+                        key="admission_live_editor_grid_p2_updated", 
+                        hide_index=True
+                    )
+                    
+                    # डेटाबेस लाइव फाइल सिंक्रोनाइज़ेशन बटन
+                    if st.button("Save Changes to Live Database", type="primary", use_container_width=True, key="p2_save_updated_btn"):
+                        try:
+                            clean_edited = edited_admission_df.drop(columns=["S.No."])
                             
-                            # Fetch relative alignment sequence indices based on Key matching
-                            idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
-                            
-                            if not idx_matches.empty:
-                                for match_idx in idx_matches:
-                                    # Sync allowable editable property structures safely
-                                    live_db.at[match_idx, "Admission Year"] = str(row_edit["Admission Year"])
-                                    live_db.at[match_idx, "Admission Session"] = str(row_edit["Admission Session"])
-                                    live_db.at[match_idx, "Admission Date"] = str(row_edit["Admission Date"])
-                                    live_db.at[match_idx, "Status"] = str(row_edit["Status"])
-                                    live_db.at[match_idx, "Unique ID"] = str(row_edit["Unique ID"])
+                            if "Admission Application Number" not in clean_edited.columns:
+                                st.error("❌ डेटा सिंक करने के लिए ग्रिड व्यू में 'Admission Application Number' कॉलम का सिलेक्ट होना अनिवार्य है!")
+                            else:
+                                for _, row_edit in clean_edited.iterrows():
+                                    target_app_num = str(row_edit["Admission Application Number"]).strip()
+                                    idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
+                                    
+                                    if not idx_matches.empty:
+                                        for match_idx in idx_matches:
+                                            # केवल उन्हीं फ़ील्ड्स को सिंक करें जो संपादन योग्य हैं
+                                            if "Status" in row_edit:
+                                                live_db.at[match_idx, "Status"] = str(row_edit["Status"])
+                                            if "admitted payment date" in row_edit:
+                                                live_db.at[match_idx, "admitted payment date"] = str(row_edit["admitted payment date"])
+                                
+                                save_live_data(live_db)
+                                st.success("🎉 मुख्य डेटाबेस (Live CSV) सफलतापूर्वक अपडेट कर दिया गया है!")
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"डेटाबेस सिंक चक्र में त्रुटि: {e}")
+                    
+                    # 🖨️ प्रिंट और एक्सेल एक्सपोर्ट ऐक्शन्स पैनल
+                    st.markdown("---")
+                    col_exp1, col_exp2 = st.columns(2)
+                    
+                    with col_exp1:
+                        # कस्टमाइज्ड प्रिंट बटन (केवल सिलेक्टेड कॉलम्स और रोज़ को प्रिंट करेगा)
+                        st.markdown("""
+                            <button onclick="window.print()" style="width:100%; height:38px; background-color:#1465de; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
+                                🖨️ Print Current Selected Grid List (A4 Landscape)
+                            </button>
+                        """, unsafe_allow_html=True)
                         
-                        # Commit updated runtime data mutations directly into database storage file
-                        save_live_data(live_db)
-                        st.success("🎉 एडमिशन डेटाबेस सफलतापूर्वक मुख्य डेटाबेस (Live CSV) में सिंक और सुरक्षित कर दिया गया है!")
-                        st.rerun()
+                    with col_exp2:
+                        # 📥 एक्सेल एक्सपोर्टर (.XLSX फाइल डाउनलोड बटन)
+                        # बफर फ़ाइल में एक्सेल राइट करने का प्रोसेस
+                        import io
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                            # बिना सीरियल नंबर (S.No.) के शुद्ध डेटा एक्सपोर्ट करें
+                            export_clean_df = edited_admission_df.drop(columns=["S.No."], errors="ignore")
+                            export_clean_df.to_excel(writer, index=False, sheet_name='Admission_Report')
                         
-                    except Exception as e:
-                        st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                        st.download_button(
+                            label="📥 Export Current Selection as Excel (.xlsx)",
+                            data=buffer.getvalue(),
+                            file_name=f"admission_filtered_report_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="p2_download_excel_btn"
+                        )
+
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping)
