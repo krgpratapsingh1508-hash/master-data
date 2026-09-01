@@ -743,8 +743,11 @@ else:
                         st.rerun()
 
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
+            # === ठीक उसी खाली जगह पर इस नए कोड को पेस्ट करें ===
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
-            with vis_tabs:
+            
+            # पहले टैब (Index 0) के लिए विज़िबिलिटी बटन्स
+            with vis_tabs[0]:
                 c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
                 for i, p_key in enumerate(["P1", "P2", "P3", "P4", "P5", "P6", "P7"]):
                     with [c1, c2, c3, c4, c5, c6, c7][i]:
@@ -752,7 +755,9 @@ else:
                         if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
                             st.rerun()
-            with vis_tabs:
+                            
+            # दूसरे टैब (Index 1) के लिए विज़िबिलिटी बटन्स
+            with vis_tabs[1]:
                 c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
                 for i, p_key in enumerate(["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]):
                     with [c8, c9, c10, c11, c12, c13, c14, c15][i]:
