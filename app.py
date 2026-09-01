@@ -553,7 +553,7 @@ else:
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
-            st.header("College CCE Foil Sheet Generator")
+            st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
             st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
 
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
@@ -628,7 +628,7 @@ else:
                         # Logic A: EX-STUDENT Criteria Evaluation
                         if status == "EX-STUDENT":
                             is_ex_match = False
-                            try: gap_needed = int(target_year_text.split()[0])
+                            try: gap_needed = int(target_year_text.split())
                             except: gap_needed = 1
                                 
                             if gap_needed <= course_duration and adm_year == (max_year - gap_needed): is_ex_match = True
@@ -689,7 +689,6 @@ else:
                                     <tr><th style="border:1px solid black; padding:4px; width: 8%;">1</th><th style="border:1px solid black; padding:4px; width: 30%;" colspan="3">2</th></tr>
                                                                         <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">{dynamic_th_label}</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
                                     <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
-                                </table>
                             """
                             # 1. डेटाबेस से प्राप्त वैध छात्र रिकॉर्ड्स को पंक्तियों (Rows) में जोड़ना
                             for idx_foil, item_val in enumerate(items, start=start_idx):
@@ -716,7 +715,7 @@ else:
                         for index, chunk_data in enumerate(chunks):
                             start_num = (index * chunk_size) + 1
                             
-                            # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें
+                            # प्रत्येक दो शीट के बाद एक नया रैपर रो शुरू करें (लेफ्ट, राइट, बॉटम-लेफ्ट, बॉटम-राइट ग्रिड प्रवाह)
                             if index % 2 == 0:
                                 html_blocks_compiled += '<div class="foil-row-wrapper">'
                             
