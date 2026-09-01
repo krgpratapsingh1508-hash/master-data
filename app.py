@@ -559,12 +559,11 @@ else:
             if live_db.empty:
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # सुनिश्चित करें कि विषय (Subject) कॉलम मौजूद हो
-                if "Subject" not in live_db.columns:
-                    live_db["Subject"] = ""
+                # सुनिश्चित करें कि विषय कॉलम टेक्स्ट फॉर्मेट में हो
+                live_db["Subject"] = live_db["Subject"].fillna("").astype(str).str.strip()
                 
-                # डेटाबेस से सभी सब्जेक्ट्स की लिस्ट निकालना
-                unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
+                # डेटाबेस से सभी उपलब्ध विषयों की सूची निकालें
+                unique_subjects = sorted(list(set(live_db['Subject'])))
                 unique_subjects = [s for s in unique_subjects if s != ""]
                 
                 selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + unique_subjects, key="cce_sub")
@@ -575,34 +574,37 @@ else:
                 if generate_clicked or st.session_state.cce_foil_generated:
                     st.session_state.cce_foil_generated = True
                     
-                    # डेटाबेस की कॉपी लें
+                    # डेटाबेस की कॉपी लें और फ़िल्टरिंग आसान बनाएं
                     foil_df = live_db.copy()
-                    if selected_subject != "All Subjects":
-                        foil_df = foil_df[foil_df["Subject"].astype(str).str.strip() == selected_subject.strip()]
                     
+                    # सुपर-सर्च फ़िल्टर (स्पेस या केस की गड़बड़ी को अनदेखा करता है)
+                    if selected_subject != "All Subjects":
+                        foil_df = foil_df[foil_df["Subject"].str.lower() == selected_subject.lower()]
+                    
+                    # यदि डेटा मिल जाता है या ऑल सब्जेक्ट्स सेलेक्टेड है
                     if not foil_df.empty:
                         st.success("🎉 Foil Sheet Canvas Generated Below Ready for Verification.")
                         st.markdown(f"### 📋 {college_name}")
                         st.markdown(f"**Subject:** {selected_subject} | **Duration/Year:** {chosen_option}")
                         
-                        # 🛠️ परीक्षा से जुड़े अतिरिक्त आवश्यक कॉलम भी सुनिश्चित करें
+                        # परीक्षा से जुड़े आवश्यक कॉलम जोड़ें
                         for col in ["CCE Marks Obtained", "CCE Attendance Status"]:
                             if col not in foil_df.columns:
                                 foil_df[col] = ""
                         
-                        # 🎯 यहाँ बदलाव किया गया है: बिना किसी फ़िल्टर के सारे कॉलम्स की लिस्ट ली जा रही है
+                        # सारे उपलब्ध कॉलम्स की सूची लें
                         all_available_cols = list(foil_df.columns)
-                        
                         render_foil = foil_df[all_available_cols].copy()
                         
-                        # यदि S.No. पहले से मौजूद नहीं है तो ही नया जोड़ें
-                        if "S.No." not in render_foil.columns:
-                            render_foil.insert(0, "S.No.", range(1, len(render_foil) + 1))
+                        # सीरियल नंबर को सबसे पहले जोड़ें
+                        if "S.No." in render_foil.columns:
+                            render_foil = render_foil.drop(columns=["S.No."])
+                        render_foil.insert(0, "S.No.", range(1, len(render_foil) + 1))
                         
-                        # 🖥️ स्क्रीन पर सारे कॉलम्स के साथ टेबल दिखाना
+                        # 🖥️ स्क्रीन पर सीधे डेटा टेबल रेंडर करें
                         st.dataframe(render_foil, use_container_width=True, hide_index=True)
                         
-                        # 📥 पूरा डेटा डाउनलोड करने का बटन
+                        # 📥 डाउनलोड बटन
                         st.download_button(
                             label="📥 Download Complete Foil Sheet (All Columns - CSV)",
                             data=render_foil.to_csv(index=False).encode('utf-8'),
@@ -611,7 +613,9 @@ else:
                             use_container_width=True
                         )
                     else:
-                        st.error(f"🔍 डेटाबेस में '{selected_subject}' विषय के लिए कोई भी छात्र रिकॉर्ड नहीं मिला।")
+                        # अगर कुछ गड़बड़ है तो डेटाबेस की असल स्थिति यूजर को बताएं
+                        st.error(f"🔍 फ़िल्टर करने पर '{selected_subject}' के लिए 0 रिकॉर्ड मिले।")
+                        st.info("💡 कृपया जांचें: क्या 'Panel 1' में छात्रों का डेटा एंट्री करते समय 'Subject' कॉलम भरा गया था?")
 
         # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
