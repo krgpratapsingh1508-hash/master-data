@@ -549,80 +549,153 @@ else:
                     st.success("✅ छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई है!")
                     st.rerun()
 
-               # ----------------------------------------------------------------------
+             # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
+            st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
             college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             
             if live_db.empty:
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है।")
             else:
-                # सुनिश्चित करें कि विषय कॉलम टेक्स्ट फॉर्मेट में हो
-                live_db["Subject"] = live_db["Subject"].fillna("").astype(str).str.strip()
-                
-                # डेटाबेस से सभी उपलब्ध विषयों की सूची निकालें
-                unique_subjects = sorted(list(set(live_db['Subject'])))
-                unique_subjects = [s for s in unique_subjects if s != ""]
-                
-                selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + unique_subjects, key="cce_sub")
-                                # 🎯 1 से 12 सेमेस्टर और 1 से 6 साल की पूरी लिस्ट यहाँ जोड़ दी गई है
-                semester_options = [
-                    "1 Semester", "2 Semester", "3 Semester", "4 Semester", 
-                    "5 Semester", "6 Semester", "7 Semester", "8 Semester", 
-                    "9 Semester", "10 Semester", "11 Semester", "12 Semester",
+                # विषय की सूची लोड करें
+                unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
+                unique_subjects = [sub for sub in unique_subjects if sub != ""]
+                selected_subject = st.selectbox("📚 Select Subject (विषय चुनें):", options=["All Subjects"] + unique_subjects, key="cce_sub")
+
+                # 1 से 12 सेमेस्टर और 1 से 6 साल की पूरी ड्रॉपडाउन लिस्ट
+                year_sem_options = [
+                    "1 Semester", "2 Semester", "3 Semester", "4 Semester", "5 Semester", "6 Semester",
+                    "7 Semester", "8 Semester", "9 Semester", "10 Semester", "11 Semester", "12 Semester",
                     "1 year", "2 year", "3 year", "4 year", "5 year", "6 year"
                 ]
-                chosen_option = st.selectbox("📆 Select Semester / Year:", options=semester_options, key="cce_sem_year")
                 
-                generate_clicked = st.button("Generate Foil Sheets Now", use_container_width=True, type="primary")
+                def on_cce_param_change():
+                    st.session_state.cce_foil_generated = False
+
+                chosen_option = st.selectbox("📆 Select Semester / Year:", year_sem_options, key="cce_year_sem", on_change=on_cce_param_change)
+
+                # सेमेस्टर और ईयर मैपिंग लॉजिक
+                mapping_logic = {
+                    "1 Semester": "1 year", "2 Semester": "1 year", "1 year": "1 year",
+                    "3 Semester": "2 year", "4 Semester": "2 year", "2 year": "2 year",
+                    "5 Semester": "3 year", "6 Semester": "3 year", "3 year": "3 year",
+                    "7 Semester": "4 year", "8 Semester": "4 year", "4 year": "4 year",
+                    "9 Semester": "5 year", "10 Semester": "5 year", "5 year": "5 year",
+                    "11 Semester": "6 year", "12 Semester": "6 year", "6 year": "6 year"
+                }
+                target_year_text = mapping_logic[chosen_option]
+                display_subject_heading = selected_subject.upper() if selected_subject != "All Subjects" else "STUDENT LIST"
+
+                st.write("📊 CCE Processing Student Grid View:")
+                preview_db = live_db.copy()
+                if selected_subject != "All Subjects":
+                    preview_db = preview_db[preview_db['Subject'].astype(str).str.strip() == selected_subject.strip()]
                 
-                if generate_clicked or st.session_state.cce_foil_generated:
+                preview_render = preview_db[["Roll No.", "Student Name", "Subject Code", "Subject", "Status", "Current Year"]].copy()
+                preview_render = preview_render.rename(columns={c: get_display_name(c) for c in preview_render.columns})
+                st.dataframe(preview_render, use_container_width=True, hide_index=True)
+
+                if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="p7_gen_btn"):
                     st.session_state.cce_foil_generated = True
-                    
-                    # डेटाबेस की कॉपी लें और फ़िल्टरिंग आसान बनाएं
-                    foil_df = live_db.copy()
-                    
-                    # सुपर-सर्च फ़िल्टर (स्पेस या केस की गड़बड़ी को अनदेखा करता है)
-                    if selected_subject != "All Subjects":
-                        foil_df = foil_df[foil_df["Subject"].str.lower() == selected_subject.lower()]
-                    
-                    # यदि डेटा मिल जाता है या ऑल सब्जेक्ट्स सेलेक्टेड है
-                    if not foil_df.empty:
-                        st.success("🎉 Foil Sheet Canvas Generated Below Ready for Verification.")
-                        st.markdown(f"### 📋 {college_name}")
-                        st.markdown(f"**Subject:** {selected_subject} | **Duration/Year:** {chosen_option}")
+                    st.rerun()
+
+                # --- Processing Logic Engine ---
+                if st.session_state.cce_foil_generated:
+                    regular_records = []
+                    ex_student_records = []
+                    has_missing_roll_and_is_first_year_regular = False 
+                    detected_subject_code = ""
+
+                    # आधार वर्ष की गणना
+                    years_series = pd.to_numeric(preview_db["Admission Year"], errors='coerce')
+                    max_year = int(years_series.max()) if not years_series.dropna().empty else 2026
+
+                    for _, row in preview_db.iterrows():
+                        roll = str(row.get('Roll No.', '')).strip()
+                        name = str(row.get('Student Name', '')).strip()
+                        status = str(row.get('Status', '')).strip().upper()
+                        current_year_val = str(row.get('Current Year', '')).strip().lower()
+                        student_sub = str(row.get('Subject', '')).strip()
+                        sub_code = str(row.get('Subject Code', '')).strip()
                         
-                        # परीक्षा से जुड़े आवश्यक कॉलम जोड़ें
-                        for col in ["CCE Marks Obtained", "CCE Attendance Status"]:
-                            if col not in foil_df.columns:
-                                foil_df[col] = ""
-                        
-                        # सारे उपलब्ध कॉलम्स की सूची लें
-                        all_available_cols = list(foil_df.columns)
-                        render_foil = foil_df[all_available_cols].copy()
-                        
-                        # सीरियल नंबर को सबसे पहले जोड़ें
-                        if "S.No." in render_foil.columns:
-                            render_foil = render_foil.drop(columns=["S.No."])
-                        render_foil.insert(0, "S.No.", range(1, len(render_foil) + 1))
-                        
-                        # 🖥️ स्क्रीन पर सीधे डेटा टेबल रेंडर करें
-                        st.dataframe(render_foil, use_container_width=True, hide_index=True)
-                        
-                        # 📥 डाउनलोड बटन
-                        st.download_button(
-                            label="📥 Download Complete Foil Sheet (All Columns - CSV)",
-                            data=render_foil.to_csv(index=False).encode('utf-8'),
-                            file_name=f"complete_foil_sheet_{selected_subject.lower().replace(' ', '_').replace('.', '')}.csv",
-                            mime="text/csv",
-                            use_container_width=True
-                        )
-                    else:
-                        # अगर कुछ गड़बड़ है तो डेटाबेस की असल स्थिति यूजर को बताएं
-                        st.error(f"🔍 फ़िल्टर करने पर '{selected_subject}' के लिए 0 रिकॉर्ड मिले।")
-                        st.info("💡 कृपया जांचें: क्या 'Panel 1' में छात्रों का डेटा एंट्री करते समय 'Subject' कॉलम भरा गया था?")
+                        try: adm_year = int(float(str(row.get('Admission Year', '0'))))
+                        except: adm_year = 0
+                        try: course_duration = int(float(str(row.get('Duration', '6'))))
+                        except: course_duration = 6
+
+                        if sub_code and sub_code.lower() != "nan" and detected_subject_code == "": 
+                            detected_subject_code = sub_code
+
+                        # Logic A: EX-STUDENT Criteria Evaluation
+                        if status == "EX-STUDENT":
+                            is_ex_match = False
+                            try: gap_needed = int(target_year_text.split()[0])
+                            except: gap_needed = 1
+                                
+                            if gap_needed <= course_duration and adm_year == (max_year - gap_needed): is_ex_match = True
+                            if is_ex_match and roll and roll.lower() != "nan" and roll != "": ex_student_records.append(roll)
+                            continue
+
+                        # Logic B: REGULAR STUDENT / REGULAR Strict Cross-Match Modality
+                        if status in ['REGULAR STUDENT', 'REGULAR']:
+                            is_regular_year_match = False
+                            clean_target_text = target_year_text.strip().lower()
+                            
+                            if clean_target_text in current_year_val or current_year_val in clean_target_text:
+                                is_regular_year_match = True
+                            elif current_year_val in ["", "ex-student", "nan"]:
+                                calculated_gap = max_year - adm_year
+                                if clean_target_text == "1 year" and calculated_gap == 0: is_regular_year_match = True
+                                elif clean_target_text == "2 year" and calculated_gap == 1: is_regular_year_match = True
+                                elif clean_target_text == "3 year" and calculated_gap == 2: is_regular_year_match = True
+                                elif clean_target_text == "4 year" and calculated_gap == 3: is_regular_year_match = True
+                                elif clean_target_text == "5 year" and calculated_gap == 4: is_regular_year_match = True
+                                elif clean_target_text == "6 year" and calculated_gap == 5: is_regular_year_match = True
+
+                            if is_regular_year_match:
+                                # 1st Year Missing Roll Number Fallback to Name Routing
+                                if clean_target_text == "1 year" and (not roll or roll.lower() == "nan" or roll == ""):
+                                    has_missing_roll_and_is_first_year_regular = True
+                                    regular_records.append(name if name else "[Unknown Name]")
+                                else:
+                                    if roll and roll.lower() != "nan" and roll != "": regular_records.append(roll)
+
+                    final_records_list = sorted(list(set(ex_student_records))) + sorted(list(set(regular_records)))
+
+                    st.markdown("---")
+                    st.subheader("⚙️ Processing Engine (Validating Student Eligibility)")
+                    st.info("🎯 Validation Analytics Summary:")
+                    col_m1, col_m2, col_m3 = st.columns(3)
+                    with col_m1: st.metric("Valid Ex-Students (Prioritized)", len(ex_student_records))
+                    with col_m2: st.metric("Valid Regular Students", len(regular_records))
+                    with col_m3: st.metric("Total Records Captured", len(final_records_list))
+
+                    # --- विजुअल फॉयल कैनवास लेआउट जनरेटर ---
+                    if final_records_list:
+                        st.subheader("🖨️ Generated Visual CCE Foil Sheets")
+                        dynamic_th_label = "Roll No. / Student Name" if has_missing_roll_and_is_first_year_regular else "Roll No."
+                        paper_code_display = detected_subject_code if detected_subject_code else "N/A"
+
+                        # एचटीएमएल ब्लॉक जनरेशन फंक्शन (पेज-वाइज टेबल ब्रेक के साथ)
+                        def generate_cce_html_block(items, start_idx, foil_label):
+                            html_table_rows = ""
+                            for idx, item in enumerate(items):
+                                html_table_rows += f"""
+                                <tr>
+                                    <td style="border: 1px solid black; padding: 6px; text-align: center; color: black;">{start_idx + idx}</td>
+                                    <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; color: black;">{item}</td>
+                                    <td style="border: 1px solid black; padding: 6px;"></td>
+                                    <td style="border: 1px solid black; padding: 6px;"></td>
+                                </tr>
+                                """
+                            
+                            full_block_html = f"""
+                            <div style="border: 3px double #000; padding: 15px; margin-bottom: 30px; background-color: white; color: black; font-family: Arial, sans-serif;">
+                                <h2 style="text-align: center; margin: 0; font-size: 20px; color: black;">{college_name}</h2>
+
 
         # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
