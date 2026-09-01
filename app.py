@@ -549,7 +549,7 @@ else:
                     st.success("✅ छात्र बैच प्रमोशन पंजी सफलतापूर्वक अपडेट हो गई है!")
                     st.rerun()
 
-        # ----------------------------------------------------------------------
+               # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
@@ -562,10 +562,44 @@ else:
                 unique_subjects = sorted(list(set(live_db['Subject'].dropna().astype(str).str.strip())))
                 selected_subject = st.selectbox("📚 Select Subject:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="cce_sub")
                 chosen_option = st.selectbox("📆 Select Semester / Year:", ["1 Semester", "2 Semester", "1 year", "2 year", "3 year", "4 year"])
+                
                 if st.button("Generate Foil Sheets Now", use_container_width=True, type="primary"):
                     st.session_state.cce_foil_generated = True
+                
                 if st.session_state.cce_foil_generated:
-                    st.success("Foil Sheet Canvas Generated Below Ready for Verification.")
+                    st.success("🎉 Foil Sheet Canvas Generated Below Ready for Verification.")
+                    
+                    # 🎯 डेटाबेस से रिकॉर्ड्स को फ़िल्टर करना
+                    foil_df = live_db.copy()
+                    if selected_subject != "All Subjects":
+                        foil_df = foil_df[foil_df["Subject"] == selected_subject]
+                    
+                    # आवश्यक कॉलम जो फॉयल शीट में दिखने चाहिए
+                    foil_cols = ["Roll No.", "Enrollment No.", "Student Name", "Father Name", "Subject"]
+                    
+                    # अगर CCE के मार्क्स भी दिखाने हैं तो उन्हें जोड़ें
+                    for col in ["CCE Marks Obtained", "CCE Attendance Status"]:
+                        if col in live_db.columns:
+                            foil_cols.append(col)
+                            
+                    render_foil = foil_df[[c for c in foil_cols if c in foil_df.columns]].copy()
+                    render_foil.insert(0, "S.No.", range(1, len(render_foil) + 1))
+                    
+                    st.markdown(f"### 📋 {college_name}")
+                    st.markdown(f"**Subject:** {selected_subject} | **Duration/Year:** {chosen_option}")
+                    
+                    # 🖥️ स्क्रीन पर फॉयल शीट की टेबल दिखाना
+                    st.dataframe(render_foil, use_container_width=True, hide_index=True)
+                    
+                    # 📥 प्रिंट या डाउनलोड करने का बटन
+                    st.download_button(
+                        label="📥 Download Generated Foil Sheet (CSV)",
+                        data=render_foil.to_csv(index=False).encode('utf-8'),
+                        file_name=f"foil_sheet_{selected_subject.lower().replace(' ', '_')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+
 
                # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE
