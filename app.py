@@ -58,7 +58,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 DB_FILE = "shared_student_database.csv"
-CRED_FILE = "user_credentials.json"
+CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
 
@@ -99,13 +99,15 @@ DEFAULT_COLUMNS = [
     "Current Year"
 ]
 
-# 🔄 लोडर और सेवर इंजन (सभी फंक्शन्स को व्यवस्थित रूप से परिभाषित किया गया है)
+# --- def load_credentials(): वाले पुराने हिस्से को हटाकर इसे पेस्ट करें ---
 def load_credentials():
     if os.path.exists(CRED_FILE):
         try:
             with open(CRED_FILE, "r") as f: return json.load(f)
         except: return DEFAULT_CREDENTIALS.copy()
-    return DEFAULT_CREDENTIALS.copy()
+    else:
+        with open(CRED_FILE, "w") as f: json.dump(DEFAULT_CREDENTIALS, f)
+        return DEFAULT_CREDENTIALS.copy()
 
 def load_panel_names():
     if os.path.exists(PANEL_NAME_FILE):
