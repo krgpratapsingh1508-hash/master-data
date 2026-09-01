@@ -99,20 +99,16 @@ DEFAULT_COLUMNS = [
     "Current Year"
 ]
 
-# डेटा लोडर्स और सेवर्स फंक्शन्स
+# 🔄 इस फंक्शन को खोजें और इससे बदल दें
 def load_credentials():
     if os.path.exists(CRED_FILE):
         try:
             with open(CRED_FILE, "r") as f: return json.load(f)
         except: return DEFAULT_CREDENTIALS.copy()
-    return DEFAULT_CREDENTIALS.copy()
-
-def load_panel_names():
-    if os.path.exists(PANEL_NAME_FILE):
-        try:
-            with open(PANEL_NAME_FILE, "r", encoding="utf-8") as f: return json.load(f)
-        except: return DEFAULT_PANELS.copy()
-    return DEFAULT_PANELS.copy()
+    else:
+        # अगर फाइल डिलीट हो गई है, तो नए 15 पासवर्ड की नई फाइल बनाएगा
+        with open(CRED_FILE, "w") as f: json.dump(DEFAULT_CREDENTIALS, f)
+        return DEFAULT_CREDENTIALS.copy()
 
 def save_panel_names(panel_dict):
     with open(PANEL_NAME_FILE, "w", encoding="utf-8") as f:
