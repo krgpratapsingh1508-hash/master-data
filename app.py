@@ -202,18 +202,18 @@ if st.session_state.user_role is None:
         with col_l2:
             password_input = st.text_input("🔑 Enter Secure Password:", type="password")
             
+        # --- ठीक उसी जगह पर यह नया कोड पेस्ट करें ---
         c_btn1, c_btn2 = st.columns(2)
         with c_btn1:
-                    if st.button("🔓 Verify & Access System", type="primary", use_container_width=True):
-            if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
-                st.session_state.user_role = st.session_state.credentials[user_input]["role"]
-                st.session_state.logged_username = user_input
-                st.session_state.show_login_form = False
-                st.success("✅ क्रेडेंशियल स्वीकृत! पैनल में प्रवेश किया जा रहा है...")
-                st.rerun()
-            else:
-                st.error("❌ गलत पासवर्ड दर्ज किया गया है!")
-                
+            if st.button("🔓 Verify & Access System", type="primary", use_container_width=True):
+                if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
+                    st.session_state.user_role = st.session_state.credentials[user_input]["role"]
+                    st.session_state.logged_username = user_input
+                    st.session_state.show_login_form = False
+                    st.success("✅ क्रेडेंशियल स्वीकृत! पैनल में प्रवेश किया जा रहा है...")
+                    st.rerun()
+                else:
+                    st.error("❌ गलत पासवर्ड दर्ज किया गया है!")
         with c_btn2:
             if st.button("❌ Close Login Windows", type="secondary", use_container_width=True):
                 st.session_state.show_login_form = False
