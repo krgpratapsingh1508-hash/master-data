@@ -248,7 +248,7 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-        allowed_panels = []
+    allowed_panels = []
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
     elif role == "p1_role": allowed_panels = ["P1"]
