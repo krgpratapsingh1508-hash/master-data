@@ -62,7 +62,7 @@ CRED_FILE = "user_credentials.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
 
-# 🔒 15 पैनल्स के हिसाब से 15 सेपरेटेड क्रेडेंशियल्स की मास्टर डिक्शनरी
+# 15 पैनल्स के हिसाब से 15 सेपरेटेड क्रेडेंशियल्स की मास्टर डिक्शनरी
 DEFAULT_CREDENTIALS = {
     "admin": {"password": "admin15master", "role": "full_admin", "label": "👑 Super Admin (All 15 Panels Control)"},
     "p1_entry": {"password": "entry1123", "role": "p1_role", "label": "📝 P1: Student Data Onboarding Operator"},
@@ -81,7 +81,7 @@ DEFAULT_CREDENTIALS = {
     "p14_viewer": {"password": "view14123", "role": "p14_role", "label": "👁️ P14: Multi-Panel Inspection Window"}
 }
 
-# 🛠️ डिफ़ॉल्ट 15 पैनल्स की डिक्शनरी मैपिंग (P1 से P15)
+# डिफ़ॉल्ट 15 पैनल्स की डिक्शनरी मैपिंग (P1 से P15)
 DEFAULT_PANELS = {
     "P1": "Panal entry", "P2": "Panal admission", "P3": "Panal enrollment",
     "P4": "Panal scholarship", "P5": "Panal result", "P6": "Panal promotion",
@@ -168,10 +168,10 @@ def get_panel_title(panel_id):
 
 
 # ==========================================================
-# 🛑 लॉगिन से पहले: सिर्फ नोटिस बोर्ड और लॉगिन गेटवे बटन
+# Phase 1: Login Block Control
 # ==========================================================
 if st.session_state.user_role is None:
-    # 📌 परमानेंट नोटिस बोर्ड
+    # नोटिस बोर्ड रेंडर स्ट्रक्चर
     st.markdown("""
         <div class="notice-board">
             <div class="notice-title">📢 कॉलेज सूचना पटल (Official Notice Board)</div>
@@ -181,7 +181,7 @@ if st.session_state.user_role is None:
         </div>
     """, unsafe_allow_html=True)
     
-    # लॉगिन विंडो ओपन/क्लोज करने का बटन
+    # लॉगिन विंडो ट्रिगर बटन
     if not st.session_state.show_login_form:
         if st.button("🔐 Click Here to Open Secure Login System", type="primary", use_container_width=True):
             st.session_state.show_login_form = True
@@ -193,7 +193,7 @@ if st.session_state.user_role is None:
         col_l1, col_l2 = st.columns(2)
         
         with col_l1:
-            # 🔄 रोल-अप स्क्रॉल सिलेक्शन ड्रॉपडाउन मेनू
+            # स्क्रॉल सिलेक्शन बोर्ड ड्रॉपडाउन
             user_list_options = list(st.session_state.credentials.keys())
             def get_lbl(uid): return st.session_state.credentials[uid].get("label", uid)
             
@@ -220,12 +220,12 @@ if st.button("❌ Close Login Windows", type="secondary", use_container_width=Tr
 st.session_state.show_login_form = False
 st.rerun()
 ==========================================================
-🔑 लॉगिन के बाद: अधिकृत पैनल्स का एक्सेस
+Phase 2: Post Authorized Panel Systems
 ==========================================================
 else:
 role = st.session_state.user_role
 username = st.session_state.logged_username
-# टॉप बार - लॉगआउट बटन और वर्तमान भूमिका की जानकारी
+# हेड बार सेटिंग्स
 st.markdown('', unsafe_allow_html=True)
 col_top1, col_top2 = st.columns(2)
 with col_top1:
@@ -238,10 +238,10 @@ st.session_state.cce_foil_generated = False
 st.rerun()
 st.markdown('', unsafe_allow_html=True)
 st.markdown("---")
-# 🗂️ 15 क्रेडेंशियल्स के अनुसार अलग-अलग सेपरेटेड पैनल विज़िबिलिटी रूल्स निर्धारण
+# क्रेडेंशियल्स के अनुसार अलग-अलग सेपरेटेड पैनल विज़िबिलिटी रूल्स
 allowed_panels = []
 if role == "full_admin":
-allowed_panels = list(DEFAULT_PANELS.keys()) # एडमिन को सारे 15 पैनल्स सेटिंग्स के साथ मिलेंगे
+allowed_panels = list(DEFAULT_PANELS.keys())
 elif role == "p1_role": allowed_panels = ["P1", "P14"]
 elif role == "p2_role": allowed_panels = ["P2", "P14"]
 elif role == "p3_role": allowed_panels = ["P3", "P14"]
@@ -256,7 +256,7 @@ elif role == "p11_role": allowed_panels = ["P11", "P14"]
 elif role == "p12_role": allowed_panels = ["P12", "P14"]
 elif role == "p13_role": allowed_panels = ["P13", "P14"]
 elif role == "p14_role": allowed_panels = ["P14"]
-# साइडबार में केवल वही पैनल्स लोड होंगे जिसकी अनुमति क्रेडेंशियल देता है
+# नेविगेटर मॉड्यूल लोड
 active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state[f"hide_panel_{p}"] or role == "full_admin"]
 if not active_tabs_names:
 st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
@@ -461,7 +461,7 @@ live_db.at[match_idx, "CCE Attendance Status"] = r_edit["CCE Attendance Status"]
 save_live_data(live_db)
 st.success("✅ सीसीई आंतरिक मूल्यांकन पंजी सफलतापूर्वक सेव हो गई है!")
 # ----------------------------------------------------------------------
-# P9 से P12: DYNAMIC EXTENSION LEDGERS
+# P9 to P12: DYNAMIC EXTENSION LEDGERS
 # ----------------------------------------------------------------------
 elif current_panel_id in ["P9", "P10", "P11", "P12"]:
 st.header(f"📌 {get_panel_title(current_panel_id)} (Dynamic Extension Ledger Room)")
@@ -505,11 +505,11 @@ if search_query_text.strip() != "":
 view_filtered_df = view_filtered_df[view_filtered_df[search_target_col].astype(str).str.contains(search_query_text, case=False, na=False)]
 st.dataframe(view_filtered_df, use_container_width=True, hide_index=True)
 # ----------------------------------------------------------------------
-# 🛠️ P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
+# P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & SEARCH FIX)
 # ----------------------------------------------------------------------
 elif current_panel_id == "P15":
 st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
-# 👑 1. 15 पैनल्स का नाम बदलने की पॉवर
+# Dynamic Name Controller
 st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
 with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
 with st.form(key="panel_rename_matrix_form"):
@@ -526,50 +526,45 @@ st.session_state.panel_names = temp_panel_mappings
 save_panel_names(temp_panel_mappings)
 st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
 st.rerun()
-# 🛡️ 2. ग्लोबल पैनल्स विज़िबिलिटी बोर्ड (15 बटन की व्यवस्था)
+# Global Panel Visibility
 st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
 vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
-with vis_tabs:
+with vis_tabs[0]:
 c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
 for i, p_key in enumerate(["P1", "P2", "P3", "P4", "P5", "P6", "P7"]):
 with [c1, c2, c3, c4, c5, c6, c7][i]:
-# 🔄 विज़िबिलिटी बटन्स पर आँख खुली / आँख बंद का इमोजी लॉजिक
 status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
 if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
 st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
 st.rerun()
-with vis_tabs:
+with vis_tabs[1]:
 c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
 for i, p_key in enumerate(["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]):
 with [c8, c9, c10, c11, c12, c13, c14, c15][i]:
-# 🔄 विज़िबिलिटी बटन्स पर आँख खुली / आँख बंद का इमोजी लॉजिक
 status_lbl = "🙈 Hidden" if st.session_state[f"hide_panel_{p_key}"] else "👀 Active"
 if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"btn_v_{p_key}"):
 st.session_state[f"hide_panel_{p_key}"] = not st.session_state[f"hide_panel_{p_key}"]
 st.rerun()
-# 📊 3. मास्टर डेटाबेस कंट्रोल्स और लाइव ग्रेड एडिटर
+# Advance Core Engine Matrix Controls
 st.markdown("---")
 st.subheader("📊 Master Database List View & Advanced Operational Controls")
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
 with col_ctrl1:
-# 🔄 एडिट टेक्स्ट बटन पर खुली/बंद आँख का इमोजी लॉजिक
 lbl_edit = "👀 एडिट टेक्स्ट फंक्शन: active" if st.session_state.admin_unhide_edit else "🙈 एडिट टेक्स्ट फंक्शन: hidden"
 if st.button(lbl_edit, use_container_width=True):
 st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
 st.rerun()
 with col_ctrl2:
-# 🔄 कॉलम मूव बटन पर खुली/बंद आँख का इमोजी लॉजिक
 lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
 if st.button(lbl_move, use_container_width=True):
 st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
 st.rerun()
 with col_ctrl3:
-# 🔄 लिस्ट लॉक/अनलॉक बटन पर लॉकिंग इमोजी स्टेट
 lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
 if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary"):
 st.session_state.admin_lock_state = not st.session_state.admin_lock_state
 st.rerun()
-# 🛠️ 🎯 SEARCH ERROR & REVERSE MAPPING ENGINE FIX
+# Search Error Fix Mapping Block
 render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
 ordered_db = live_db[render_columns].copy()
 ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
