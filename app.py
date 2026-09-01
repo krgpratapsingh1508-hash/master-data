@@ -208,7 +208,7 @@ if st.session_state.user_role is None:
         with col_l2:
             password_input = st.text_input("🔑 Enter Secure Password:", type="password")
             
-                c_btn1, c_btn2 = st.columns(2)
+        c_btn1, c_btn2 = st.columns(2)
         with c_btn1:
             if st.button("🔓 Verify & Access System", type="primary", use_container_width=True):
                 if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
