@@ -3,3 +3,4 @@ pandas
 st-gsheets-connection
 xlrd>=2.0.1
 lxml
+openpyxl
