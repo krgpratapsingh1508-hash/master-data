@@ -1971,7 +1971,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला। (No records found matching specified target filters.)")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -2087,7 +2087,7 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-                        st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या (Total Live Database Records): **{len(ordered_db_display)}**")
+            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या (Total Live Database Records): **{len(ordered_db_display)}**")
 
             # Active live-edit schema matrix processing vs read-only data grid views
             if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
@@ -2135,4 +2135,3 @@ else:
     # 🌟 Application Container Wrap-Up Block
     # ----------------------------------------------------------------------
     st.markdown('</div>', unsafe_allow_html=True)
-
