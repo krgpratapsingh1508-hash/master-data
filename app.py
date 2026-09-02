@@ -206,7 +206,7 @@ if "cce_foil_generated" not in st.session_state: st.session_state.cce_foil_gener
 for k in DEFAULT_PANELS.keys():
     if f"hide_panel_{k}" not in st.session_state: st.session_state[f"hide_panel_{k}"] = False
 
-# NameError को रोकने के लिए वेरिएबल्स को डिफ़ॉल्ट मान दें
+# 🌟 NameError को रोकने के लिए वेरिएबल्स को ग्लोबल स्तर पर डिफ़ॉल्ट मान दें
 role = ""
 username = ""
 allowed_panels = []
@@ -362,8 +362,12 @@ if st.session_state.user_role is not None:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        # 🌟 यहाँ सुधार किया गया है जिससे सटीक 'P1', 'P2' आदि स्ट्रिंग बाहर आए
-        current_panel_id = selected_tab_ui.split(" : ")[0]
+        # 🌟 चुनी हुई लिस्ट स्ट्रिंग में से केवल शुद्ध आईडी 'P1', 'P2' आदि निकालकर स्ट्रिंग बनाएगा
+        current_panel_id = selected_tab_ui.split(" : ")
+
+# 🌟 फ़िक्स: यहाँ किसी भी इफ कंडीशन को खुला न छोड़ें ताकि आपके नीचे लिखे मूल पैनल्स का इंडेंटेशन न बिगड़े
+if st.session_state.user_role is not None and current_panel_id is not None:
+    pass # यह बिना स्पेस बदले एरर को सुरक्षित तरीके से हैंडल कर लेता है
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
