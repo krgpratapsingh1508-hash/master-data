@@ -394,6 +394,44 @@ else:
             st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
             entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 फ़ाइल बल्क अपलोड (Bulk File Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
             
+                        # ----------------------------------------------------------------------
+            # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम (Bulk Upload Sub-System)
+            # ----------------------------------------------------------------------
+            if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+                st.subheader("📁 Bulk Data File Import Room")
+                
+                # डायनेमिक ड्रॉपडाउन लिस्ट को वेरिएबल से लिंक करना
+                file_segment_options = ["-- चुनें --"] + st.session_state.p1_dropdown_schemas["file_types"]
+                year_options = ["-- चुनें --"] + st.session_state.p1_dropdown_schemas["academic_years"]
+                session_options = ["-- चुनें --"] + st.session_state.p1_dropdown_schemas["academic_sessions"]
+                
+                col_p1_sel1, col_p1_sel2, col_p1_sel3 = st.columns(3)
+                
+                with col_p1_sel1:
+                    file_segment_choice = st.selectbox(
+                        "1. अपलोड की जाने वाली फ़ाइल का नाम प्रकार चुनें (Segment Type):",
+                        options=file_segment_options,
+                        key="p1_file_type_scroll_secure_bulk"
+                    )
+                with col_p1_sel2:
+                    selected_admission_year = st.selectbox(
+                        "2. शैक्षणिक वर्ष का चयन करें (Admission Year Scope):",
+                        options=year_options,
+                        key="p1_year_scroll_secure_bulk"
+                    )
+                with col_p1_sel3:
+                    selected_admission_session = st.selectbox(
+                        "3. शैक्षणिक सत्र का चयन करें (Admission Session Scope):",
+                        options=session_options,
+                        key="p1_session_scroll_secure_bulk"
+                    )
+
+                # 🛑 (यह आपकी लाइन 421 है जो अब एरर नहीं देगी क्योंकि ऊपर वेरिएबल्स बन चुके हैं)
+                if (file_segment_choice == "-- चुनें --" or 
+                    selected_admission_year == "-- चुनें --" or 
+                    selected_admission_session == "-- चुनें --"):
+                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
+            
             if entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
                 st.subheader("📊 Select Target Configurations Before Upload")
                 col_sc1, col_sc2, col_sc3 = st.columns(3)
@@ -519,7 +557,7 @@ else:
                         save_live_data(updated_df)
                         st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P2: PANEL ADMISSION MODULE (Admission Control & Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P2":
