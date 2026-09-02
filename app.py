@@ -1648,7 +1648,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -1719,6 +1719,67 @@ else:
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
                             st.rerun()
 
+            # ✨ न्यू एडिशन: सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र (Shifted from Merge Panel)
+            st.markdown("---")
+            st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
+            st.markdown("पैनल 1 (Data Onboarding) की तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
+            
+            if "p11_dropdown_schemas" not in st.session_state:
+                if "p14_dropdown_schemas" in st.session_state:
+                    st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
+                else:
+                    st.session_state.p11_dropdown_schemas = {
+                        "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
+                        "academic_years": ["2024", "2025", "2026", "2027"],
+                        "academic_sessions": ["July-Dec", "Jan-June"]
+                    }
+            
+            st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
+            
+            col_drop1, col_drop2, col_drop3 = st.columns(3)
+            with col_drop1:
+                st.markdown("##### 📁 1. File Segments / Types")
+                edited_file_types = st.text_area(
+                    "File Types (एक प्रति लाइन):",
+                    value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]),
+                    height=140,
+                    key="p15_custom_file_types_text"
+                )
+            with col_drop2:
+                st.markdown("##### 2. Academic Years")
+                edited_years = st.text_area(
+                    "Admission Years (एक प्रति line):",
+                    value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]),
+                    height=140,
+                    key="p15_custom_years_text"
+                )
+            with col_drop3:
+                st.markdown("##### ⏳ 3. Academic Sessions")
+                edited_sessions = st.text_area(
+                    "Admission Sessions (एक प्रति line):",
+                    value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]),
+                    height=140,
+                    key="p15_custom_sessions_text"
+                )
+            
+            if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
+                new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                
+                if not new_file_types or not new_years or not new_sessions:
+                    st.error("❌ कोई भी ड्रॉपडाउन सूची पूरी तरह खाली नहीं छोड़ी जा सकती!")
+                else:
+                    updated_schema = {
+                        "file_types": new_file_types,
+                        "academic_years": new_years,
+                        "academic_sessions": new_sessions
+                    }
+                    st.session_state.p11_dropdown_schemas = updated_schema
+                    st.session_state.p1_dropdown_schemas = updated_schema
+                    st.success("🎉 मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट होकर Panel 1 के साथ सिंक हो गई हैं!")
+                    st.rerun()
+
             st.markdown("---")
             st.subheader("📊 Master Database List View & Advanced Operational Controls")
             
@@ -1730,7 +1791,7 @@ else:
                     st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
                     st.rerun()
             with col_ctrl2:
-                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
+                lbl_move = "👀 कॉलम मुंह बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
                 if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
                     st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
                     st.rerun()
@@ -1742,7 +1803,7 @@ else:
 
             # Dynamic Row Column Order Shifting Controller Engine Block
             if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
-                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
+                                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
                 target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
                 c_left, c_right = st.columns(2)
                 
@@ -1764,51 +1825,3 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-            st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या (Total Live Database Records): **{len(ordered_db_display)}**")
-
-            # Active live-edit schema matrix processing vs read-only data grid views
-            if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-                st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है।")
-                edited_df = st.data_editor(
-                    ordered_db_display, 
-                    use_container_width=True, 
-                    disabled=["S.No."], 
-                    num_rows="dynamic", 
-                    key="p15_admin_live_editor_grid_container_final", 
-                    hide_index=True
-                )
-                
-                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
-                    try:
-                        clean_edited = edited_df.drop(columns=["S.No."])
-                        reverse_mapping = {get_display_name(c): c for c in render_columns}
-                        
-                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
-                        for extra_col in live_db.columns:
-                            if extra_col not in synced_data: 
-                                synced_data[extra_col] = []
-
-                        for _, row_edit in clean_edited.iterrows():
-                            for display_name_key in clean_edited.columns:
-                                internal_key = reverse_mapping.get(display_name_key, display_name_key)
-                                if internal_key in synced_data:
-                                    synced_data[internal_key].append(row_edit[display_name_key])
-                        
-                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
-                        for k_key in synced_data.keys():
-                            while len(synced_data[k_key]) < max_len: 
-                                synced_data[k_key].append("")
-                                
-                        new_live_db = pd.DataFrame(synced_data)
-                        save_live_data(new_live_db)
-                        st.success("🎉 संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-            else:
-                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-
-    # ----------------------------------------------------------------------
-    # 🌟 Application Container Wrap-Up Block
-    # ----------------------------------------------------------------------
-    st.markdown('</div>', unsafe_allow_html=True)
