@@ -1695,8 +1695,39 @@ else:
                                 st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइज्ड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
                                 st.rerun()
                                     
+                                    if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
+                    try:
+                        clean_edited = edited_df.drop(columns=["S.No."])
+                        reverse_mapping = {get_display_name(c): c for c in render_columns}
+                        
+                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
+                        for extra_col in live_db.columns:
+                            if extra_col not in synced_data: 
+                                synced_data[extra_col] = []
+
+                        for _, row_edit in clean_edited.iterrows():
+                            for display_name_key in clean_edited.columns:
+                                internal_key = reverse_mapping.get(display_name_key, display_name_key)
+                                if internal_key in synced_data:
+                                    synced_data[internal_key].append(row_edit[display_name_key])
+                        
+                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
+                        for k_key in synced_data.keys():
+                            while len(synced_data[k_key]) < max_len: 
+                                synced_data[k_key].append("")
+                                
+                        new_live_db = pd.DataFrame(synced_data)
+                        
+                        if "Is_From_Merge" in live_db.columns and "Is_From_Merge" not in new_live_db.columns:
+                            new_live_db["Is_From_Merge"] = live_db["Is_From_Merge"]
+                        if "Merge_File_Source" in live_db.columns and "Merge_File_Source" not in new_live_db.columns:
+                            new_live_db["Merge_File_Source"] = live_db["Merge_File_Source"]
+                            
+                        save_live_data(new_live_db)
+                        st.success("🎉 संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"डेटा कंपाइलेशन और मैचिंग चक्र में तकनीकी समस्या आई: {e}")
+                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
