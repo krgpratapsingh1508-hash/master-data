@@ -79,7 +79,7 @@ DEFAULT_COLUMNS = [
 ]
 
 # ==========================================================
-# 📁 स्टेप 2: डेटा सहेजने और लोड करने वाले कोर फंक्शन्स
+# 📁步 2: डेटा सहेजने और लोड करने वाले कोर फंक्शन्स
 # ==========================================================
 def load_pre_login_config():
     if os.path.exists(PRE_LOGIN_CONFIG_FILE):
@@ -358,81 +358,81 @@ else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
-        # ----------------------------------------------------------------------
-        # P1: PANEL ENTRY MODULE
-        # ----------------------------------------------------------------------
-        if current_panel_id == "P1":
-            st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
-            entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
-            
-            if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-                uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-                if uploaded_file is not None:
-                    if st.button("Upload CSV Now", type="primary", use_container_width=True):
-                        try:
-                            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                            for col in DEFAULT_COLUMNS:
-                                if col not in uploaded_df.columns: 
-                                    uploaded_df[col] = ""
-                            cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                            
-                            # न्यू प्रविष्टियों के लिए मर्जिंग ट्रैकिंग फ्लैग्स को डिफ़ॉल्ट रूप से रीसेट लॉक करें
-                            cleaned_uploaded_df["Is_From_Merge"] = "False"
-                            cleaned_uploaded_df["Merge_File_Source"] = ""
-                            
-                            updated_df = pd.concat([load_live_data(), cleaned_uploaded_df], ignore_index=True)
-                            save_live_data(updated_df)
-                            st.success("✅ CSV डेटा सफलतापूर्वक मुख्य डेटाबेस में अपलोड हो गया है!")
-                        except Exception as e: 
-                            st.error(f"त्रुटि: {e}")
-                            
-            elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
-                with st.form(key="student_add_form", clear_on_submit=True):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        admission_year = st.text_input("Admission Year")
-                        eligibility_name = st.text_input("Eligibility Name")
-                        admission_date = st.text_input("Admission Date")
-                        roll_no = st.text_input("Roll No.")
-                        enrollment_no = st.text_input("Enrollment No.")
-                        f_name = st.text_input("Father Name")
-                        dob = st.text_input("Date of Birth")
-                        subject_code = st.text_input("Subject Code")
-                        subject = st.text_input("Subject")
-                        mobile = st.text_input("Mobile Number")
-                    with col2:
-                        admission_session = st.text_input("Admission Session")
-                        admission_app_no = st.text_input("Admission Application Number")
-                        unique_id = st.text_input("Unique ID")
-                        app_enroll_no = st.text_input("Application Enrollment No.")
-                        s_name = st.text_input("Student Name")
-                        m_name = st.text_input("Mother Name")
-                        category = st.selectbox("Category", ["General", "OBC", "SC", "ST"])
-                        duration = st.text_input("Duration")
-                        email = st.text_input("Email ID")
-                        address = st.text_input("Address")
-                        status_input = st.selectbox("Status", ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
-                    submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
+# ----------------------------------------------------------------------
+# P1: PANEL ENTRY MODULE
+# ----------------------------------------------------------------------
+if current_panel_id == "P1":
+    st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
+    entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
+    
+    if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
+        uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+        if uploaded_file is not None:
+            if st.button("Upload CSV Now", type="primary", use_container_width=True):
+                try:
+                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                    for col in DEFAULT_COLUMNS:
+                        if col not in uploaded_df.columns: 
+                            uploaded_df[col] = ""
+                    cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
                     
-                if submit_student:
-                    if s_name.strip() == "": 
-                        st.warning("Student Name भरना अनिवार्य है।")
-                    else:
-                        new_row = {c: "" for c in DEFAULT_COLUMNS}
-                        new_row.update({
-                            "Admission Year": admission_year, "Admission Session": admission_session, 
-                            "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no, 
-                            "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
-                            "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
-                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
-                            "Date of Birth": dob, "Category": category, "Subject Code": subject_code, 
-                            "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                            "Email ID": email, "Address": address, "Status": status_input,
-                            "Is_From_Merge": "False", "Merge_File_Source": ""
-                        })
-                        updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
-                        save_live_data(updated_df)
-                        st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
+                    # न्यू प्रविष्टियों के लिए मर्जिंग ट्रैकिंग फ्लैग्स को डिफ़ॉल्ट रूप से रीसेट लॉक करें
+                    cleaned_uploaded_df["Is_From_Merge"] = "False"
+                    cleaned_uploaded_df["Merge_File_Source"] = ""
+                    
+                    updated_df = pd.concat([load_live_data(), cleaned_uploaded_df], ignore_index=True)
+                    save_live_data(updated_df)
+                    st.success("✅ CSV डेटा सफलतापूर्वक मुख्य डेटाबेस में अपलोड हो गया है!")
+                except Exception as e: 
+                    st.error(f"त्रुटि: {e}")
+                    
+    elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+        with st.form(key="student_add_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                admission_year = st.text_input("Admission Year")
+                eligibility_name = st.text_input("Eligibility Name")
+                admission_date = st.text_input("Admission Date")
+                roll_no = st.text_input("Roll No.")
+                enrollment_no = st.text_input("Enrollment No.")
+                f_name = st.text_input("Father Name")
+                dob = st.text_input("Date of Birth")
+                subject_code = st.text_input("Subject Code")
+                subject = st.text_input("Subject")
+                mobile = st.text_input("Mobile Number")
+            with col2:
+                admission_session = st.text_input("Admission Session")
+                admission_app_no = st.text_input("Admission Application Number")
+                unique_id = st.text_input("Unique ID")
+                app_enroll_no = st.text_input("Application Enrollment No.")
+                s_name = st.text_input("Student Name")
+                m_name = st.text_input("Mother Name")
+                category = st.selectbox("Category", ["General", "OBC", "SC", "ST"])
+                duration = st.text_input("Duration")
+                email = st.text_input("Email ID")
+                address = st.text_input("Address")
+                status_input = st.selectbox("Status", ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
+            submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
+            
+        if submit_student:
+            if s_name.strip() == "": 
+                st.warning("Student Name भरना अनिवार्य है।")
+            else:
+                new_row = {c: "" for c in DEFAULT_COLUMNS}
+                new_row.update({
+                    "Admission Year": admission_year, "Admission Session": admission_session, 
+                    "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no, 
+                    "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
+                    "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
+                    "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
+                    "Date of Birth": dob, "Category": category, "Subject Code": subject_code, 
+                    "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
+                    "Email ID": email, "Address": address, "Status": status_input,
+                    "Is_From_Merge": "False", "Merge_File_Source": ""
+                })
+                updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
+                save_live_data(updated_df)
+                st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
         # ----------------------------------------------------------------------
         # P2: PANEL ADMISSION MODULE (केवल मर्ज किया हुआ डेटा ही दिखाएगा)
@@ -616,7 +616,7 @@ else:
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Matching Records): **{len(render_df)}**")
                 
-                # 🔐 एडिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
+                # 🔐 एडमिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
                 if role == "full_admin":
                     # एडमिन के लिए केवल Unique ID ही एडिट करने योग्य रहेगी
                     disabled_cols = ["S.No.", "Admission Application Number", "Student Name", "Father Name"]
@@ -872,7 +872,7 @@ else:
             else:
                 st.markdown("""
                     <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में छात्रवृत्ति प्रोग्रेस (Scholarship Status) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता. है।
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में छात्रवृत्ति प्रोग्रेस (Scholarship Status) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -1099,7 +1099,7 @@ else:
                 if role == "full_admin":
                     # एडमिन के लिए केवल अंक और उपस्थिति स्थिति ही एडिट करने योग्य रहेगी
                     disabled_cols = ["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Subject"]
-                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास सीसीई आंतरिक मूल्यांकन डेटा एडिट और सिंक करने का पूर्ण अधिकार है।")
+                    st.info("🔓 **एडमिन अब्दुल मोड:** आपके पास सीसीई आंतरिक मूल्यांकन डेटा एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     # सामान्य ऑपरेटर के लिए पूरे ग्रिड के सभी कॉलम्स लॉक (Read-Only List View) रहेंगे
                     disabled_cols = [c for c in render_df.columns]
@@ -1192,7 +1192,7 @@ else:
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Promotion Profiles): **{len(render_df)}**")
                 
-                # 🔐 एडिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
+                # 🔐 एडमिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
                 if role == "full_admin":
                     # एडमिन के लिए केवल Status और Promotion Status ही एडिट करने योग्य रहेंगे
                     disabled_cols = ["S.No.", "Admission Application Number", "Roll No.", "Student Name", "Current Year"]
@@ -1348,7 +1348,7 @@ else:
                                         
                             # Commit operations down into the physical master CSV database file
                             save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {result_sync_counter} छात्र रिकॉर्ड्स का परीक्षा परिणाम पंजी मुख्य डेटाबेस (Live CSV) में सुरक्षित सिंक हो गया है!")
+                            st.success(f"🎉 सफलता! कुल {result_sync_counter} छात्र रिकॉर्ड्स का परीक्षा परिणाम पंजी मुख्य देशाबेस (Live CSV) में सुरक्षित सिंक हो गया है!")
                             st.rerun()
                             
                         except Exception as e:
@@ -1439,7 +1439,7 @@ else:
                     col_view1, col_view2 = st.columns(2)
                     with col_view1:
                         header_toggle = st.checkbox(
-                            "शो हेडर टेक्स्ट (Display Institutional Header Text Block)", 
+                            "लेआउट हेडर टेक्स्ट (Display Institutional Header Text Block)", 
                             value=bool(st.session_state.pre_login_config.get("show_header_text", True)),
                             key="p12_header_text_visibility_toggle_secure"
                         )
@@ -1450,7 +1450,7 @@ else:
                         )
                     with col_view2:
                         system_title_text = st.text_input(
-                            "सिستم का मुख्य नाम (Main Gateway Application Title):", 
+                            "सिस्टम का मुख्य नाम (Main Gateway Application Title):", 
                             value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")),
                             key="p12_gateway_system_title_secure"
                         )
@@ -1572,7 +1572,7 @@ else:
                 
                 # फ़ाइल अपलोडर विजेट (मल्टीपल फ़ाइल्स सक्रिय)
                 uploaded_merge_files = st.file_uploader(
-                    f"मर्ज करने के लिए अपनी कस्टमाइज्ड CSV/Excel फ़ाइल/फ़ाइलें चुनें ({file_type_choice} अपलोड करें):", 
+                    f"मर्ज करने के लिए अपनी कस्टमाइजेड CSV/Excel फ़ाइल/फ़ाइलें चुनें ({file_type_choice} अपलोड करें):", 
                     type=["csv", "xlsx", "xls"], 
                     accept_multiple_files=True,
                     key="p13_smart_merge_uploader_widget_secure_multiple"
@@ -1594,7 +1594,7 @@ else:
                         st.warning("⚠️ कृपया सूची से अमान्य फॉर्मेट की फ़ाइलों को हटाएँ। केवल .csv, .xlsx, और .xls फ़ाइलें ही सपोर्टेड हैं।")
                     else:
                         st.markdown("### 📝 Enter Custom Names for Uploaded Files")
-                        st.info("जितनी फ़ाइलें आपने अपलोड की हैं, उनके लिए नीचे कस्टमाइज्ड नाम लिखें। यह नाम डेटाबेस के 'Merge_File_Source' कॉलम में जाकर लॉक हो जाएगा।")
+                        st.info("जितनी फ़ाइलें आपने अपलोड की हैं, उनके लिए नीचे कस्टमाइजेड नाम लिखें। यह नाम डेटाबेस के 'Merge_File_Source' कॉलम में जाकर लॉक हो जाएगा।")
                         
                         file_name_mappings = {}
                         col_inputs = st.columns(len(uploaded_merge_files) if len(uploaded_merge_files) <= 3 else 3)
@@ -1672,7 +1672,7 @@ else:
                                                 # डेटा Panel 2 पर विज़िबल हो इसके लिए ट्रैकिंग फ़्लैग को True लॉक करें
                                                 live_db.at[match_idx, "Is_From_Merge"] = "True"
                                                 
-                                                # कस्टमाइज्ड फ़ाइल का नाम सेव करना
+                                                # कस्टमाइजेड फ़ाइल का नाम सेव करना
                                                 current_source_val = str(live_db.at[match_idx, "Merge_File_Source"]).strip()
                                                 if current_source_val == "" or current_source_val == "nan":
                                                     live_db.at[match_idx, "Merge_File_Source"] = custom_given_name
@@ -1689,45 +1689,11 @@ else:
                                                         if col not in [incoming_app_col, incoming_year_col] and col in live_db.columns:
                                                             live_db.at[match_idx, col] = str(row_incoming[col]).strip()
                                                             
-                                # अपडेट किए गए संरचनात्मक डेटा मैट्रिक्स को केंद्रीय CSV में सुरक्षित सेव करना (Loops के बाहर स्थानांतरित)
+                                # अपडेट किए गए संरचनात्मक डेटा मैट्रिक्स को केंद्रीय CSV में सुरक्षित सेव करना
                                 save_live_data(live_db)
                                 st.success(f"🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ! कुल सिंक हुए रिकॉर्ड्स संख्या: **{total_merge_counter}**")
-                                st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइज्ड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
+                                st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइजेड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
                                 st.rerun()
-                                    
-                                    if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
-                    try:
-                        clean_edited = edited_df.drop(columns=["S.No."])
-                        reverse_mapping = {get_display_name(c): c for c in render_columns}
-                        
-                        synced_data = {col: [] for col in DEFAULT_COLUMNS}
-                        for extra_col in live_db.columns:
-                            if extra_col not in synced_data: 
-                                synced_data[extra_col] = []
-
-                        for _, row_edit in clean_edited.iterrows():
-                            for display_name_key in clean_edited.columns:
-                                internal_key = reverse_mapping.get(display_name_key, display_name_key)
-                                if internal_key in synced_data:
-                                    synced_data[internal_key].append(row_edit[display_name_key])
-                        
-                        max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
-                        for k_key in synced_data.keys():
-                            while len(synced_data[k_key]) < max_len: 
-                                synced_data[k_key].append("")
-                                
-                        new_live_db = pd.DataFrame(synced_data)
-                        
-                        if "Is_From_Merge" in live_db.columns and "Is_From_Merge" not in new_live_db.columns:
-                            new_live_db["Is_From_Merge"] = live_db["Is_From_Merge"]
-                        if "Merge_File_Source" in live_db.columns and "Merge_File_Source" not in new_live_db.columns:
-                            new_live_db["Merge_File_Source"] = live_db["Merge_File_Source"]
-                            
-                        save_live_data(new_live_db)
-                        st.success("🎉 संपूर्ण मास्टर डेटाबेस सफलतापूर्वक सिंक और अपडेट कर दिया गया है!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
@@ -1736,7 +1702,6 @@ else:
             st.header(f"👁️ {get_panel_title('P14')} (Multi-Panel Inspection Window)")
 
             # Master dictionary mapping each panel to its designated isolated columns layout
-            # Added "Merge_File_Source" to the Admission View panel dictionary configuration mapping array
             panel_options_list = {
                 "Panel 2: Admission View": ["Admission Application Number", "Student Name", "Admission Year", "Admission Session", "Admission Date", "Status", "admitted payment date", "Merge_File_Source"],
                 "Panel 3: Unique ID View": ["Admission Application Number", "Student Name", "Father Name", "Unique ID"],
@@ -1845,7 +1810,7 @@ else:
 
             st.markdown("---")
             st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
-            with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
+            with st.expander("15 पैनल्स के नाम (App Titles) एडमिट करने के लिए यहाँ क्लिक करें", expanded=False):
                 with st.form(key="p15_panel_rename_matrix_form_final_secure"):
                     p_setup1, p_setup2 = st.columns(2)
                     temp_panel_mappings = {}
@@ -1965,7 +1930,7 @@ else:
                             for display_name_key in clean_edited.columns:
                                 internal_key = reverse_mapping.get(display_name_key, display_name_key)
                                 if internal_key in synced_data:
-                                                                    synced_data[internal_key].append(row_edit[display_name_key])
+                                                                        synced_data[internal_key].append(row_edit[display_name_key])
                         
                         max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
                         for k_key in synced_data.keys():
@@ -1987,5 +1952,3 @@ else:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-
-                        
