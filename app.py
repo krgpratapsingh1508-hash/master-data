@@ -364,16 +364,6 @@ else:
         if current_panel_id == "P1":
             st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
             entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
-            if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-                uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-                if uploaded_file is not None:
-                    if st.button("Upload CSV Now", type="primary", use_container_width=True):
-                                # ----------------------------------------------------------------------
-        # P1: PANEL ENTRY MODULE
-        # ----------------------------------------------------------------------
-        if current_panel_id == "P1":
-            st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
-            entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
             
             if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
                 uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
