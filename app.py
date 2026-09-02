@@ -1521,7 +1521,7 @@ if current_panel_id == "P1":
                 </div>
             """, unsafe_allow_html=True)
 
-    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
     # P13: PANEL MERGE MODULE (मल्टी-अपलोडर, सख्त एक्सटेंशन वेरिफिकेशन और डायनेमिक फ़ाइल नाम मैपर इंजन)
     # ----------------------------------------------------------------------
     elif current_panel_id == "P13":
@@ -1544,7 +1544,7 @@ if current_panel_id == "P1":
                             save_merge_schemas(st.session_state.merge_schemas)
                             st.success(f"✅ '{new_file_type}' सूची में जोड़ दिया गया!")
                             st.rerun()
-                        
+                            
                 with col_adm_m2:
                     st.markdown("**📆 Manage Academic Years**")
                     st.write("वर्तमान वर्ष:", st.session_state.merge_schemas["academic_years"])
@@ -1656,51 +1656,52 @@ if current_panel_id == "P1":
                                 live_db["Admission Application Number"] = live_db["Admission Application Number"].astype(str).str.strip()
                                 live_db["Admission Year"] = live_db["Admission Year"].astype(str).str.strip()
                                 incoming_df[incoming_app_col] = incoming_df[incoming_app_col].astype(str).str.strip()
-                                                                    if incoming_year_col:
-                                        incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
+                                
+                                                                if incoming_year_col:
+                                    incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
+                                
+                                # डेटासेट वेरिएबल्स एरेज़ के माध्यम से मिलान रिकॉर्ड खोजना
+                                for _, row_incoming in incoming_df.iterrows():
+                                    incoming_app_val = str(row_incoming[incoming_app_col]).strip()
+                                    if incoming_app_val == "":
+                                        continue
+                                        
+                                    row_year_val = str(row_incoming[incoming_year_col]).strip() if incoming_year_col else selected_target_year
                                     
-                                    # डेटासेट वेरिएबल्स एरेज़ के माध्यम से मिलान रिकॉर्ड खोजना
-                                    for _, row_incoming in incoming_df.iterrows():
-                                        incoming_app_val = str(row_incoming[incoming_app_col]).strip()
-                                        if incoming_app_val == "":
-                                            continue
+                                    # सख्त डुअल बाइंडिंग वेरिफिकेशन लॉजिक नियम अनुक्रम बाधा जांच
+                                    idx_matches = live_db[
+                                        (live_db["Admission Application Number"] == incoming_app_val) & 
+                                        (live_db["Admission Year"] == row_year_val)
+                                    ].index
+                                    
+                                    if not idx_matches.empty:
+                                        total_merge_counter += 1
+                                        for match_idx in idx_matches:
+                                            # डेटा Panel 2 पर विज़िबल हो इसके लिए ट्रैकिंग फ़्लैग को True लॉक करें
+                                            live_db.at[match_idx, "Is_From_Merge"] = "True"
                                             
-                                        row_year_val = str(row_incoming[incoming_year_col]).strip() if incoming_year_col else selected_target_year
-                                        
-                                        # सख्त डुअल बाइंडिंग वेरिफिकेशन लॉजिक नियम अनुक्रम बाधा जांच
-                                        idx_matches = live_db[
-                                            (live_db["Admission Application Number"] == incoming_app_val) & 
-                                            (live_db["Admission Year"] == row_year_val)
-                                        ].index
-                                        
-                                        if not idx_matches.empty:
-                                            total_merge_counter += 1
-                                            for match_idx in idx_matches:
-                                                # डेटा Panel 2 पर विज़िबल हो इसके लिए ट्रैकिंग फ़्लैग को True लॉक करें
-                                                live_db.at[match_idx, "Is_From_Merge"] = "True"
-                                                
-                                                # कस्टमाइजेड फ़ाइल का नाम सेव करना
-                                                current_source_val = str(live_db.at[match_idx, "Merge_File_Source"]).strip()
-                                                if current_source_val == "" or current_source_val == "nan":
-                                                    live_db.at[match_idx, "Merge_File_Source"] = custom_given_name
-                                                elif custom_given_name not in current_source_val:
-                                                    # यदि एक ही छात्र का डेटा एक से अधिक फाइलों में मिलता है तो नाम कमा (,) से जुड़ जाएंगे
-                                                    live_db.at[match_idx, "Merge_File_Source"] = f"{current_source_val}, {custom_given_name}"
+                                            # कस्टमाइजेड फ़ाइल का नाम सेव करना
+                                            current_source_val = str(live_db.at[match_idx, "Merge_File_Source"]).strip()
+                                            if current_source_val == "" or current_source_val == "nan":
+                                                live_db.at[match_idx, "Merge_File_Source"] = custom_given_name
+                                            elif custom_given_name not in current_source_val:
+                                                # यदि एक ही छात्र का डेटा एक से अधिक फाइलों में मिलता है तो नाम कमा (,) से जुड़ जाएंगे
+                                                live_db.at[match_idx, "Merge_File_Source"] = f"{current_source_val}, {custom_given_name}"
 
-                                                # फ़ीस फ़ाइल प्रोसेसिंग लॉजिक
-                                                if file_type_choice == "admission fee file" and incoming_date_col:
-                                                    live_db.at[match_idx, "admitted payment date"] = str(row_incoming[incoming_date_col]).strip()
-                                                # मानक संरचनात्मक फ़ील्ड संरेखण लॉजिक
-                                                else:
-                                                    for col in incoming_df.columns:
-                                                        if col not in [incoming_app_col, incoming_year_col] and col in live_db.columns:
-                                                            live_db.at[match_idx, col] = str(row_incoming[col]).strip()
-                                                            
-                                # अपडेट किए गए संरचनात्मक डेटा मैट्रिक्स को केंद्रीय CSV में सुरक्षित सेव करना
-                                save_live_data(live_db)
-                                st.success(f"🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ! कुल सिंक हुए रिकॉर्ड्स संख्या: **{total_merge_counter}**")
-                                st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइजेड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
-                                st.rerun()
+                                            # फ़ीस फ़ाइल प्रोसेसिंग लॉजिक
+                                            if file_type_choice == "admission fee file" and incoming_date_col:
+                                                live_db.at[match_idx, "admitted payment date"] = str(row_incoming[incoming_date_col]).strip()
+                                            # मानक संरचनात्मक फ़ील्ड संरेखण लॉजिक
+                                            else:
+                                                for col in incoming_df.columns:
+                                                    if col not in [incoming_app_col, incoming_year_col] and col in live_db.columns:
+                                                        live_db.at[match_idx, col] = str(row_incoming[col]).strip()
+                                                        
+                            # अपडेट किए गए संरचनात्मक डेटा मैट्रिक्स को केंद्रीय CSV में सुरक्षित सेव करना
+                            save_live_data(live_db)
+                            st.success(f"🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ! कुल सिंक हुए रिकॉर्ड्स संख्या: **{total_merge_counter}**")
+                            st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइजेड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
+                            st.rerun()
 
     # ----------------------------------------------------------------------
     # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
