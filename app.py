@@ -941,8 +941,8 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-                # ----------------------------------------------------------------------
-        # P7: PANEL FOIL SHEET GENERATOR MODULE (Fixed Markdown Bug)
+               # ----------------------------------------------------------------------
+        # P7: PANEL FOIL SHEET GENERATOR MODULE (Smart Year Mapping Engine)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
@@ -976,9 +976,17 @@ else:
                         key="cce_p7_sub_secure_engine"
                     )
                 with col_p7_2:
-                    chosen_option = st.text_input(
-                        "📆 Enter Class & Semester (जैसे: B.A. LL.B. 10th SEMESTER):", 
-                        value="B.A. LL.B. 10th SEMESTER",
+                    # इनपुट ड्रॉपडाउन जो यूज़र से सेमेस्टर/वर्ष चुनेगा
+                    chosen_option = st.selectbox(
+                        "📆 Select Semester / Year Scope:",
+                        options=[
+                            "1 Semester", "2 Semester", "1 Year",
+                            "3 Semester", "4 Semester", "2 Year",
+                            "5 Semester", "6 Semester", "3 Year",
+                            "7 Semester", "8 Semester", "4 Year",
+                            "9 Semester", "10 Semester", "5 Year",
+                            "11 Semester", "12 Semester", "6 Year"
+                        ],
                         key="cce_p7_sem_secure_engine"
                     )
                 
@@ -1000,17 +1008,38 @@ else:
                 if st.session_state.get('cce_foil_generated', False):
                     st.markdown("---")
                     foil_filter_df = live_db.copy()
+                    
+                    # 🧠 डायनेमिक ईयर मैपिंग लॉजिक (यूज़र सिलेक्शन को 'Current Year' के अंकों से मैच करना)
+                    target_db_year = "1" # डिफ़ॉल्ट सेफ्टी वैल्यू
+                    if chosen_option in ["1 Semester", "2 Semester", "1 Year"]:
+                        target_db_year = "1"
+                    elif chosen_option in ["3 Semester", "4 Semester", "2 Year"]:
+                        target_db_year = "2"
+                    elif chosen_option in ["5 Semester", "6 Semester", "3 Year"]:
+                        target_db_year = "3"
+                    elif chosen_option in ["7 Semester", "8 Semester", "4 Year"]:
+                        target_db_year = "4"
+                    elif chosen_option in ["9 Semester", "10 Semester", "5 Year"]:
+                        target_db_year = "5"
+                    elif chosen_option in ["11 Semester", "12 Semester", "6 Year"]:
+                        target_db_year = "6"
+                    
+                    # 'Current Year' के आधार पर डेटाबेस को स्ट्रिक्टली फ़िल्टर करना
+                    foil_filter_df["Current Year"] = foil_filter_df["Current Year"].astype(str).str.strip()
+                    foil_filter_df = foil_filter_df[foil_filter_df["Current Year"] == target_db_year]
+                    
+                    # विषय (Subject) के आधार पर फ़िल्टर करना
                     if selected_subject != "All Subjects": 
                         foil_filter_df = foil_filter_df[foil_filter_df["Subject"].astype(str).str.strip() == selected_subject]
                     
                     if foil_filter_df.empty: 
-                        st.warning("🔍 चयनित मापदंडों के आधार पर कोई छात्र रिकॉर्ड नहीं मिला।")
+                        st.warning(f"🔍 चयनित मापदंडों (Current Year: {target_db_year}) के आधार पर डेटाबेस में कोई छात्र रिकॉर्ड नहीं मिला।")
                     else:
                         for essential_col in ["Roll No.", "CCE Marks Obtained", "CCE Attendance Status"]:
                             if essential_col not in foil_filter_df.columns: 
                                 foil_filter_df[essential_col] = ""
                         
-                        # सभी HTML को सिंगल वेरिएबल में बिना किसी एक्स्ट्रा इंडेंटेशन के तैयार करना
+                        # फॉयल शीट का HTML स्ट्रक्चर रेंडर करना
                         full_html_output = f"""<div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #333; padding: 15px; background-color: #fff; text-align: left;">
 <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 10px;">
 <span>Paper Code...................</span>
@@ -1051,7 +1080,7 @@ else:
 </thead>
 <tbody>"""
 
-                        # लूप की मदद से रो जेनरेट करना
+                        # छात्रों की रो जेनरेट करना
                         for idx, row in foil_filter_df.reset_index(drop=True).iterrows():
                             att_status = str(row["CCE Attendance Status"]).strip().upper()
                             if att_status in ["ABSENT", "A", "ABS"]:
@@ -1069,7 +1098,7 @@ else:
 <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{marks_word}</td>
 </tr>"""
 
-                        # अंत में नोट और फुटर जोड़ना
+                        # फुटर लेआउट जोड़ना
                         full_html_output += """</tbody></table>
 <div style="margin-top: 15px; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; border-top: 1px solid #000; padding-top: 8px;">
 <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
@@ -1084,8 +1113,8 @@ else:
 </div>
 </div>"""
                         
-                        # पूरे HTML को बिना किसी रेंडरिंग एरर के डिस्प्ले करना
                         st.markdown(full_html_output, unsafe_allow_html=True)
+
 
         # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE (Internal Assessment Ledger Entry - Isolated View)
