@@ -1811,7 +1811,8 @@ else:
                 st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
                 vis_tabs_inner = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
                 
-                with vis_tabs_inner:
+                # P1 - P7 विज़िबिलिटी कंट्रोलर (पहला टैब)
+                with vis_tabs_inner[0]:
                     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
                     panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
                     cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
@@ -1822,7 +1823,8 @@ else:
                                 st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
                                 st.rerun()
                                 
-                with vis_tabs_inner:
+                # P8 - P15 विज़िबिलिटी कंट्रोलर (दूसरा टैब)
+                with vis_tabs_inner[1]:
                     c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
                     panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
                     cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
@@ -1874,7 +1876,7 @@ else:
                             st.rerun()
 
             # ----------------------------------------------------------------------
-            # टैब 5: मास्टर डेटाबेस लिस्ट रेंडर व्यू
+            # टैब 5: मास्टर डेटाबेस लिस्ट रेंडर व्यू (बाएँ साइड इंडेक्स और रो सिलेक्शन के साथ)
             # ----------------------------------------------------------------------
             with admin_tabs:
                 st.subheader("📊 Master Database List View & Advanced Operational Controls")
@@ -1893,7 +1895,7 @@ else:
                     if st.session_state.admin_lock_state:
                         st.dataframe(ordered_db_display, use_container_width=True, hide_index=False)
                     else:
-                        st.info("🔓 **एडिट मोड सक्रिय:**")
+                        st.info("🔓 **एडिट मोड सक्रिय:** आप बाएँ इंडेक्स बार से पूरी रो सेलेक्ट कर सकते हैं या किसी भी सेल में डबल-क्लिक करके डेटा बदल सकते हैं।")
                         
                         disabled_fields = []
                         if not st.session_state.admin_unhide_edit:
@@ -1913,7 +1915,7 @@ else:
                                 display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                                 clean_edited_master = edited_master_db.rename(columns=display_to_orig_map)
                                 save_live_data(clean_edited_master)
-                                st.success("🎉 संपूर्ण मास्टर चेंजेस सुरक्षित अपडेट हो गए हैं!")
+                                st.success("🎉 संपूर्ण मास्टर चेंजेस और रो सिलेक्शन मॉडिफिकेशन लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
@@ -1939,16 +1941,15 @@ else:
                     
                 with col_adm2:
                     st.markdown("##### 🚨 Emergency Database Reset")
-                    confirm_reset = st.checkbox("हाँ, मैं डेटाबेस को पूरी तरह खाली करने की पुष्टि करता हूँ।", key="p15_confirm_reset_checkbox")
+                    confirm_reset = st.checkbox(" can_confirm_reset_emergency_wipe", label=" can_confirm_reset_emergency_wipe", key="p15_confirm_reset_checkbox")
                     if st.button("💥 Reset & Wipe Out Live Database Now", type="secondary", use_container_width=True, disabled=not confirm_reset, key="p15_emergency_wipe_btn"):
                         try:
-                                                        # कस्टमाइज्ड स्कीमा के साथ खाली डेटाफ़्रेम बनाना
                             empty_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
                             save_live_data(empty_df)
                             st.success("🎉 मुख्य लाइव डेटाबेस को पूरी तरह से रीसेट कर दिया गया है!")
                             st.rerun()
                         except Exception as reset_err:
-                            st.error(f"रीसेट प्रक्रिया के दौरान तकनीकी समस्या आई: {reset_err}")
+                                                        st.error(f"रीसेट प्रक्रिया के दौरान तकनीकी समस्या आई: {reset_err}")
 
             # ----------------------------------------------------------------------
             # टैब 7: लाइव ऑपरेटर लॉग्स और एक्टिविटी ट्रैकर
@@ -1976,7 +1977,4 @@ else:
                     logs_df = logs_df[logs_df["User"].str.contains(search_log_user, case=False, na=False)]
                 
                 st.dataframe(logs_df, use_container_width=True, hide_index=True)
-
-
-
 
