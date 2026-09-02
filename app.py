@@ -455,11 +455,14 @@ else:
                                             key="p1_session_scroll_secure_bulk"
                 )
 
-                # शर्तों का मिलान होने पर ही फ़ाइल अपलोडर सक्रिय होगा
-                if (file_segment_choice == "-- चुनें --" or 
-                    selected_admission_year == "-- चुनें --" or 
-                    selected_admission_session == "-- चुनें --"):
-                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
+                # ----------------------------------------------------------------------
+                # 🎯 सही वेरिएबल नामों के साथ फ़ायरवॉल कंडीशन (Realignment Code Block)
+                # ----------------------------------------------------------------------
+                if (file_type_choice == "-- चयन करें / Select --" or 
+                    selected_target_year == "-- चयन करें / Select --" or 
+                    selected_target_session == "-- चयन करें / Select --"):
+                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Type, Year और Session) का चयन करें।")
+
                 else:
                     st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{file_segment_choice.upper()}** | वर्ष: **{selected_admission_year}** | सत्र: **{selected_admission_session}**")
                     
