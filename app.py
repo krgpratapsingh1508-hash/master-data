@@ -1628,7 +1628,7 @@ if current_panel_id == "P1":
                                 
                             total_merge_counter = 0
                             
-                            for uploaded_merge_file in uploaded_merge_files:
+                                                        for uploaded_merge_file in uploaded_merge_files:
                                 custom_given_name = file_name_mappings.get(uploaded_merge_file.name, uploaded_merge_file.name)
                                 
                                 # फ़ाइल एक्सटेंशन के आधार पर सही रीडर कंपाइलर असाइन करना (.xls, .xlsx, .csv)
@@ -1657,7 +1657,7 @@ if current_panel_id == "P1":
                                 live_db["Admission Year"] = live_db["Admission Year"].astype(str).str.strip()
                                 incoming_df[incoming_app_col] = incoming_df[incoming_app_col].astype(str).str.strip()
                                 
-                                                                if incoming_year_col:
+                                if incoming_year_col:
                                     incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
                                 
                                 # डेटासेट वेरिएबल्स एरेज़ के माध्यम से मिलान रिकॉर्ड खोजना
