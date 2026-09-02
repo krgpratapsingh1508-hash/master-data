@@ -1577,9 +1577,9 @@ if current_panel_id == "P1":
         else:
             st.success(f"✅ स्वीकृत कॉन्फ़िगरेशन: **{file_type_choice.upper()}** | लक्षित वर्ष: **{selected_target_year}**")
             
-            # फ़ाइल अपलोडर विजेट (मल्टीपल फ़ाइल्स सक्रिय)
+                        # फ़ाइल अपलोडर विजेट (मल्टीपल फ़ाइल्स सक्रिय)
             uploaded_merge_files = st.file_uploader(
-                f"मर्ज करने के लिए अपनी कस्टमाइजेड CSV/Excel फ़ाइल/फ़ाइलें चुनें ({file_type_choice} अपलोड करें):", 
+                f"मर्ज करने के लिएं अपनी कस्टमाइजेड CSV/Excel फ़ाइल/फ़ाइलें चुनें ({file_type_choice} अपलोड करें):", 
                 type=["csv", "xlsx", "xls"], 
                 accept_multiple_files=True,
                 key="p13_smart_merge_uploader_widget_secure_multiple"
@@ -1628,7 +1628,7 @@ if current_panel_id == "P1":
                                 
                             total_merge_counter = 0
                             
-                                                        for uploaded_merge_file in uploaded_merge_files:
+                            for uploaded_merge_file in uploaded_merge_files:
                                 custom_given_name = file_name_mappings.get(uploaded_merge_file.name, uploaded_merge_file.name)
                                 
                                 # फ़ाइल एक्सटेंशन के आधार पर सही रीडर कंपाइलर असाइन करना (.xls, .xlsx, .csv)
