@@ -1782,13 +1782,13 @@ else:
                     st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                     st.rerun()
 
-            # Dynamic Row Column Order Shifting Controller Engine Block
+                        # Dynamic Row Column Order Shifting Controller Engine Block
             if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
                 st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
                 target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
                 c_left, c_right = st.columns(2)
                 
-               if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
+                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx > 0:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
@@ -1799,7 +1799,6 @@ else:
                     if idx < len(st.session_state.admin_columns_order) - 1:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
                         st.rerun()
-
 
             # Filtering layout fields based on targeted admin sorting preferences
             render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
