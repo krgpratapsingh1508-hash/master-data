@@ -441,145 +441,146 @@ if current_panel_id == "P1":
                 save_live_data(updated_df)
                 st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
 
-# ----------------------------------------------------------------------
-# P2: PANEL ADMISSION MODULE (केवल मर्ज किया हुआ डेटा ही दिखाएगा)
-# ----------------------------------------------------------------------
-elif current_panel_id == "P2":
-    st.header(f"🎓 {get_panel_title('P2')} (Admission Control & Payment Tracker)")
-    
-    if live_db.empty: 
-        st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) या Panel 13 (Merge) से छात्र लोड करें।")
-    else:
-        if "admitted payment date" not in live_db.columns:
-            live_db["admitted payment date"] = ""
+    # ----------------------------------------------------------------------
+    # P2: PANEL ADMISSION MODULE (केवल मर्ज किया हुआ डेटा ही दिखाएगा)
+    # ----------------------------------------------------------------------
+    elif current_panel_id == "P2":
+        st.header(f"🎓 {get_panel_title('P2')} (Admission Control & Payment Tracker)")
         
-        # 🎯 फ़िल्टर लॉजिक: केवल वही डेटा चुनें जो मर्ज पैनल से आया हो
-        admission_display_db = live_db[live_db["Is_From_Merge"].astype(str).str.strip().str.lower() == "true"].copy()
-        
-        if admission_display_db.empty:
-            st.info("💡 वर्तमान में एडमीशन पैनल पर कोई रिकॉर्ड नहीं है। यहाँ डेटा तभी दिखाई देगा जब आप Panel 13 (Smart Merge) से 'admission file' या 'admission fee file' मर्ज करेंगे।")
+        if live_db.empty: 
+            st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) या Panel 13 (Merge) से छात्र लोड करें।")
         else:
-            st.subheader("📆 Filter Records By Payment Date Range")
-            use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", key="p2_enable_date_filter_secure")
+            if "admitted payment date" not in live_db.columns:
+                live_db["admitted payment date"] = ""
             
-            if use_date_filter:
-                col_dt1, col_dt2 = st.columns(2)
-                with col_dt1:
-                    start_date = st.date_input("इस तिथि से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure")
-                with col_dt2:
-                    end_date = st.date_input("इस तिथि तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure")
-                
-                try:
-                    admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["admitted payment date"], errors="coerce")
-                    admission_display_db = admission_display_db[
-                        (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
-                        (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
-                    ]
-                    admission_display_db = admission_display_db.drop(columns=["_parsed_date"])
-                except Exception as date_err:
-                    st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
-
-            st.markdown("---")
+            # 🎯 फ़िल्टर लॉजिक: केवल वही डेटा चुनें जो मर्ज पैनल से आया हो
+            admission_display_db = live_db[live_db["Is_From_Merge"].astype(str).str.strip().str.lower() == "true"].copy()
             
-            # 'Merge_File_Source' कॉलम को लिस्ट लेआउट ग्रिड में शामिल किया गया
-            admission_fixed_cols = [
-                "Admission Application Number", "Admission Year", "Admission Session", 
-                "Student Name", "Father Name", "Admission Date", "Status", "admitted payment date", "Merge_File_Source"
-            ]
-            
-            for target_col in admission_fixed_cols:
-                if target_col not in admission_display_db.columns:
-                    admission_display_db[target_col] = ""
-            
-            if role == "full_admin":
-                st.subheader("⚙️ Select Columns for View, Print & Export (Admin Power Only)")
-                available_to_select = [c for c in live_db.columns if c in DEFAULT_COLUMNS or c == "admitted payment date"]
-                selected_columns_to_show = st.multiselect(
-                    "ग्रिड में प्रदर्शित करने के लिए कॉलम्स चुनें / हटाएँ:",
-                    options=available_to_select,
-                    default=[c for c in admission_fixed_cols if c in available_to_select],
-                    key="p2_admin_multiselect"
-                )
+            if admission_display_db.empty:
+                st.info("💡 वर्तमान में एडमीशन पैनल पर कोई रिकॉर्ड नहीं है। यहाँ डेटा तभी दिखाई देगा जब आप Panel 13 (Smart Merge) से 'admission file' या 'admission fee file' मर्ज करेंगे।")
             else:
-                selected_columns_to_show = admission_fixed_cols
-            
-            if not selected_columns_to_show:
-                st.warning("⚠️ कृपया विज़ुअलाइज़ेशन ग्रिड प्रदर्शित करने के लिए कम से कम एक कॉलम चुनें।")
-            else:
-                render_df = admission_display_db[selected_columns_to_show].copy()
-                render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                st.subheader("📆 Filter Records By Payment Date Range")
+                use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", key="p2_enable_date_filter_secure")
                 
-                st.write(f"📊 वर्तमान एडमिशन ग्रिड में कुल उपलब्ध छात्र रिकॉर्ड्स (Merged From Files): **{len(render_df)}**")
-                
-                if role == "full_admin":
-                    disabled_cols = ["S.No.", "Student Name", "Father Name", "Merge_File_Source"]
-                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास इस ग्रिड को एडिट और सिंक करने का पूर्ण अधिकार है।")
-                else:
-                    disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस एडमिशन लिस्ट में बदलाव करने का अधिकार नहीं है।")
-                
-                edited_admission_df = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=disabled_cols,
-                    column_config={
-                        "Status": st.column_config.SelectboxColumn(
-                            "Status", 
-                            options=["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"],
-                            required=True
-                        )
-                    },
-                    key="admission_live_editor_grid_p2_secure_engine", 
-                    hide_index=True
-                )
-                
-                if role == "full_admin":
-                    if st.button("Save Changes to Live Database", type="primary", use_container_width=True, key="p2_save_secure_btn"):
-                        try:
-                            clean_edited = edited_admission_df.drop(columns=["S.No."])
-                            if "Admission Application Number" not in clean_edited.columns:
-                                st.error("❌ डेटा सिंक करने के लिए ग्रिड व्यू में 'Admission Application Number' कॉलम का होना अनिवार्य है!")
-                            else:
-                                for _, row_edit in clean_edited.iterrows():
-                                    target_app_num = str(row_edit["Admission Application Number"]).strip()
-                                    idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
-                                    
-                                    if not idx_matches.empty:
-                                        for match_idx in idx_matches:
-                                            for col in clean_edited.columns:
-                                                if col in live_db.columns and col not in ["Admission Application Number", "Student Name", "Father Name", "Merge_File_Source"]:
-                                                    live_db.at[match_idx, col] = str(row_edit[col]).strip()
-                                
-                                save_live_data(live_db)
-                                st.success("🎉 संपूर्ण एडमिशन चेंजेस मास्टर डेटाबेस (Live CSV) में सुरक्षित सिंक हो गए हैं!")
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या आई: {e}")
-                
-                st.markdown("---")
-                col_exp1, col_exp2 = st.columns(2)
-                with col_exp1:
-                    st.markdown("""
-                        <button onclick="window.print()" style="width:100%; height:38px; background-color:#1465de; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
-                            🖨️ Print Current Selected Grid List (A4 Landscape)
-                        </button>
-                    """, unsafe_allow_html=True)
+                if use_date_filter:
+                    col_dt1, col_dt2 = st.columns(2)
+                    with col_dt1:
+                        start_date = st.date_input("इस तिथि से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure")
+                    with col_dt2:
+                        end_date = st.date_input("इस तिथि तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure")
                     
-                with col_exp2:
-                    buffer = io.BytesIO()
-                    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                                                        export_clean_df.to_excel(writer, index=False, sheet_name='Admission_Report')
-                            
-                            st.download_button(
-                                label="📥 Export Current Selection as Excel (.xlsx)",
-                                data=buffer.getvalue(),
-                                file_name=f"admission_report_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True,
-                                key="p2_download_excel_secure_btn"
-                            )
+                    try:
+                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["admitted payment date"], errors="coerce")
+                        admission_display_db = admission_display_db[
+                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
+                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
+                        ]
+                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"])
+                    except Exception as date_err:
+                        st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
-            # ----------------------------------------------------------------------
+                st.markdown("---")
+                
+                # 'Merge_File_Source' कॉलम को लिस्ट लेआउट ग्रिड में शामिल किया गया
+                admission_fixed_cols = [
+                    "Admission Application Number", "Admission Year", "Admission Session", 
+                    "Student Name", "Father Name", "Admission Date", "Status", "admitted payment date", "Merge_File_Source"
+                ]
+                
+                for target_col in admission_fixed_cols:
+                    if target_col not in admission_display_db.columns:
+                        admission_display_db[target_col] = ""
+                
+                if role == "full_admin":
+                    st.subheader("⚙️ Select Columns for View, Print & Export (Admin Power Only)")
+                    available_to_select = [c for c in live_db.columns if c in DEFAULT_COLUMNS or c == "admitted payment date"]
+                    selected_columns_to_show = st.multiselect(
+                        "ग्रिड में प्रदर्शित करने के लिए कॉलम्स चुनें / हटाएँ:",
+                        options=available_to_select,
+                        default=[c for c in admission_fixed_cols if c in available_to_select],
+                        key="p2_admin_multiselect"
+                    )
+                else:
+                    selected_columns_to_show = admission_fixed_cols
+                
+                if not selected_columns_to_show:
+                    st.warning("⚠️ कृपया विज़ुअलाइज़ेशन ग्रिड प्रदर्शित करने के लिए कम से कम एक कॉलम चुनें।")
+                else:
+                    render_df = admission_display_db[selected_columns_to_show].copy()
+                    render_df.insert(0, "S.No.", range(1, len(render_df) + 1))
+                    
+                    st.write(f"📊 वर्तमान एडमिशन ग्रिड में कुल उपलब्ध छात्र रिकॉर्ड्स (Merged From Files): **{len(render_df)}**")
+                    
+                    if role == "full_admin":
+                        disabled_cols = ["S.No.", "Student Name", "Father Name", "Merge_File_Source"]
+                        st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास इस ग्रिड को एडिट और सिंक करने का पूर्ण अधिकार है।")
+                    else:
+                        disabled_cols = [c for c in render_df.columns]
+                        st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस एडमिशन लिस्ट में बदलाव करने का अधिकार नहीं है।")
+                    
+                    edited_admission_df = st.data_editor(
+                        render_df, 
+                        use_container_width=True, 
+                        disabled=disabled_cols,
+                        column_config={
+                            "Status": st.column_config.SelectboxColumn(
+                                "Status", 
+                                options=["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"],
+                                required=True
+                            )
+                        },
+                        key="admission_live_editor_grid_p2_secure_engine", 
+                        hide_index=True
+                    )
+                    
+                    if role == "full_admin":
+                        if st.button("Save Changes to Live Database", type="primary", use_container_width=True, key="p2_save_secure_btn"):
+                            try:
+                                clean_edited = edited_admission_df.drop(columns=["S.No."])
+                                if "Admission Application Number" not in clean_edited.columns:
+                                    st.error("❌ डेटा सिंक करने के लिए ग्रिड व्यू में 'Admission Application Number' कॉलम का होना अनिवार्य है!")
+                                else:
+                                    for _, row_edit in clean_edited.iterrows():
+                                        target_app_num = str(row_edit["Admission Application Number"]).strip()
+                                        idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_num].index
+                                        
+                                        if not idx_matches.empty:
+                                            for match_idx in idx_matches:
+                                                for col in clean_edited.columns:
+                                                    if col in live_db.columns and col not in ["Admission Application Number", "Student Name", "Father Name", "Merge_File_Source"]:
+                                                        live_db.at[match_idx, col] = str(row_edit[col]).strip()
+                                    
+                                    save_live_data(live_db)
+                                    st.success("🎉 संपूर्ण एडमिशन चेंजेस मास्टर डेटाबेस (Live CSV) में सुरक्षित सिंक हो गए हैं!")
+                                    st.rerun()
+                            except Exception as e:
+                                st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या आई: {e}")
+                    
+                    st.markdown("---")
+                    col_exp1, col_exp2 = st.columns(2)
+                    with col_exp1:
+                        st.markdown("""
+                            <button onclick="window.print()" style="width:100%; height:38px; background-color:#1465de; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
+                                🖨️ Print Current Selected Grid List (A4 Landscape)
+                            </button>
+                        """, unsafe_allow_html=True)
+                        
+                    with col_exp2:
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                            export_clean_df = edited_admission_df.drop(columns=["S.No."], errors="ignore")
+                            export_clean_df.to_excel(writer, index=False, sheet_name='Admission_Report')
+                        
+                        st.download_button(
+                            label="📥 Export Current Selection as Excel (.xlsx)",
+                            data=buffer.getvalue(),
+                            file_name=f"admission_report_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="p2_download_excel_secure_btn"
+                        )
+
+    # ----------------------------------------------------------------------
     # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping - Isolated View)
     # ----------------------------------------------------------------------
     elif current_panel_id == "P3":
