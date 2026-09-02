@@ -1609,7 +1609,7 @@ else:
                                     key=f"p13_custom_file_name_inp_{idx}"
                                 ).strip()
 
-                        if st.button(f"Execute {len(uploaded_merge_files)} Files Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_multiple"):
+                                                if st.button(f"Execute {len(uploaded_merge_files)} Files Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_multiple"):
                             with st.spinner("मास्टर रिपॉजिटरी लिंकिंग और डेटा मर्जिंग प्रक्रिया चल रही है, कृपया प्रतीक्षा करें..."):
                                 
                                 if "admitted payment date" not in live_db.columns:
@@ -1621,7 +1621,7 @@ else:
                                     
                                 total_merge_counter = 0
                                 
-                                                                for uploaded_merge_file in uploaded_merge_files:
+                                for uploaded_merge_file in uploaded_merge_files:
                                     custom_given_name = file_name_mappings.get(uploaded_merge_file.name, uploaded_merge_file.name)
                                     
                                     # फ़ाइल एक्सटेंशन के आधार पर सही रीडर कंपाइलर असाइन करना (.xls, .xlsx, .csv)
