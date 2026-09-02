@@ -1812,12 +1812,12 @@ else:
                         year_col_variants = ["Admission Year", "Year", "year", "Session Year"]
                         session_col_variants = ["Admission Session", "Session", "session"]
                         
-                        incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
+                                                incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
                         incoming_date_col = next((c for c in incoming_df.columns if c in date_col_variants), None)
                         incoming_year_col = next((c for c in incoming_df.columns if c in year_col_variants), None)
                         incoming_session_col = next((c for c in incoming_df.columns if c in session_col_variants), None)
                         
-                                                if not incoming_app_col:
+                        if not incoming_app_col:
                             st.error("❌ त्रुटि: अपलोड की गई फ़ाइल में 'Admission Application Number' या इसके समकक्ष कोई ट्रैकिंग की (Key) कॉलम नहीं मिला!")
                         else:
                             if st.button(f"Execute {file_type_choice.upper()} Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_secure_final"):
@@ -1840,7 +1840,7 @@ else:
                                     if incoming_session_col:
                                         incoming_df[incoming_session_col] = incoming_df[incoming_session_col].astype(str).str.strip()
                                     
-                                    # Cross-referencing matching loop structures traversing dataset variables arrays
+                                    # Cross-referencing matching loop structures
                                     for _, row_incoming in incoming_df.iterrows():
                                         incoming_app_val = str(row_incoming[incoming_app_col]).strip()
                                         if incoming_app_val == "":
@@ -1849,7 +1849,7 @@ else:
                                         row_year_val = str(row_incoming[incoming_year_col]).strip() if incoming_year_col else selected_target_year
                                         row_session_val = str(row_incoming[incoming_session_col]).strip() if incoming_session_col else selected_target_session
                                         
-                                        # Strict Dual/Triple Binding Verification Logic rule sequence constraint checking
+                                        # Strict Dual/Triple Binding Verification Logic
                                         idx_matches = live_db[
                                             (live_db["Admission Application Number"] == incoming_app_val) & 
                                             (live_db["Admission Year"] == row_year_val) &
