@@ -310,11 +310,8 @@ if st.session_state.user_role is None:
                 st.rerun()
 
 # ==========================================================
-# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
+# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग引擎
 # ==========================================================
-# 🌟 NameError रोकने के लिए allowed_panels को यहाँ बिलकुल बाहर (ग्लोबल) डिक्लेयर करें
-allowed_panels = []
-
 if st.session_state.user_role is not None:
     role = st.session_state.user_role
     username = st.session_state.logged_username
@@ -332,6 +329,7 @@ if st.session_state.user_role is not None:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
+    allowed_panels = []
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
     elif role == "p1_role": allowed_panels = ["P1", "P14"]
@@ -349,13 +347,14 @@ if st.session_state.user_role is not None:
     elif role == "p13_role": allowed_panels = ["P13", "P14"]
     elif role == "p14_role": allowed_panels = ["P14"]
 
+    # 🌟 ये सभी लाइनें इस ब्लॉक के अंदर (सही इंडेंटेशन पर) होना अनिवार्य हैं:
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
     
     if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0] # 🌟 पहली वैल्यू (जैसे "P1") को स्ट्रिंग के रूप में निकालेगा
+        current_panel_id = selected_tab_ui.split(" : ")[0]  # 🌟 सही तरीके से स्ट्रिंग निकालने के लिए [0] इंडेक्स जोड़ा गया
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
