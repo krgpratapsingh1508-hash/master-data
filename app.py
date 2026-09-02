@@ -535,8 +535,42 @@ else:
                         admission_session = st.selectbox("Admission Session *", options=st.session_state.p1_dropdown_schemas["academic_sessions"])
                         minor_sub = st.text_input("Minor Subjects")
                         vocational_sub = st.text_input("Vocational Subjects")
-                        mdc_sub = st.text_input("MDC Subjects")
-                                                pw_ap_ce_sub = st.text_input("PW/Ap/CE Subjects")
+                                                mdc_sub = st.text_input("MDC Subjects")
+                        pw_ap_ce_sub = st.text_input("PW/Ap/CE Subjects")
+                        mobile = st.text_input("Mobile Number")
+                        email = st.text_input("Email")
+                        address = st.text_area("Address", height=68)
+                        enroll_no = st.text_input("Enrollment No")
+                        fees_paid = st.text_input("Admssion & Enrollment Fees")
+                        scholarship_name = st.text_input("Scholarship Name")
+                        payment_date = st.text_input("Payment Date (YYYY-MM-DD)")
+                    
+                    st.markdown("<p style='color:gray;'>* चिन्ह वाले फ़ील्ड्स डेटाबेस ट्रैकिंग के लिए महत्वपूर्ण हैं।</p>", unsafe_allow_html=True)
+                    submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
+                    
+                if submit_student:
+                    if s_name.strip() == "" or app_number.strip() == "": 
+                        st.warning("⚠️ Student Name और Application Number भरना अनिवार्य है।")
+                    else:
+                        new_row = {c: "" for c in DEFAULT_COLUMNS}
+                        new_row.update({
+                            "Application Number": app_number, "Student Abc Id": abc_id, 
+                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
+                            "Gender": gender, "Date Of Birth": dob, "Category": category, 
+                            "Admission Category": adm_category, "Degree": degree, "Branch": branch, 
+                            "Minor Subjects": minor_sub, "Vocational Subjects": vocational_sub, 
+                            "MDC Subjects": mdc_sub, "PW/Ap/CE Subjects": pw_ap_ce_sub, 
+                            "Mobile Number": mobile, "Email": email, "Address": address, 
+                            "Enrollment No": enroll_no, "Admssion & Enrollment Fees": fees_paid, 
+                            "Scholarship Name": scholarship_name, "Payment Date": payment_date,
+                            "Admission Year": admission_year, "Admission Session": admission_session, 
+                            "Status": "Regular Student", "Current Year": "1"
+                        })
+                        updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
+                        save_live_data(updated_df)
+                        st.success("✅ नया छात्र रिकॉर्ड नए कस्टमाइज्ड स्कीमा के साथ मास्टर डेटाबेस में सुरक्षित सेव हो गया है!")
+                        st.rerun()
+
                         mobile = st.text_input("Mobile Number")
                         email = st.text_input("Email")
                         address = st.text_area("Address", height=68)
