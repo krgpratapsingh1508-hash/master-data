@@ -477,13 +477,12 @@ else:
                                     uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
                                 elif uploaded_file.name.endswith('.xlsx'):
                                     uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
+                                #  इस नए कोड को वहां पेस्ट करें:
                                 elif uploaded_file.name.endswith('.xls'):
                                     try:
-                                        # सामान्य बाइनरी .xls फ़ाइलों के लिए (xlrd फिक्स)
                                         uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
                                     except Exception as xls_err:
                                         try:
-                                            # छद्म (fake) .xls फ़ाइलों के लिए जो असल में XML/HTML होती हैं
                                             uploaded_file.seek(0) 
                                             html_tables = pd.read_html(uploaded_file)
                                             if html_tables:
@@ -492,8 +491,25 @@ else:
                                                 st.error("फ़ाइल के अंदर कोई मान्य डेटा टेबल नहीं मिली।")
                                                 st.stop()
                                         except Exception as html_err:
-                                            st.error(f"एक्सेल फ़ाइल को प्रोसेस करने में समस्या आई: {xls_err}")
-                                            st.stop()
+                                            try:
+                                                uploaded_file.seek(0)
+                                                raw_text = uploaded_file.read().decode('utf-8', errors='ignore')
+                                                import re
+                                                rows = re.findall(r'<tr[^>]*>(.*?)</tr>', raw_text, re.DOTALL)
+                                                data_list = []
+                                                for row in rows:
+                                                    cols = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+                                                    cols = [re.sub(r'<[^>]+>', '', c).strip() for c in cols]
+                                                    if cols: data_list.append(cols)
+                                                if data_list:
+                                                    uploaded_df = pd.DataFrame(data_list)
+                                                    uploaded_df.columns = uploaded_df.iloc[0]
+                                                    uploaded_df = uploaded_df[1:].reset_index(drop=True)
+                                                else:
+                                                    raise Exception("No table entries found")
+                                            except:
+                                                st.error("यह .xls फ़ाइल सपोर्टेड नहीं है। कृपया इसे अपने कंप्यूटर में खोलकर '.xlsx' फॉर्मेट में 'Save As' करें और फिर अपलोड करें।")
+                                                st.stop()
                                 
                                 # डेटा क्लीनिंग और सेपरेशन ट्रैकिंग कॉलम्स को इंजेक्ट करना
                                 uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
