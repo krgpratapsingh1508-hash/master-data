@@ -392,7 +392,7 @@ if st.session_state.user_role is not None and current_panel_id == "P1":
                 except Exception as e: 
                     st.error(f"त्रुटि: {e}")
                     
-    elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+        elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
         with st.form(key="student_add_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
@@ -408,7 +408,7 @@ if st.session_state.user_role is not None and current_panel_id == "P1":
                 mobile = st.text_input("Mobile Number")
             with col2:
                 admission_session = st.text_input("Admission Session")
-                                admission_app_no = st.text_input("Admission Application Number")
+                admission_app_no = st.text_input("Admission Application Number")
                 unique_id = st.text_input("Unique ID")
                 app_enroll_no = st.text_input("Application Enrollment No.")
                 s_name = st.text_input("Student Name")
