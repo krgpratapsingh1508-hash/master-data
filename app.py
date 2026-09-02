@@ -312,13 +312,16 @@ if st.session_state.user_role is None:
 # ==========================================================
 # 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
-# सभी वेरिएबल्स को ग्लोबल स्कोप में पहले ही डिफ़ॉल्ट मान दें ताकि डेटा ग्रिड क्रैश न हो
-role = st.session_state.user_role if st.session_state.user_role is not None else ""
-username = st.session_state.logged_username if st.session_state.logged_username is not None else ""
+# 🌟 NameError को पूरी तरह ब्लॉक करने के लिए ग्लोबल स्तर पर डिफ़ॉल्ट मान सेट करें
+role = ""
+username = ""
 allowed_panels = []
 active_tabs_names = []
 
 if st.session_state.user_role is not None:
+    role = st.session_state.user_role
+    username = st.session_state.logged_username
+    
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_top1, col_top2 = st.columns(2)
     with col_top1:
@@ -332,7 +335,7 @@ if st.session_state.user_role is not None:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    # क्रेडेंशियल मैपिंग के अनुसार अनुमत पैनल्स की सूची तैयार करना
+    # क्रेडेंशियल मैपिंग के अनुसार पैनल्स असाइन करना (सही इंडेंटेशन के साथ)
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
     elif role == "p1_role": allowed_panels = ["P1", "P14"]
@@ -350,15 +353,15 @@ if st.session_state.user_role is not None:
     elif role == "p13_role": allowed_panels = ["P13", "P14"]
     elif role == "p14_role": allowed_panels = ["P14"]
 
-    # एक्टिव पैनल्स के नाम साइडबार के लिए फ़िल्टर करना
+    # 🌟 यह लाइन 'if st.session_state.user_role is not None:' ब्लॉक के अंदर (4 स्पेस आगे) होना जरूरी है:
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
 
-    # साइडबार नेविगेशन रेंडर करना और चुनी हुई आईडी को शुद्ध स्ट्रिंग में बदलना
+    # साइडबार नेविगेशन रेंडर करना
     if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        # 🌟 चुनी गई स्ट्रिंग (जैसे 'P1 : Panal entry') में से केवल 'P1' को साफ़ अलग करता है ताकि नीचे का डेटा मैच हो सके
+        # 🌟 यहाँ [0] का उपयोग करें ताकि स्ट्रिंग 'P1' शुद्ध रूप से बाहर आए और नीचे के सारे 'if current_panel_id == "P1":' मैच हो सकें
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
 # ----------------------------------------------------------------------
