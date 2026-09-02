@@ -312,7 +312,10 @@ if st.session_state.user_role is None:
 # ==========================================================
 # 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
-else:
+# 🌟 NameError रोकने के लिए allowed_panels को यहाँ बिलकुल बाहर (ग्लोबल) डिक्लेयर करें
+allowed_panels = []
+
+if st.session_state.user_role is not None:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
@@ -329,7 +332,6 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    allowed_panels = []
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
     elif role == "p1_role": allowed_panels = ["P1", "P14"]
@@ -353,7 +355,7 @@ else:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0]
+        current_panel_id = selected_tab_ui.split(" : ")[0] # 🌟 पहली वैल्यू (जैसे "P1") को स्ट्रिंग के रूप में निकालेगा
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
