@@ -206,14 +206,11 @@ if "cce_foil_generated" not in st.session_state: st.session_state.cce_foil_gener
 for k in DEFAULT_PANELS.keys():
     if f"hide_panel_{k}" not in st.session_state: st.session_state[f"hide_panel_{k}"] = False
 
+# 🌟 NameError को जड़ से खत्म करने के लिए वेरिएबल को डिफ़ॉल्ट रूप से इनिशियलाइज़ किया गया
+current_panel_id = None  
+
 # मास्टर रिपॉजिटरी लोड करना
 live_db = load_live_data()
-
-def get_display_name(internal_col_name):
-    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
-
-def get_panel_title(panel_id):
-    return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
 # ==========================================================
 # 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
@@ -355,11 +352,11 @@ else:
 
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
     
-    if not active_tabs_names:
+        if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0]
+        current_panel_id = selected_tab_ui.split(" : ")[0] # 🌟 आखिरी में [0] होना जरूरी है
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
