@@ -1789,7 +1789,7 @@ else:
             with admin_tabs[2]:
                 st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
                 with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                    with st.form(key="p15_panel_rename_matrix_form_final_secure"):
+                                        with st.form(key="p15_panel_rename_matrix_form_final_secure"):
                         p_setup1, p_setup2 = st.columns(2)
                         temp_panel_mappings = {}
                         for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
@@ -1797,15 +1797,15 @@ else:
                             if idx % 2 == 0:
                                 with p_setup1: 
                                     temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
-                                                            else:
-                            with p_setup2: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
-                    
-                    if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
-                        st.session_state.panel_names = temp_panel_mappings
-                        save_panel_names(temp_panel_mappings)
-                        st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
-                        st.rerun()
+                            else:
+                                with p_setup2: 
+                                    temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
+                        
+                        if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
+                            st.session_state.panel_names = temp_panel_mappings
+                            save_panel_names(temp_panel_mappings)
+                            st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
+                            st.rerun()
 
                 st.markdown("---")
                 st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
