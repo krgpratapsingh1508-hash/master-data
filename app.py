@@ -512,7 +512,7 @@ else:
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
                                 
-                        # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
             # ➕ नया छात्र मैनुअल फॉर्म सब-सिस्टम (New Manual Form Custom Layout)
             # ----------------------------------------------------------------------
             elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
@@ -571,18 +571,18 @@ else:
                         st.success("✅ नया छात्र रिकॉर्ड नए कस्टमाइज्ड स्कीमा के साथ मास्टर डेटाबेस में सुरक्षित सेव हो गया है!")
                         st.rerun()
 
-        # ----------------------------------------------------------------------
-        # P2: PANEL ADMISSION MODULE (Admission Control & Isolated View)
+                # ----------------------------------------------------------------------
+        # P2: PANEL ADMISSION MODULE (Admission Control & Live Date Filter Tracker)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P2":
             st.header(f"🎓 {get_panel_title('P2')} (Admission Control & Payment Tracker)")
             
             if live_db.empty: 
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) या Panel 13 (Merge) से छात्र लोड करें।")
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) या Panel 15 (Admin) से छात्र लोड करें।")
             else:
                 # 📅 डेट रेंज फ़िल्टर सब-सिस्टम
                 st.subheader("📆 Filter Records By Payment Date Range")
-                use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", key="p2_enable_date_filter_secure")
+                use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure")
                 
                 # बेस डेटा कॉपी बनाएँ
                 admission_display_db = live_db.copy()
@@ -595,18 +595,25 @@ else:
                         end_date = st.date_input("इस तिथि तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure")
                     
                     try:
+                        # 'Payment Date' को दिनांक फॉर्मेट में बदलना और त्रुटियों को ब्लैंक करना
                         admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], errors="coerce")
+                        
+                        # दिनांक सीमा के बीच के रिकॉर्ड्स छानना
                         admission_display_db = admission_display_db[
                             (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
                             (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
                         ]
+                        # अस्थायी कॉलम हटाना
                         admission_display_db = admission_display_db.drop(columns=["_parsed_date"])
                     except Exception as date_err:
                         st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
+                else:
+                    # 🎯 जब फ़िल्टर का चेकबॉक्स बंद (OFF) होगा, तो डेटाबेस का पूरा डेटा (Full Data) बाईपास होगा
+                    admission_display_db = live_db.copy()
 
                 st.markdown("---")
                 
-                # 🎛️ यूज़र निर्देशानुसार केवल एडमिशन के लिए मान्य निश्चित कॉलम्स की सूची (As Requested)
+                # 🎛️ एडमिशन के लिए कस्टमाइज्ड निश्चित कॉलम्स की सूची
                 admission_fixed_cols = [
                     "Application Number", "Student Abc Id", "Student Name", "Father Name", 
                     "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
@@ -615,15 +622,14 @@ else:
                     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date"
                 ]
                 
-                # सुनिश्चित करें कि ये कॉलम्स डेटाबेस स्कीमा में उपलब्ध हों
+                # सुनिश्चित करें कि ये सभी निश्चित कॉलम्स वर्तमान डिस्प्ले डेटाफ़्रेम में हों
                 for target_col in admission_fixed_cols:
                     if target_col not in admission_display_db.columns:
                         admission_display_db[target_col] = ""
                 
-                # 🛠️ एडमिन और सामान्य यूज़र के बीच कॉलम विज़िबिलिटी डिसीजन इंजन
+                # 🛠️ एडमिन और सामान्य ऑपरेटर के बीच ग्रिड व्यू कंट्रोल
                 if role == "full_admin":
-                    st.subheader("⚙️ Select Columns for View, Print & Export (Admin Power Only)")
-                    # एडमिन को सारे कॉलम्स चुनने की आज़ादी दें
+                    st.subheader("⚙️ Select Columns for View, Print & Export (Admin Only)")
                     available_to_select = [c for c in live_db.columns if c in DEFAULT_COLUMNS]
                     selected_columns_to_show = st.multiselect(
                         "ग्रिड में प्रदर्शित करने के लिए कॉलम्स चुनें / हटाएँ:",
@@ -632,29 +638,27 @@ else:
                         key="p2_admin_multiselect"
                     )
                 else:
-                    # सामान्य ऑपरेटर के लिए केवल एडमिशन से जुड़े निश्चित कॉलम्स ही लॉक रहेंगे (No extra columns allowed)
+                    # ऑपरेटर के लिए केवल एडमिशन के कस्टमाइज्ड लॉक कॉलम्स दिखेंगे
                     selected_columns_to_show = admission_fixed_cols
                 
                 if not selected_columns_to_show:
-                    st.warning("⚠️ कृपया विज़ुअलाइज़ेशन ग्रिड प्रदर्शित करने के लिए कम से कम एक कॉलम चुनें।")
+                    st.warning("⚠️ कृपया ग्रिड प्रदर्शित करने के लिए कम से कम एक कॉलम चुनें।")
                 else:
-                    # फ़िल्टर्ड फ्रेम लेआउट तैयार करना और क्रम संख्या (S. No) जोड़ना
+                    # चयनित कॉलम्स का डेटा अलग करना और क्रम संख्या (S. No.) जोड़ना
                     render_df = admission_display_db[selected_columns_to_show].copy()
-                    render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                    render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                     
-                    st.write(f"📊 वर्तमान एडमिशन ग्रिड में कुल उपलब्ध छात्र रिकॉर्ड्स: **{len(render_df)}**")
+                    st.write(f"📊 ग्रिड में लोड छात्र रिकॉर्ड्स की संख्या: **{len(render_df)}**")
                     
-                    # 🔐 एडिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
+                    # 🔐 सुरक्षा फ़ायरवॉल: एडमिन और ऑपरेटर एडिटिंग परमिशन लॉक
                     if role == "full_admin":
-                        # एडमिन के लिए केवल S. No, Application Number और नाम लॉक रहेंगे, बाकी वह एडिट कर सकता है
-                        disabled_cols = ["S. No", "Application Number", "Student Name", "Father Name"]
-                        st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास इस ग्रिड को एडिट और सिंक करने का पूर्ण अधिकार है।")
+                        disabled_cols = ["S. No.", "Application Number", "Student Name", "Father Name"]
+                        st.info("🔓 **प्रशासक मोड:** आपके पास ग्रिड डेटा को एडिट और सिंक करने की अनुमति है।")
                     else:
-                        # सामान्य ऑपरेटर के लिए पूरे ग्रिड के सभी कॉलम्स लॉक (Read-Only List View) रहेंगे
                         disabled_cols = [c for c in render_df.columns]
-                        st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस एडमिशन लिस्ट में बदलाव करने का अधिकार नहीं है।")
+                        st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस ग्रिड में बदलाव करने का अधिकार नहीं है।")
                     
-                    # 📊 इंटरएक्टिव डेटा एडिटर ग्रिड
+                    # 📊 इंटरएक्टिव डेटा एडिटर ग्रिड रेंडरिंग
                     edited_admission_df = st.data_editor(
                         render_df, 
                         use_container_width=True, 
@@ -663,11 +667,11 @@ else:
                         hide_index=True
                     )
                     
-                    # 💾 सिंक बटन (केवल सुपर एडमिन को दिखेगा और प्रोसेस करेगा)
+                    # 💾 मुख्य लाइव डेटाबेस में सिंक करने का बटन (केवल एडमिन के लिए)
                     if role == "full_admin":
                         if st.button("Save Changes to Live Database", type="primary", use_container_width=True, key="p2_save_secure_btn"):
                             try:
-                                clean_edited = edited_admission_df.drop(columns=["S. No"])
+                                clean_edited = edited_admission_df.drop(columns=["S. No."], errors="ignore")
                                 if "Application Number" not in clean_edited.columns:
                                     st.error("❌ डेटा सिंक करने के लिए ग्रिड व्यू में 'Application Number' कॉलम का होना अनिवार्य है!")
                                 else:
@@ -677,7 +681,6 @@ else:
                                         
                                         if not idx_matches.empty:
                                             for match_idx in idx_matches:
-                                                # एडमिन द्वारा किए गए बदलावों को सिंक करना
                                                 for col in clean_edited.columns:
                                                     if col in live_db.columns and col not in ["Application Number", "Student Name", "Father Name"]:
                                                         live_db.at[match_idx, col] = str(row_edit[col]).strip()
@@ -688,7 +691,7 @@ else:
                             except Exception as e:
                                 st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या आई: {e}")
                     
-                    # 🖨️ प्रिंट और एक्सेल एक्सपोर्ट ऐक्शन्स पैनल
+                    # 🖨️ प्रिंट और एक्सेल एक्सपोर्ट एक्शन्स पैनल
                     st.markdown("---")
                     col_exp1, col_exp2 = st.columns(2)
                     
@@ -703,7 +706,7 @@ else:
                         import io
                         buffer = io.BytesIO()
                         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                            export_clean_df = edited_admission_df.drop(columns=["S. No"], errors="ignore")
+                            export_clean_df = edited_admission_df.drop(columns=["S. No."], errors="ignore")
                             export_clean_df.to_excel(writer, index=False, sheet_name='Admission_Report')
                         
                         st.download_button(
