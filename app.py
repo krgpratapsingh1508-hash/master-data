@@ -387,14 +387,14 @@ else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
         # ----------------------------------------------------------------------
         if current_panel_id == "P1":
             st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
             entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 फ़ाइल बल्क अपलोड (Bulk File Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
             
-                        # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
             # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम (Bulk Upload Sub-System)
             # ----------------------------------------------------------------------
             if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
@@ -426,13 +426,13 @@ else:
                         key="p1_session_scroll_secure_bulk"
                     )
 
-                # 🛑 (यह आपकी लाइन 421 है जो अब एरर नहीं देगी क्योंकि ऊपर वेरिएबल्स बन चुके हैं)
                 if (file_segment_choice == "-- चुनें --" or 
                     selected_admission_year == "-- चुनें --" or 
                     selected_admission_session == "-- चुनें --"):
                     st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
             
-            if entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
+            # यहां से बदलाव शुरू हो रहा है:
+            elif entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
                 st.subheader("📊 Select Target Configurations Before Upload")
                 col_sc1, col_sc2, col_sc3 = st.columns(3)
                 
@@ -452,22 +452,20 @@ else:
                     p1_admission_session = st.selectbox(
                         "3. Admission Session चुनें:",
                         options=["-- चुनें --"] + st.session_state.p1_dropdown_schemas["academic_sessions"],
-                                            key="p1_session_scroll_secure_bulk"
-                )
+                        key="p1_session_scroll_secure_bulk_main"
+                    )
 
-                                # ----------------------------------------------------------------------
-                # 🎯 सही वेरिएबल नामों के साथ फ़ायरवॉल कंडीशन और अपलोड लॉजिक
-                # ----------------------------------------------------------------------
-                if (file_segment_choice == "-- चुनें --" or 
-                    selected_admission_year == "-- चुनें --" or 
-                    selected_admission_session == "-- चुनें --"):
+                # 🎯 सुधार (Correction): यहां ऊपर वाले वेरिएबल्स का नाम उपयोग करें ताकि NameError न आए
+                if (p1_file_type == "-- चुनें --" or 
+                    p1_admission_year == "-- चुनें --" or 
+                    p1_admission_session == "-- चुनें --"):
                     st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
                 else:
-                    st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{file_segment_choice.upper()}** | वर्ष: **{selected_admission_year}** | सत्र: **{selected_admission_session}**")
+                    st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{p1_file_type.upper()}** | वर्ष: **{p1_admission_year}** | सत्र: **{p1_admission_session}**")
                     
                     # 📁 CSV, XLSX, XLS तीनों फ़ाइल फॉर्मेट्स का सपोर्ट
                     uploaded_file = st.file_uploader(
-                        f"अपलोड करने के लिए '{file_segment_choice}' की फ़ाइल चुनें:", 
+                        f"अपलोड करने के लिए '{p1_file_type}' की फ़ाइल चुनें:", 
                         type=["csv", "xlsx", "xls"],
                         key="p1_bulk_file_uploader_widget"
                     )
@@ -492,12 +490,12 @@ else:
                                         uploaded_df[col] = ""
                                 
                                 # यूज़र द्वारा चुने गए सेपरेटर पैरामीटर्स को डेटा रो में मैप करना
-                                uploaded_df["Admission Year"] = selected_admission_year
-                                uploaded_df["Admission Session"] = selected_admission_session
+                                uploaded_df["Admission Year"] = p1_admission_year
+                                uploaded_df["Admission Session"] = p1_admission_session
                                 
                                 # विशेष फ़ाइल सेगमेंट के अनुसार डेटा आइसोलेशन मार्कर सेट करना
                                 if "Uploaded File Type" not in uploaded_df.columns:
-                                    uploaded_df["Uploaded File Type"] = file_segment_choice
+                                    uploaded_df["Uploaded File Type"] = p1_file_type
                                 
                                 cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
                                 
@@ -506,7 +504,7 @@ else:
                                 updated_df = pd.concat([current_live_db, cleaned_uploaded_df], ignore_index=True)
                                 
                                 save_live_data(updated_df)
-                                st.success(f"🎉 सफलता! '{file_segment_choice.upper()}' का डेटा सफलतापूर्वक सिस्टम में समाहित हो गया है!")
+                                st.success(f"🎉 सफलता! '{p1_file_type.upper()}' का डेटा सफलतापूर्वक सिस्टम में समाहित हो गया है!")
                                 st.rerun()
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
