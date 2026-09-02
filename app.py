@@ -1514,7 +1514,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P13: PANEL MERGE MODULE (मल्टी-अपलोडर, सख्त एक्सटेंशन वेरिफिकेशन और डायनेमिक फ़ाइल नाम मैपर इंजन)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
@@ -1579,7 +1579,7 @@ else:
                 )
                 
                 if uploaded_merge_files:
-                    # 🌟 सख्त फ़ाइल एक्सटेंशन वैलिडेशन सब-सिस्टम
+                    # सख्त फ़ाइल एक्सटेंशन वेरिफिकेशन सब-सिस्टम
                     allowed_extensions = [".csv", ".xlsx", ".xls"]
                     invalid_file_detected = False
                     
@@ -1609,7 +1609,7 @@ else:
                                     key=f"p13_custom_file_name_inp_{idx}"
                                 ).strip()
 
-                                                if st.button(f"Execute {len(uploaded_merge_files)} Files Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_multiple"):
+                        if st.button(f"Execute {len(uploaded_merge_files)} Files Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_multiple"):
                             with st.spinner("मास्टर रिपॉजिटरी लिंकिंग और डेटा मर्जिंग प्रक्रिया चल रही है, कृपया प्रतीक्षा करें..."):
                                 
                                 if "admitted payment date" not in live_db.columns:
@@ -1645,7 +1645,7 @@ else:
                                         st.error(f"❌ त्रुटि: फ़ाइल '{uploaded_merge_file.name}' में ट्रैकिंग 'Application Number' कॉलम नहीं मिला! इसे स्किप किया गया।")
                                         continue
                                     
-                                    # डेटा क्लीनिंग और स्ट्रिपिंग प्रोसेस
+                                                                        # डेटा क्लीनिंग और स्ट्रिपिंग प्रोसेस
                                     live_db["Admission Application Number"] = live_db["Admission Application Number"].astype(str).str.strip()
                                     live_db["Admission Year"] = live_db["Admission Year"].astype(str).str.strip()
                                     incoming_df[incoming_app_col] = incoming_df[incoming_app_col].astype(str).str.strip()
