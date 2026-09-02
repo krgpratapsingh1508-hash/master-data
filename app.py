@@ -211,7 +211,7 @@ role = ""
 username = ""
 allowed_panels = []
 active_tabs_names = []
-current_panel_id = None  
+current_panel_id = selected_tab_ui.split(" : ")[0] 
 
 # मास्टर रिपॉजिटरी लोड करना
 live_db = load_live_data()
