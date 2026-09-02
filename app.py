@@ -1651,19 +1651,21 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-        # ----------------------------------------------------------------------
-        # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
+                # ----------------------------------------------------------------------
+        # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & MASTER CONTROLS)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
             st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
             
-            # 🗂️ एडमिन फंक्शन्स को व्यवस्थित रखने के लिए एडवांस्ड टैब सिस्टम
+            # 🗂️ सभी 7 टैब को एक साथ सिंक करने के लिए कस्टमाइज्ड मास्टर लिस्ट
             admin_tabs = st.tabs([
                 "📢 Notice & Dropdown Customizer", 
                 "📋 Live Schema Column Customizer",
                 "✏️ Panel Name & Toggles", 
                 "🔀 Column Shifter Engine", 
-                "📊 Live Master Database"
+                "📊 Live Master Database",
+                "🧹 Database Maintenance",
+                "🕵️ Audit Logs"
             ])
             
             # ----------------------------------------------------------------------
