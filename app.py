@@ -1651,201 +1651,277 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-               # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
             st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
             
-            # 📢 Live Notice Board Manager Panel Area
-            st.subheader("📢 Live Notice Board Manager")
-            with st.expander("कॉलेज सूचना पटल (Official Notice Board) की गाइडलाइंस एडिट करें", expanded=True):
-                with st.form(key="p15_global_notice_form_final_secure"):
-                    updated_notice_input = st.text_area(
-                        "सूचना पटल की पंक्तियाँ लिखें (प्रत्येक नई लाइन मुख्य पेज पर एक नया पॉइंट बनेगी):",
-                        value=st.session_state.notice_text,
-                        height=150,
-                        key="p15_notice_text_area_input_final_secure"
-                    )
-                    if st.form_submit_button("Publish & Save Notice Board Permanently", type="primary", use_container_width=True):
-                        st.session_state.notice_text = updated_notice_input
-                        save_notice_board(updated_notice_input)
-                        st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है! यह बिना लॉगिन वाले होम पेज पर लाइव दिखाई देगा।")
+            # 🗂️ एडमिन फंक्शन्स को व्यवस्थित रखने के लिए एडवांस्ड टैब सिस्टम
+            admin_tabs = st.tabs([
+                "📢 Notice & Dropdown Customizer", 
+                "📋 Live Schema Column Customizer",
+                "✏️ Panel Name & Toggles", 
+                "🔀 Column Shifter Engine", 
+                "📊 Live Master Database"
+            ])
+            
+            # ----------------------------------------------------------------------
+            # टैब 1: नोटिस बोर्ड मैनेजर + मास्टर ड्रॉपडाउन कस्टमाइज़र
+            # ----------------------------------------------------------------------
+            with admin_tabs[0]:
+                # 📢 Live Notice Board Manager Panel Area
+                st.subheader("📢 Live Notice Board Manager")
+                with st.expander("कॉलेज सूचना पटल (Official Notice Board) की गाइडलाइंस एडिट करें", expanded=True):
+                    with st.form(key="p15_global_notice_form_final_secure"):
+                        updated_notice_input = st.text_area(
+                            "सूचना पटल की पंक्तियाँ लिखें (प्रत्येक नई लाइन मुख्य पेज पर एक नया पॉइंट बनेगी):",
+                            value=st.session_state.notice_text,
+                            height=150,
+                            key="p15_notice_text_area_input_final_secure"
+                        )
+                        if st.form_submit_button("Publish & Save Notice Board Permanently", type="primary", use_container_width=True):
+                            st.session_state.notice_text = updated_notice_input
+                            save_notice_board(updated_notice_input)
+                            st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है! यह बिना लॉगिन वाले होम पेज पर लाइव दिखाई देगा।")
+                            st.rerun()
+
+                st.markdown("---")
+                # ⚙️ सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र
+                st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
+                st.markdown("पैनल 1 (Data Onboarding) की तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
+                
+                if "p11_dropdown_schemas" not in st.session_state:
+                    if "p14_dropdown_schemas" in st.session_state:
+                        st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
+                    else:
+                        st.session_state.p11_dropdown_schemas = {
+                            "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
+                            "academic_years": ["2024", "2025", "2026", "2027"],
+                            "academic_sessions": ["July-Dec", "Jan-June"]
+                        }
+                
+                st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
+                
+                col_drop1, col_drop2, col_drop3 = st.columns(3)
+                with col_drop1:
+                    st.markdown("##### 📁 1. File Segments / Types")
+                    edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
+                with col_drop2:
+                    st.markdown("##### 📆 2. Academic Years")
+                    edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
+                with col_drop3:
+                    st.markdown("##### ⏳ 3. Academic Sessions")
+                    edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
+                
+                if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
+                    new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                    new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                    new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                    
+                    if not new_file_types or not new_years or not new_sessions:
+                        st.error("❌ कोई भी ड्रॉपडाउन सूची पूरी तरह खाली नहीं छोड़ी जा सकती!")
+                    else:
+                        updated_schema = {"file_types": new_file_types, "academic_years": new_years, "academic_sessions": new_sessions}
+                        st.session_state.p11_dropdown_schemas = updated_schema
+                        st.session_state.p1_dropdown_schemas = updated_schema
+                        st.success("🎉 मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट होकर Panel 1 के साथ सिंक हो गई हैं!")
                         st.rerun()
 
-            st.markdown("---")
-            st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
-            with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                with st.form(key="p15_panel_rename_matrix_form_final_secure"):
-                    p_setup1, p_setup2 = st.columns(2)
-                    temp_panel_mappings = {}
-                    for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
-                        current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
-                        if idx % 2 == 0:
-                            with p_setup1: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
+            # ----------------------------------------------------------------------
+            # टैब 2: मास्टर स्कीमा कॉलम कस्टमाइज़र (The Power Engine)
+            # ----------------------------------------------------------------------
+            with admin_tabs[1]:
+                st.subheader("📋 Live Master Schema Column Customizer")
+                st.markdown("यहाँ से आप पूरे सिस्टम की मुख्य कॉलम सूची (Admission Fields / DEFAULT_COLUMNS) को लाइव बदल या कस्टमाइज़ कर सकते हैं:")
+                
+                if "dynamic_default_columns" not in st.session_state:
+                    st.session_state.dynamic_default_columns = [c for c in DEFAULT_COLUMNS]
+                
+                edited_schema_cols = st.text_area(
+                    "मास्टर डेटाबेस कॉलम्स (एक नाम प्रति लाइन दर्ज करें - स्पेलिंग और स्पेस का ध्यान रखें):",
+                    value="\n".join(st.session_state.dynamic_default_columns),
+                    height=250,
+                    key="p15_schema_columns_editor_text_area"
+                )
+                
+                col_sc_action1, col_sc_action2 = st.columns(2)
+                with col_sc_action1:
+                    if st.button("🔄 Apply Schema & Restructure Database", type="primary", use_container_width=True, key="p15_apply_schema_btn"):
+                        new_cols_list = [line.strip() for line in edited_schema_cols.split("\n") if line.strip()]
+                        
+                        if "Application Number" not in new_cols_list or "Student Name" not in new_cols_list:
+                            st.error("❌ सुरक्षा कारणों से 'Application Number' और 'Student Name' कॉलम्स को स्कीमा से हटाया नहीं जा सकता!")
                         else:
-                            with p_setup2: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
-                    
-                    if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
-                        st.session_state.panel_names = temp_panel_mappings
-                        save_panel_names(temp_panel_mappings)
-                        st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
-                        st.rerun()
-
-            st.markdown("---")
-            st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
-            vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
-            
-            # Visibility Panel Controllers Layer for P1 - P7
-            with vis_tabs[0]:
-                c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-                panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
-                cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
-                for i, p_key in enumerate(panels_p1_p7):
-                    with cols_p1_p7[i]:
-                        status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
-                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                            st.session_state.dynamic_default_columns = new_cols_list
+                            globals()['DEFAULT_COLUMNS'] = new_cols_list
+                            
+                            current_db = load_live_data()
+                            for c in new_cols_list:
+                                if c not in current_db.columns:
+                                    current_db[c] = ""
+                            
+                            available_render_cols = [col for col in new_cols_list if col in current_db.columns]
+                            updated_structured_db = current_db[available_render_cols].copy()
+                            
+                            save_live_data(updated_structured_db)
+                            st.session_state.admin_columns_order = [c for c in new_cols_list]
+                            
+                            st.success("🎉 बधाई! मास्टर स्कीमा कॉलम फ्रेमवर्क सफलतापूर्वक बदल गया है। अब अपलोड फ़ाइल और मैनुअल फॉर्म इसी नई लिस्ट के अनुसार डेटा एक्सेप्ट करेंगे।")
                             st.rerun()
                             
-            # Visibility Panel Controllers Layer for P8 - P15
-            with vis_tabs[1]:
-                c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
-                panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
-                cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
-                for i, p_key in enumerate(panels_p8_p15):
-                    with cols_p8_p15[i]:
-                        status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
-                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
-                            st.rerun()
-
-            # ⚙️ न्यू फ़ंक्शन: सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र (Shifted From Merge Panel)
-            st.markdown("---")
-            st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
-            st.markdown("पैनल 1 (Data Onboarding) में दिखने वाली तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
-            
-            if "p11_dropdown_schemas" not in st.session_state:
-                if "p14_dropdown_schemas" in st.session_state:
-                    st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
-                else:
-                    st.session_state.p11_dropdown_schemas = {
-                        "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
-                        "academic_years": ["2024", "2025", "2026", "2027"],
-                        "academic_sessions": ["July-Dec", "Jan-June"]
-                    }
-            
-            st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
-            
-            col_drop1, col_drop2, col_drop3 = st.columns(3)
-            with col_drop1:
-                st.markdown("##### 📁 1. File Segments / Types")
-                edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
-            with col_drop2:
-                st.markdown("##### 📆 2. Academic Years")
-                edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
-            with col_drop3:
-                st.markdown("##### ⏳ 3. Academic Sessions")
-                edited_sessions = st.text_area("Admission Sessions (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
-            
-            if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
-                new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
-                new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
-                
-                if not new_file_types or not new_years or not new_sessions:
-                    st.error("❌ कोई भी ड्रॉपडाउन सूची पूरी तरह खाली नहीं छोड़ी जा सकती!")
-                else:
-                    updated_schema = {"file_types": new_file_types, "academic_years": new_years, "academic_sessions": new_sessions}
-                    st.session_state.p11_dropdown_schemas = updated_schema
-                    st.session_state.p1_dropdown_schemas = updated_schema
-                    st.success("🎉 मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट होकर Panel 1 के साथ सिंक हो गई हैं!")
-                    st.rerun()
-
-            st.markdown("---")
-            st.subheader("📊 Master Database List View & Advanced Operational Controls")
-            
-            # Action Toggles Column Layout
-            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-            with col_ctrl1:
-                lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
-                if st.button(lbl_edit, use_container_width=True, key="p15_edit_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                    st.rerun()
-            with col_ctrl2:
-                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
-                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                    st.rerun()
-            with col_ctrl3:
-                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
-                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
-                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-                    st.rerun()
-
-                        # Dynamic Row Column Order Shifting Controller Engine Block
-            if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
-                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
-                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
-                c_left, c_right = st.columns(2)
-                
-                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx > 0:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                with col_sc_action2:
+                    if st.button("⏪ Reset Schema to Default Layout", type="secondary", use_container_width=True, key="p15_reset_schema_btn"):
+                        factory_defaults = [
+                            "Application Number", "Student Abc Id", "Student Name", "Father Name", 
+                            "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
+                            "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", 
+                            "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No", 
+                            "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date",
+                            "Admission Year", "Admission Session", "Status", "Current Year"
+                        ]
+                        st.session_state.dynamic_default_columns = factory_defaults
+                        globals()['DEFAULT_COLUMNS'] = factory_defaults
+                        st.session_state.admin_columns_order = [c for c in factory_defaults]
+                        st.success("🔄 स्कीमा फ़ैक्टरी सेटिंग्स (मूल 26 कॉलम्स) पर रीसेट हो गया है!")
                         st.rerun()
+
+            # ----------------------------------------------------------------------
+            # टैब 3: पुराना पैनल रीनेम और विज़िबिलिटी टॉगल स्विचबोर्ड
+            # ----------------------------------------------------------------------
+            with admin_tabs[2]:
+                st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
+                with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
+                                        with st.form(key="p15_panel_rename_matrix_form_final_secure"):
+                        p_setup1, p_setup2 = st.columns(2)
+                        temp_panel_mappings = {}
+                        for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
+                            current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
+                            if idx % 2 == 0:
+                                with p_setup1: 
+                                    temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
+                            else:
+                                with p_setup2: 
+                                    temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
                         
-                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx < len(st.session_state.admin_columns_order) - 1:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                        if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
+                            st.session_state.panel_names = temp_panel_mappings
+                            save_panel_names(temp_panel_mappings)
+                            st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
+                            st.rerun()
+
+                st.markdown("---")
+                st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
+                vis_tabs_inner = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
+                
+                with vis_tabs_inner[0]:
+                    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+                    panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
+                    cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
+                    for i, p_key in enumerate(panels_p1_p7):
+                        with cols_p1_p7[i]:
+                            status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
+                            if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
+                                st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                st.rerun()
+                                
+                with vis_tabs_inner[1]:
+                    c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
+                    panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
+                    cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
+                    for i, p_key in enumerate(panels_p8_p15):
+                        with cols_p8_p15[i]:
+                            status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
+                            if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
+                                st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                st.rerun()
+
+            # ----------------------------------------------------------------------
+            # टैब 4: पुराना डायनेमिक रो कॉलम ऑर्डर शिफ्टिंग कंट्रोलर इंजन
+            # ----------------------------------------------------------------------
+            with admin_tabs:
+                st.subheader("🔀 Dynamic Row Column Order Shifting Controller Engine Block")
+                
+                col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+                with col_ctrl1:
+                    lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
+                    if st.button(lbl_edit, use_container_width=True, key="p15_edit_toggle_master_btn_final"):
+                        st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                        st.rerun()
+                with col_ctrl2:
+                    lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
+                    if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
+                        st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                        st.rerun()
+                with col_ctrl3:
+                    lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
+                    if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
+                        st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                         st.rerun()
 
-            # Filtering layout fields based on targeted admin sorting preferences
-            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-            ordered_db = live_db[render_columns].copy()
-            ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
-            ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
-
-            # 📊 मास्टर डेटाबेस ग्रिड को स्क्रीन पर रेंडर करना (Display Data Matrix Live)
-            st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
-            
-            if ordered_db_display.empty:
-                st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
-            else:
-                if st.session_state.admin_lock_state:
-                    # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only Mode)
-                    st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-                else:
-                    # अनलॉक मोड: लाइव डेटा एडिट करने के लिए (Interactive Editable Grid Mode)
-                    st.info("🔓 **एडिट मोड सक्रिय:** आप ग्रिड के अंदर किसी भी सेल पर डबल-क्लिक करके डेटा बदल सकते हैं।")
+                if st.session_state.admin_unhide_move and not st.session_state.admin_lock_state:
+                    st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
+                    target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
+                    c_left, c_right = st.columns(2)
                     
-                    disabled_fields = ["S.No."]
-                    if not st.session_state.admin_unhide_edit:
-                        disabled_fields.extend(["Application Number", "Student Name"])
-                        
-                    edited_master_db = st.data_editor(
-                        ordered_db_display,
-                        use_container_width=True,
-                        disabled=disabled_fields,
-                        hide_index=True,
-                        key="p15_supreme_master_live_editor_grid"
-                    )
-                    
-                    if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
-                        try:
-                            clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
-                            
-                            # मूल स्कीमा नामों में वापस मैप करने के लिए (Reverse Rename Mapping Block)
-                            display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
-                            clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
-                            
-                            # मुख्य डेटाबेस फ़ाइल को सेव करना
-                            save_live_data(clean_edited_master)
-                            st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                    if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx > 0:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                             st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
+                            
+                    if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx < len(st.session_state.admin_columns_order) - 1:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                            st.rerun()
+
+            # ----------------------------------------------------------------------
+            # टैब 5: मास्टर डेटाबेस लिस्ट रेंडर व्यू (बाएँ साइड इंडेक्स और रो सिलेक्शन के साथ)
+            # ----------------------------------------------------------------------
+            with admin_tabs:
+                st.subheader("📊 Master Database List View & Advanced Operational Controls")
+                
+                current_schema_scope = st.session_state.get("dynamic_default_columns", DEFAULT_COLUMNS)
+                render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns and col in current_schema_scope]
+                
+                ordered_db = live_db[render_columns].copy()
+                ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+
+                st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
+                
+                if ordered_db_display.empty:
+                    st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
+                else:
+                    if st.session_state.admin_lock_state:
+                        st.dataframe(ordered_db_display, use_container_width=True, hide_index=False)
+                    else:
+                        st.info("🔓 **एडिट मोड सक्रिय:** आप बाएँ इंडेक्स बार से पूरी रो सेलेक्ट कर सकते हैं या किसी भी सेल में डबल-क्लिक करके डेटा बदल सकते हैं।")
+                        
+                        disabled_fields = []
+                        if not st.session_state.admin_unhide_edit:
+                            disabled_fields.extend(["Application Number", "Student Name"])
+                            
+                        edited_master_db = st.data_editor(
+                            ordered_db_display,
+                            use_container_width=True,
+                            disabled=disabled_fields,
+                            hide_index=False,
+                            num_rows="dynamic",
+                            key="p15_supreme_master_live_editor_grid_v3"
+                        )
+                        
+                        if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
+                            try:
+                                display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
+                                clean_edited_master = edited_master_db.rename(columns=display_to_orig_map)
+                                
+                                save_live_data(clean_edited_master)
+                                st.success("🎉 संपूर्ण मास्टर चेंजेस और रो सिलेक्शन मॉडिफिकेशन लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                                st.rerun()
+                            except Exception as e:
+                                e_msg = str(e)
+                                st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e_msg}")
+
+
 
