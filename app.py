@@ -312,7 +312,7 @@ if st.session_state.user_role is None:
 # ==========================================================
 # 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
-# 🌟 NameError को रोकने के लिए सभी वेरिएबल्स को ग्लोबल स्कोप में पहले ही डिफ़ॉल्ट वैल्यू दे दी गई
+# सभी वेरिएबल्स को ग्लोबल स्कोप में पहले ही डिफ़ॉल्ट मान दें ताकि डेटा ग्रिड क्रैश न हो
 role = st.session_state.user_role if st.session_state.user_role is not None else ""
 username = st.session_state.logged_username if st.session_state.logged_username is not None else ""
 allowed_panels = []
@@ -332,25 +332,33 @@ if st.session_state.user_role is not None:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    # रोल के अनुसार पैनल्स असाइन करना
+    # क्रेडेंशियल मैपिंग के अनुसार अनुमत पैनल्स की सूची तैयार करना
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
-    elif role in ["p1_role", "p2_role", "p3_role", "p4_role", "p5_role", "p6_role", "p7_role", "p8_role", "p9_role", "p10_role", "p11_role", "p12_role", "p13_role"]:
-        # सभी ऑपरेटर रोल्स को उनका मुख्य पैनल और व्यूअर पैनल (P14) देना
-        p_num = role.split("_")[0].upper()
-        allowed_panels = [p_num, "P14"]
-    elif role == "p14_role": 
-        allowed_panels = ["P14"]
+    elif role == "p1_role": allowed_panels = ["P1", "P14"]
+    elif role == "p2_role": allowed_panels = ["P2", "P14"]
+    elif role == "p3_role": allowed_panels = ["P3", "P14"]
+    elif role == "p4_role": allowed_panels = ["P4", "P14"]
+    elif role == "p5_role": allowed_panels = ["P5", "P14"]
+    elif role == "p6_role": allowed_panels = ["P6", "P14"]
+    elif role == "p7_role": allowed_panels = ["P7", "P14"]
+    elif role == "p8_role": allowed_panels = ["P8", "P14"]
+    elif role == "p9_role": allowed_panels = ["P9", "P14"]
+    elif role == "p10_role": allowed_panels = ["P10", "P14"]
+    elif role == "p11_role": allowed_panels = ["P11", "P14"]
+    elif role == "p12_role": allowed_panels = ["P12", "P14"]
+    elif role == "p13_role": allowed_panels = ["P13", "P14"]
+    elif role == "p14_role": allowed_panels = ["P14"]
 
-    # एक्टिव पैनल्स की सूची तैयार करना
+    # एक्टिव पैनल्स के नाम साइडबार के लिए फ़िल्टर करना
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
 
-# 🌟 इस हिस्से को बिना किसी स्पेस के बिल्कुल बाहर (ग्लोबल) रखें ताकि नीचे के सभी 'if current_panel_id' काम कर सकें
-if st.session_state.user_role is not None:
+    # साइडबार नेविगेशन रेंडर करना और चुनी हुई आईडी को शुद्ध स्ट्रिंग में बदलना
     if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
+        # 🌟 चुनी गई स्ट्रिंग (जैसे 'P1 : Panal entry') में से केवल 'P1' को साफ़ अलग करता है ताकि नीचे का डेटा मैच हो सके
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
 # ----------------------------------------------------------------------
