@@ -1812,7 +1812,8 @@ else:
                         year_col_variants = ["Admission Year", "Year", "year", "Session Year"]
                         session_col_variants = ["Admission Session", "Session", "session"]
                         
-                                                incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
+                        # Extraction variants logic block
+                        incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
                         incoming_date_col = next((c for c in incoming_df.columns if c in date_col_variants), None)
                         incoming_year_col = next((c for c in incoming_df.columns if c in year_col_variants), None)
                         incoming_session_col = next((c for c in incoming_df.columns if c in session_col_variants), None)
@@ -1834,6 +1835,7 @@ else:
                                     live_db["Admission Session"] = live_db["Admission Session"].astype(str).str.strip()
                                     
                                     incoming_df[incoming_app_col] = incoming_df[incoming_app_col].astype(str).str.strip()
+
                                     
                                     if incoming_year_col:
                                         incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
