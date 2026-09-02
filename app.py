@@ -1792,7 +1792,7 @@ else:
             with admin_tabs[2]:
                 st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
                 with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                                        with st.form(key="p15_panel_rename_matrix_form_final_secure"):
+                                                            with st.form(key="p15_panel_rename_matrix_form_final_secure"):
                         p_setup1, p_setup2 = st.columns(2)
                         temp_panel_mappings = {}
                         for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
@@ -1814,7 +1814,7 @@ else:
                 st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
                 vis_tabs_inner = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
                 
-                with vis_tabs_inner[0]:
+                with vis_tabs_inner:
                     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
                     panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
                     cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
@@ -1825,7 +1825,7 @@ else:
                                 st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
                                 st.rerun()
                                 
-                with vis_tabs_inner[1]:
+                with vis_tabs_inner:
                     c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
                     panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
                     cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
@@ -1833,11 +1833,12 @@ else:
                         with cols_p8_p15[i]:
                             status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
                             if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
-                                st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                r_status = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                st.session_state[f"hide_panel_{p_key}"] = r_status
                                 st.rerun()
 
             # ----------------------------------------------------------------------
-            # टैब 4: पुराना डायनेमिक रो कॉलम ऑर्डर शिफ्टिंग कंट्रोलर इंजन
+            # टैब 4: पुराना डायनेमिक रो कॉलम ऑर्डर शिफ्टिंग नियंत्रण इंजन
             # ----------------------------------------------------------------------
             with admin_tabs:
                 st.subheader("🔀 Dynamic Row Column Order Shifting Controller Engine Block")
@@ -1922,6 +1923,3 @@ else:
                             except Exception as e:
                                 e_msg = str(e)
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e_msg}")
-
-
-
