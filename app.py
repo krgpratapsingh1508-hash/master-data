@@ -366,8 +366,6 @@ if st.session_state.user_role is not None:
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
 # 🌟 100% डेटा फ़िक्स: चुनी हुई आईडी को ग्लोबल वेरिएबल में असाइन करें ताकि नीचे के सारे 'if' ब्लॉक्स सक्रिय हो सकें
-if st.session_state.user_role is not None:
-    # इसके तुरंत नीचे आपका Panel 1 शुरू होगा
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
