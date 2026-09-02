@@ -1503,7 +1503,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P13: PANEL MERGE MODULE (Database Smart Merge & Admin Dropdown Customizer)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
@@ -1623,7 +1623,7 @@ else:
                                     if incoming_year_col:
                                         incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
                                     
-                                    # क्रॉस-रेफरेंसिंग लूप मैकेनिज्म
+                                    # क्रॉस-रेफरेंसिंग लूप मैकेनिज्म (36 स्पेस से शुरू)
                                     for _, row_incoming in incoming_df.iterrows():
                                         incoming_app_val = str(row_incoming[incoming_app_col]).strip()
                                         if incoming_app_val == "":
@@ -1653,7 +1653,7 @@ else:
                                     # मास्टर सीएसवी में सेव करना
                                     save_live_data(live_db)
                                     
-                                    st.success(f"🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ!")
+                                    st.success("🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ!")
                                     st.write(f"✅ वर्ष **{selected_target_year}** के लिए सफलतापूर्वक सिंक हुए कुल रिकॉर्ड्स: **{merge_counter}**")
                                     st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइज्ड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
                                     st.rerun()
@@ -1910,8 +1910,4 @@ else:
                     except Exception as e:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
             else:
-                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-
-
-
-                        
+                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)            
