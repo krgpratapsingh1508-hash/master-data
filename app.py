@@ -368,7 +368,7 @@ if st.session_state.user_role is not None:
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
 # ----------------------------------------------------------------------
-if st.session_state.user_role is not None and current_panel_id == "P1":
+if current_panel_id == "P1":
     st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
     entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
     
@@ -383,6 +383,7 @@ if st.session_state.user_role is not None and current_panel_id == "P1":
                             uploaded_df[col] = ""
                     cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
                     
+                    # न्यू प्रविष्टियों के लिए मर्जिंग ट्रैकिंग फ्लैग्स को डिफ़ॉल्ट रूप से रीसेट लॉक करें
                     cleaned_uploaded_df["Is_From_Merge"] = "False"
                     cleaned_uploaded_df["Merge_File_Source"] = ""
                     
@@ -392,7 +393,7 @@ if st.session_state.user_role is not None and current_panel_id == "P1":
                 except Exception as e: 
                     st.error(f"त्रुटि: {e}")
                     
-        elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
+    elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
         with st.form(key="student_add_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
