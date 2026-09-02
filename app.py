@@ -1086,7 +1086,10 @@ else:
                                                     <div style="margin-top: 15px; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; border-top: 1px solid #000; padding-top: 8px;">
                                 <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
                             </div>
-                            <div style="margin-top: 25px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; line-height: 1.8;">
+                                                        <div style="margin-top: 15px; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; border-top: 1px solid #000; padding-top: 8px; text-align: left;">
+                                <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
+                            </div>
+                            <div style="margin-top: 25px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; line-height: 1.8; text-align: left;">
                                 <div style="border-bottom: 1px dashed #666; padding-bottom: 4px;">Signature of Examiner...............................................................................</div>
                                 <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-top: 5px;">Name of Examiner.....................................................................................</div>
                                 <div style="display: flex; justify-content: space-between; margin-top: 5px;">
@@ -1095,7 +1098,7 @@ else:
                                 </div>
                             </div>
                         </div>
-                        """
+"""
                         
                         # पूरे तैयार दस्तावेज़ को स्ट्रीमलिट पर रेंडर करना
                         st.markdown(header_html + table_html + footer_html, unsafe_allow_html=True)
