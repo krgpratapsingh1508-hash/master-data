@@ -2090,7 +2090,7 @@ else:
             st.write(f"डेटाबेस में कुल लाइव रिकॉर्ड संख्या (Total Live Database Records): **{len(ordered_db_display)}**")
 
             # Active live-edit schema matrix processing vs read-only data grid views
-            if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
+                        if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
                 st.warning("⚠️ लाइव संपादन (Live Editing Matrix Mode) सक्रिय है।")
                 edited_df = st.data_editor(
                     ordered_db_display, 
@@ -2099,9 +2099,9 @@ else:
                     num_rows="dynamic", 
                     key="p15_admin_live_editor_grid_container_final", 
                     hide_index=True
-                                )
+                )
                 
-                                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
+                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
                     try:
                         clean_edited = edited_df.drop(columns=["S.No."])
                         reverse_mapping = {get_display_name(c): c for c in render_columns}
@@ -2135,4 +2135,3 @@ else:
     # 🌟 Application Container Wrap-Up Block
     # ----------------------------------------------------------------------
     st.markdown('</div>', unsafe_allow_html=True)
-
