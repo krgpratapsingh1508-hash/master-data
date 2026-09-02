@@ -393,7 +393,7 @@ else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
         # ----------------------------------------------------------------------
         if current_panel_id == "P1":
@@ -512,7 +512,7 @@ else:
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
                                 
-            # ----------------------------------------------------------------------
+                        # ----------------------------------------------------------------------
             # ➕ नया छात्र मैनुअल फॉर्म सब-सिस्टम (New Manual Form Custom Layout)
             # ----------------------------------------------------------------------
             elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
@@ -535,7 +535,7 @@ else:
                         admission_session = st.selectbox("Admission Session *", options=st.session_state.p1_dropdown_schemas["academic_sessions"])
                         minor_sub = st.text_input("Minor Subjects")
                         vocational_sub = st.text_input("Vocational Subjects")
-                                                mdc_sub = st.text_input("MDC Subjects")
+                        mdc_sub = st.text_input("MDC Subjects")
                         pw_ap_ce_sub = st.text_input("PW/Ap/CE Subjects")
                         mobile = st.text_input("Mobile Number")
                         email = st.text_input("Email")
@@ -571,39 +571,6 @@ else:
                         st.success("✅ नया छात्र रिकॉर्ड नए कस्टमाइज्ड स्कीमा के साथ मास्टर डेटाबेस में सुरक्षित सेव हो गया है!")
                         st.rerun()
 
-                        mobile = st.text_input("Mobile Number")
-                        email = st.text_input("Email")
-                        address = st.text_area("Address", height=68)
-                        enroll_no = st.text_input("Enrollment No")
-                        fees_paid = st.text_input("Admssion & Enrollment Fees")
-                        scholarship_name = st.text_input("Scholarship Name")
-                        payment_date = st.text_input("Payment Date (YYYY-MM-DD)")
-                    
-                    st.markdown("<p style='color:gray;'>* चिन्ह वाले फ़ील्ड्स डेटाबेस ट्रैकिंग के लिए महत्वपूर्ण हैं।</p>", unsafe_allow_html=True)
-                    submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
-                    
-                if submit_student:
-                    if s_name.strip() == "" or app_number.strip() == "": 
-                        st.warning("⚠️ Student Name और Application Number भरना अनिवार्य है।")
-                    else:
-                        new_row = {c: "" for c in DEFAULT_COLUMNS}
-                        new_row.update({
-                            "Application Number": app_number, "Student Abc Id": abc_id, 
-                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
-                            "Gender": gender, "Date Of Birth": dob, "Category": category, 
-                            "Admission Category": adm_category, "Degree": degree, "Branch": branch, 
-                            "Minor Subjects": minor_sub, "Vocational Subjects": vocational_sub, 
-                            "MDC Subjects": mdc_sub, "PW/Ap/CE Subjects": pw_ap_ce_sub, 
-                            "Mobile Number": mobile, "Email": email, "Address": address, 
-                            "Enrollment No": enroll_no, "Admssion & Enrollment Fees": fees_paid, 
-                            "Scholarship Name": scholarship_name, "Payment Date": payment_date,
-                            "Admission Year": admission_year, "Admission Session": admission_session, 
-                            "Status": "Regular Student", "Current Year": "1"
-                        })
-                        updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
-                        save_live_data(updated_df)
-                        st.success("✅ नया छात्र रिकॉर्ड नए कस्टमाइज्ड स्कीमा के साथ मास्टर डेटाबेस में सुरक्षित सेव हो गया है!")
-                        st.rerun()
         # ----------------------------------------------------------------------
         # P2: PANEL ADMISSION MODULE (Admission Control & Isolated View)
         # ----------------------------------------------------------------------
@@ -748,7 +715,7 @@ else:
                             key="p2_download_excel_secure_btn"
                         )
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P3":
