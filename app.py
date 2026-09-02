@@ -455,14 +455,13 @@ else:
                                             key="p1_session_scroll_secure_bulk"
                 )
 
+                                # ----------------------------------------------------------------------
+                # 🎯 सही वेरिएबल नामों के साथ फ़ायरवॉल कंडीशन और अपलोड लॉजिक
                 # ----------------------------------------------------------------------
-                # 🎯 सही वेरिएबल नामों के साथ फ़ायरवॉल कंडीशन (Realignment Code Block)
-                # ----------------------------------------------------------------------
-                if (file_type_choice == "-- चयन करें / Select --" or 
-                    selected_target_year == "-- चयन करें / Select --" or 
-                    selected_target_session == "-- चयन करें / Select --"):
-                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Type, Year और Session) का चयन करें।")
-
+                if (file_segment_choice == "-- चुनें --" or 
+                    selected_admission_year == "-- चुनें --" or 
+                    selected_admission_session == "-- चुनें --"):
+                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
                 else:
                     st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{file_segment_choice.upper()}** | वर्ष: **{selected_admission_year}** | सत्र: **{selected_admission_session}**")
                     
@@ -507,7 +506,7 @@ else:
                                 updated_df = pd.concat([current_live_db, cleaned_uploaded_df], ignore_index=True)
                                 
                                 save_live_data(updated_df)
-                                st.success(f"🎉 सफलता! '{file_segment_choice.upper()}' का डेटा सफलतापूर्वक सिस्टम में समाहित हो गया है और यह P13 (Merge Panel) के लिए तैयार है।")
+                                st.success(f"🎉 सफलता! '{file_segment_choice.upper()}' का डेटा सफलतापूर्वक सिस्टम में समाहित हो गया है!")
                                 st.rerun()
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
