@@ -473,13 +473,27 @@ else:
                     if uploaded_file is not None:
                         if st.button("Upload & Send to Merge Panel Now", type="primary", use_container_width=True):
                             try:
-                                # फ़ाइल एक्सटेंशन के आधार पर सही रीड इंजन का चयन
-                                if uploaded_file.name.endswith('.csv'):
-                                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                                elif uploaded_file.name.endswith('.xlsx'):
-                                    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
-                                elif uploaded_file.name.endswith('.xls'):
-                                    uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
+                                #  इस नए कोड को वहां पेस्ट करें:
+if uploaded_file.name.endswith('.csv'):
+    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+elif uploaded_file.name.endswith('.xlsx'):
+    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
+elif uploaded_file.name.endswith('.xls'):
+    try:
+        # पहले सामान्य एक्सेल की तरह रीड करने की कोशिश करेगा
+        uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
+    except Exception as xls_err:
+        try:
+            # अगर एरर आया, तो यह छद्म XML/HTML फ़ाइल को पहचान कर रीड कर लेगा
+            uploaded_file.seek(0) 
+            html_tables = pd.read_html(uploaded_file)
+            if html_tables:
+                uploaded_df = html_tables[0].astype(str).fillna("") # पहली टेबल को डेटाफ्रेम बनाएगा
+            else:
+                st.error("फ़ाइल के अंदर कोई मान्य डेटा टेबल नहीं मिली।")
+        except Exception as html_err:
+            st.error(f"फ़ाइल को पढ़ने में समस्या आई: {xls_err}")
+
                                 
                                 # डेटा क्लीनिंग और सेपरेशन ट्रैकिंग कॉलम्स को इंजेक्ट करना
                                 uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
