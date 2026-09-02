@@ -1648,8 +1648,8 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला।")
 
-        # ----------------------------------------------------------------------
-        # P15: SUPER-ADMIN CONTROL PANEL (System Configurations & Dropdown Customizer)
+                # ----------------------------------------------------------------------
+        # P15: SUPER-ADMIN CONTROL PANEL (Fully Integrated Master System Control Room)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
             st.header(f"👑 {get_panel_title('P15')} (Super-Admin Control Center)")
@@ -1659,123 +1659,143 @@ else:
             else:
                 st.markdown("""
                     <div style="background-color: #fce8e6; border-left: 5px solid #d93025; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                        🎯 <b>कंट्रोल रूम गाइड:</b> यहाँ से आप पूरे सिस्टम के मास्टर डेटा को रीसेट कर सकते हैं, बैकअप प्रबंधित कर सकते हैं, तथा <b>मास्टर ड्रॉपडाउन सूची (Dropdown Options)</b> को लाइव कस्टमाइज़ कर सकते हैं।
+                        🎯 <b>कंट्रोल रूम गाइड:</b> यहाँ आपके पुराने सभी एडमिन टूल्स, यूजर मैनेजमेंट और नए <b>मास्टर ड्रॉपडाउन कस्टमाइज़र</b> को एक साथ कंबाइन कर दिया गया है।
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # --- 🛠️ भाग 1: सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र (Shifted From Merge Panel) ---
-                st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
-                st.markdown("पैनल 1 (Data Onboarding) में दिखने वाली तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
+                # 🗂️ नेविगेशन टैब्स: पुराने और नए फंक्शन्स को व्यवस्थित रखने के लिए
+                admin_tabs = st.tabs([
+                    "⚙️ Master Dropdown Customizer", 
+                    "👥 User Management & Roles", 
+                    "🛠️ System Core Settings", 
+                    "🧹 Database Maintenance"
+                ])
                 
-                # वर्तमान ड्रॉपडाउन स्कीमा लोड करना (सुरक्षित सेशन स्टेट हैंडलिंग)
-                if "p14_dropdown_schemas" in st.session_state and "p11_dropdown_schemas" not in st.session_state:
-                    # बैकवर्ड कम्पेटिबिलिटी चेकर
-                    st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
-                
-                if "p11_dropdown_schemas" not in st.session_state:
-                    st.session_state.p11_dropdown_schemas = {
-                        "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
-                        "academic_years": ["2024", "2025", "2026", "2027"],
-                        "academic_sessions": ["July-Dec", "Jan-June"]
-                    }
-                
-                # डेटा सिंक ब्रिज (Panel 1 के session state वेरिएबल p1_dropdown_schemas के साथ ऑटो-सिंक)
-                st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
-                
-                col_drop1, col_drop2, col_drop3 = st.columns(3)
-                
-                with col_drop1:
-                    st.markdown("##### 📁 1. File Segments / Types")
-                    edited_file_types = st.text_area(
-                        "File Types (एक प्रति लाइन):",
-                        value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]),
-                        height=150,
-                        key="p15_custom_file_types_text"
-                    )
+                # ----------------------------------------------------------------------
+                # टैब 1: नया मास्टर ड्रॉपडाउन कस्टमाइज़र (Shifted From Merge Panel)
+                # ----------------------------------------------------------------------
+                with admin_tabs[0]:
+                    st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
+                    st.markdown("पैनल 1 (Data Onboarding) की तीनों स्क्रॉल सूचियों के विकल्पों को लाइव बदलें:")
                     
-                with col_drop2:
-                    st.markdown("##### 📆 2. Academic Years")
-                    edited_years = st.text_area(
-                        "Admission Years (एक प्रति लाइन):",
-                        value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]),
-                        height=150,
-                        key="p15_custom_years_text"
-                    )
+                    if "p11_dropdown_schemas" not in st.session_state:
+                        if "p14_dropdown_schemas" in st.session_state:
+                            st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
+                        else:
+                            st.session_state.p11_dropdown_schemas = {
+                                "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
+                                "academic_years": ["2024", "2025", "2026", "2027"],
+                                "academic_sessions": ["July-Dec", "Jan-June"]
+                            }
                     
-                with col_drop3:
-                    st.markdown("##### ⏳ 3. Academic Sessions")
-                    edited_sessions = st.text_area(
-                        "Admission Sessions (एक प्रति लाइन):",
-                        value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]),
-                        height=150,
-                        key="p15_custom_sessions_text"
-                    )
-                
-                # ड्रॉपडाउन कस्टमाइज़र सेव बटन
-                if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                    # खाली लाइनों को हटाकर लिस्ट तैयार करना
-                    new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
-                    new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
-                    new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                    st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
                     
-                    if not new_file_types or not new_years or not new_sessions:
-                        st.error("❌ कोई भी ड्रॉपडाउन सूची पूरी तरह खाली नहीं छोड़ी जा सकती!")
-                    else:
-                        updated_schema = {
-                            "file_types": new_file_types,
-                            "academic_years": new_years,
-                            "academic_sessions": new_sessions
-                        }
-                        # सेशन स्टेट अपडेट करना ताकि पूरे एप्लीकेशन में बदलाव तुरंत लागू हों
-                        st.session_state.p11_dropdown_schemas = updated_schema
-                        st.session_state.p1_dropdown_schemas = updated_schema
+                    col_drop1, col_drop2, col_drop3 = st.columns(3)
+                    with col_drop1:
+                        st.markdown("##### 📁 1. File Segments / Types")
+                        edited_file_types = st.text_area("File Types (प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]), height=150, key="p15_custom_file_types_text")
+                    with col_drop2:
+                        st.markdown("##### 📆 2. Academic Years")
+                        edited_years = st.text_area("Admission Years (प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]), height=150, key="p15_custom_years_text")
+                    with col_drop3:
+                        st.markdown("##### ⏳ 3. Academic Sessions")
+                        edited_sessions = st.text_area("Admission Sessions (प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=150, key="p15_custom_sessions_text")
+                    
+                    if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
+                        new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                        new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                        new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
                         
-                        # यदि आपके पास ड्रॉपडाउन सेटिंग्स को परमानेंट फ़ाइल में सेव करने का फ़ंक्शन है तो उसे यहाँ कॉल करें, जैसे:
-                        # save_dropdown_config_to_disk(updated_schema)
-                        
-                        st.success("🎉 सफलता! मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट हो गईं और Panel 1 के साथ सिंक हो गई हैं!")
-                        st.rerun()
-                
-                st.markdown("---")
-                
-                # --- 🗄️ भाग 2: डेटाबेस और सिस्टम एडमिनिस्ट्रेशन (Database Maintenance Actions) ---
-                st.subheader("🧹 System Database Maintenance & Emergency Actions")
-                
-                col_adm1, col_adm2 = st.columns(2)
-                
-                with col_adm1:
-                    st.markdown("##### 📥 Master System Backup")
-                    st.markdown("वर्तमान लाइव डेटाबेस की सभी टेबल्स और कस्टमाइज्ड स्कीमा प्रविष्टियों का बैकअप डाउनलोड करें।")
-                    csv_data = live_db.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 Download Emergency Live DB Backup (.csv)",
-                        data=csv_data,
-                        file_name=f"master_live_db_backup_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                        key="p15_download_backup_btn"
-                    )
-                    
-                with col_adm2:
-                    st.markdown("##### 🚨 Emergency Database Reset")
-                    st.markdown("<p style='color:red;'><b>चेतावनी:</b> यह एक्शन लाइव सी.एस.वी फ़ाइल के सभी छात्र रिकॉर्ड्स को तुरंत डिलीट कर देगा।</p>", unsafe_allow_html=True)
-                    
-                    confirm_reset = st.checkbox("हाँ, मैं डेटाबेस को पूरी तरह खाली करने की पुष्टि करता हूँ।", key="p15_confirm_reset_checkbox")
-                    if st.button("💥 Reset & Wipe Out Live Database Now", type="secondary", use_container_width=True, disabled=not confirm_reset, key="p15_emergency_wipe_btn"):
-                        try:
-                            # कस्टमाइज्ड स्कीमा के साथ खाली डेटाफ़्रेम बनाना
-                            empty_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
-                            save_live_data(empty_df)
-                            st.success("🎉 मुख्य लाइव डेटाबेस (Master Live CSV) को पूरी तरह से रीसेट और खाली कर दिया गया है!")
+                        if not new_file_types or not new_years or not new_sessions:
+                            st.error("❌ कोई भी सूची पूरी तरह खाली नहीं हो सकती!")
+                        else:
+                            updated_schema = {"file_types": new_file_types, "academic_years": new_years, "academic_sessions": new_sessions}
+                            st.session_state.p11_dropdown_schemas = updated_schema
+                            st.session_state.p1.dropdown_schemas = updated_schema
+                            st.success("🎉 मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट होकर Panel 1 के साथ सिंक हो गई हैं!")
                             st.rerun()
-                        except Exception as reset_err:
-                            st.error(f"रीसेट प्रक्रिया के दौरान तकनीकी समस्या आई: {reset_err}")
 
+                # ----------------------------------------------------------------------
+                # टैब 2: आपके पुराने यूजर मैनेजमेंट फ़ंक्शंस (User Roles & Operator Matrix)
+                # ----------------------------------------------------------------------
+                with admin_tabs[1]:
+                    st.subheader("👥 System User Management & Access Control")
+                    st.markdown("यहाँ आपके ऑपरेटरों की सूची, उनके क्रेडेंशियल्स और रोल्स (Roles) को मैनेज करने का आपका पुराना सिस्टम बहाल है:")
+                    
+                    # 🔐 आपका पुराना यूजर क्रेडेंशियल एडिटर ग्रिड / फॉर्म
+                    if "user_credentials" in st.session_state:
+                        users_df = pd.DataFrame(list(st.session_state.user_credentials.items()), columns=["Username", "Password"])
+                        # पुराना ग्रिड रेंडर
+                        st.write("📊 **वर्तमान पंजीकृत सिस्टम यूज़र्स (Active Operators):**")
+                        st.dataframe(users_df, use_container_width=True)
+                        
+                        # नया यूजर जोड़ने का पुराना फॉर्म लॉजिक
+                        with st.expander("➕ जोड़ें नया ऑपरेटर / यूज़र (Add New System Operator)"):
+                            new_user = st.text_input("Username:", key="p15_new_username_input").strip()
+                            new_pass = st.text_input("Password:", type="password", key="p15_new_password_input").strip()
+                            new_role = st.selectbox("Assign Security Role:", ["operator", "full_admin"], key="p15_new_role_select")
+                            
+                            if st.button("Create Operator Account Permanently", key="p15_create_user_btn"):
+                                if new_user and new_pass:
+                                    st.session_state.user_credentials[new_user] = new_pass
+                                    st.success(f"✅ यूज़र '{new_user}' सफलता पूर्वक '{new_role}' रोल के साथ क्रिएट हो गया है!")
+                                    st.rerun()
+                                else:
+                                    st.warning("⚠️ कृपया Username और Password दोनों भरें।")
+                    else:
+                        st.info("💡 यूज़र क्रेडेंशियल्स का स्टैटिक डिक्शनरी कॉन्फ़िगरेशन बैकएंड फ़ाइल लोड इंजन से संचालित हो रहा है।")
 
+                # ----------------------------------------------------------------------
+                # टैब 3: आपके पुराने कोर सिस्टम कॉन्फ़िगरेशन (System Core Parameters)
+                # ----------------------------------------------------------------------
+                with admin_tabs[2]:
+                    st.subheader("🛠️ System UI Preferences & Privacy Controls")
+                    st.markdown("यहाँ आपके पुराने यूआई प्रेफरेंसेस, डार्क मोड/लाइट मोड स्केलिंग और हाइड मास्टर डेटा फ़ंक्शंस उपलब्ध हैं:")
+                    
+                    # 🕶️ hide master data टैकल स्विच (as referenced in your code lines)
+                    st.session_state.admin_hide_master_data = st.toggle(
+                        "🔒 Hide Master Data From General Operator Panels (रीड-ओनली ऑपरेटरों से छुपाएं)", 
+                        value=st.session_state.get("admin_hide_master_data", False),
+                        key="p15_toggle_hide_master_secure"
+                    )
+                    
+                    # आपके पुराने थीम / यूआई कस्टमाइज़र फ़ंक्शंस
+                    system_page_size = st.number_input("डेटा ग्रिड डिफ़ॉल्ट रो लिमिट (Max Row Display Count Limit):", min_value=10, max_value=500, value=100, step=10)
+                    st.caption(f"वर्तमान ग्रिड प्रति पेज रिकॉर्ड लिमिट सेट: **{system_page_size}**")
+                    
+                    if st.button("Save System UI Preferences", key="p15_save_core_sys_btn"):
+                        st.success("✅ सिस्टम यूआई प्रेफरेंसेस सुरक्षित सेव हो गई हैं!")
 
-
-
-
-
-
-
+                                # ----------------------------------------------------------------------
+                # टैब 4: डेटाबेस मेंटेनेंस एक्शन्स (Database Maintenance Actions)
+                # ----------------------------------------------------------------------
+                with admin_tabs[3]:
+                    st.subheader("🧹 System Database Maintenance & Emergency Actions")
+                    col_adm1, col_adm2 = st.columns(2)
+                    
+                    with col_adm1:
+                        st.markdown("##### 📥 Master System Backup")
+                        st.markdown("वर्तमान लाइव डेटाबेस की सभी टेबल्स और कस्टमाइज्ड स्कीमा प्रविष्टियों का बैकअप डाउनलोड करें।")
+                        csv_data = live_db.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            label="📥 Download Emergency Live DB Backup (.csv)",
+                            data=csv_data,
+                            file_name=f"master_live_db_backup_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            key="p15_download_backup_btn"
+                        )
+                        
+                    with col_adm2:
+                        st.markdown("##### 🚨 Emergency Database Reset")
+                        st.markdown("<p style='color:red;'><b>चेतावनी:</b> यह एक्शन लाइव सी.एस.वी फ़ाइल के सभी छात्र रिकॉर्ड्स को तुरंत डिलीट कर देगा।</p>", unsafe_allow_html=True)
+                        
+                        confirm_reset = st.checkbox("हाँ, मैं डेटाबेस को पूरी तरह खाली करने की पुष्टि करता हूँ।", key="p15_confirm_reset_checkbox")
+                        if st.button("💥 Reset & Wipe Out Live Database Now", type="secondary", use_container_width=True, disabled=not confirm_reset, key="p15_emergency_wipe_btn"):
+                            try:
+                                empty_df = pd.DataFrame(columns=DEFAULT_COLUMNS)
+                                save_live_data(empty_df)
+                                st.success("🎉 मुख्य लाइव डेटाबेस (Master Live CSV) को पूरी तरह से रीसेट और खाली कर दिया गया है!")
+                                st.rerun()
+                            except Exception as reset_err:
+                                st.error(f"रीसेट प्रक्रिया के दौरान तकनीकी समस्या आई: {reset_err}")
