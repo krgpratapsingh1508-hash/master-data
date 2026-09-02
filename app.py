@@ -1343,7 +1343,7 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-                                    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P11: NOTICE BOARD EDIT MODULE (Official Notice Board Customizer - Secure View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
@@ -1623,7 +1623,7 @@ else:
                                     if incoming_year_col:
                                         incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
                                     
-                                    # क्रॉस-रेफरेंसिंग लूप मैकेनिज्म (36 स्पेस से शुरू)
+                                                                        # Cross-referencing matching loop structures traversing dataset variables arrays
                                     for _, row_incoming in incoming_df.iterrows():
                                         incoming_app_val = str(row_incoming[incoming_app_col]).strip()
                                         if incoming_app_val == "":
@@ -1631,7 +1631,7 @@ else:
                                             
                                         row_year_val = str(row_incoming[incoming_year_col]).strip() if incoming_year_col else selected_target_year
                                         
-                                        # 🎯 डबल बाइंडिंग वेरिफिकेशन रूल (Year + Application ID)
+                                        # Strict Dual Binding Verification Logic rule sequence constraint checking
                                         idx_matches = live_db[
                                             (live_db["Admission Application Number"] == incoming_app_val) & 
                                             (live_db["Admission Year"] == row_year_val)
@@ -1639,20 +1639,18 @@ else:
                                         
                                         if not idx_matches.empty:
                                             merge_counter += 1
-                                                                                        for match_idx in idx_matches:
-                                                # फीस फ़ाइल का विशेष नियम: पेमेंट डेट को मुख्य डेटाबेस में इंजेक्ट करना
+                                            for match_idx in idx_matches:
+                                                # Fees file processing logic
                                                 if file_type_choice == "admission fee file" and incoming_date_col:
                                                     live_db.at[match_idx, "admitted payment date"] = str(row_incoming[incoming_date_col]).strip()
-                                                
-                                                # अन्य फ़ाइल प्रकारों के लिए: नए डायनेमिक डेटा कॉलम्स को सिंक करना
+                                                # Standard structural fields alignment logic
                                                 else:
                                                     for col in incoming_df.columns:
                                                         if col not in [incoming_app_col, incoming_year_col] and col in live_db.columns:
                                                             live_db.at[match_idx, col] = str(row_incoming[col]).strip()
                                                             
-                                    # मास्टर सीएसवी में सेव करना
+                                    # Commit updated structural data matrix arrays down into central CSV storage
                                     save_live_data(live_db)
-                                    
                                     st.success("🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ!")
                                     st.write(f"✅ वर्ष **{selected_target_year}** के लिए सफलतापूर्वक सिंक हुए कुल रिकॉर्ड्स: **{merge_counter}**")
                                     st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइज्ड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
