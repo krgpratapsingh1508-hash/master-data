@@ -1621,7 +1621,7 @@ else:
                                     
                                 total_merge_counter = 0
                                 
-                                for uploaded_merge_file in uploaded_merge_files:
+                                                                for uploaded_merge_file in uploaded_merge_files:
                                     custom_given_name = file_name_mappings.get(uploaded_merge_file.name, uploaded_merge_file.name)
                                     
                                     # फ़ाइल एक्सटेंशन के आधार पर सही रीडर कंपाइलर असाइन करना (.xls, .xlsx, .csv)
@@ -1639,7 +1639,7 @@ else:
                                     
                                     incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
                                     incoming_date_col = next((c for c in incoming_df.columns if c in date_col_variants), None)
-                                                                        incoming_year_col = next((c for c in incoming_df.columns if c in year_col_variants), None)
+                                    incoming_year_col = next((c for c in incoming_df.columns if c in year_col_variants), None)
                                     
                                     if not incoming_app_col:
                                         st.error(f"❌ त्रुटि: फ़ाइल '{uploaded_merge_file.name}' में ट्रैकिंग 'Application Number' कॉलम नहीं मिला! इसे स्किप किया गया।")
