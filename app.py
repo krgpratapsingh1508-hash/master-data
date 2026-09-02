@@ -1789,7 +1789,7 @@ else:
             with admin_tabs[2]:
                 st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
                 with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                                        with st.form(key="p15_panel_rename_matrix_form_final_secure"):
+                    with st.form(key="p15_panel_rename_matrix_form_final_secure"):
                         p_setup1, p_setup2 = st.columns(2)
                         temp_panel_mappings = {}
                         for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
