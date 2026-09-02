@@ -231,12 +231,13 @@ if st.session_state.user_role is None:
         col_sub1, col_sub2 = st.columns(2)
         with col_sub1:
             if st.button("🔓 Verify & Enter System", type="primary", use_container_width=True):
-                                if password_input == "admin15master":
-                    st.session_state.user_role = "full_admin"
-                    st.session_state.logged_username = "admin"
-                    st.session_state.show_login_form = False
-                    st.success("✅ मास्टर क्रेडेंशियल स्वीकृत! सुपर एडमिन कमांड सेंटर में प्रवेश किया जा रहा है...")
-                    st.rerun()
+                                        # Password entry block verification engine
+        if password_input == "admin15master":
+            st.session_state.user_role = "full_admin"
+            st.session_state.logged_username = "admin"
+            st.session_state.show_login_form = False
+            st.success("✅ मास्टर क्रेडेंशियल स्वीकृत! सुपर एडमिन कमांड सेंटर में प्रवेश किया जा रहा है...")
+            st.rerun()
                 else:
                     st.error("❌ गलत मास्टर पासवर्ड दर्ज किया गया है! पहुँच अस्वीकृत।")
         with col_sub2:
