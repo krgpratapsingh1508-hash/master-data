@@ -1351,28 +1351,29 @@ else:
                     hide_index=True
                 )
                 
-                if role == "full_admin":
-                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p9_save_btn_secure"):
-                        try:
-                            clean_edited = edited_promo.drop(columns=["S. No"])
-                            promo_sync_counter = 0
-                            
-                            for _, r_edit in clean_edited.iterrows():
-                                app_num = str(r_edit["Application Number"]).strip()
+                                    # 💾 सिंक बटन (केवल सुपर एडमिन को दिखेगा और प्रोसेस करेगा)
+                    if role == "full_admin":
+                        if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p9_save_btn_secure"):
+                            try:
+                                clean_edited = edited_promo.drop(columns=["S. No"])
+                                promo_sync_counter = 0
                                 
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
-                                
-                                if not idx_matches.empty:
-                                    for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
-                                                                                live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
-                                        promo_sync_counter += 1
-                                        
-                            save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} छात्र रिकॉर्ड्स का प्रमोशन प्रोग्रेशन डेटा मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                                for _, r_edit in clean_edited.iterrows():
+                                    app_num = str(r_edit["Application Number"]).strip()
+                                    
+                                    idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
+                                    
+                                    if not idx_matches.empty:
+                                        for match_idx in idx_matches:
+                                            live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
+                                            live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
+                                            promo_sync_counter += 1
+                                            
+                                save_live_data(live_db)
+                                st.success(f"🎉 सफलता! कुल {promo_sync_counter} छात्र रिकॉर्ड्स का प्रमोशन प्रोग्रेशन डेटा मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
         # P10: PANEL RESULT MODULE (Tabulation Register & Exam Controller)
