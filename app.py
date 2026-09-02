@@ -319,6 +319,9 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
+    # 🌟 NameError को रोकने के लिए वेरिएबल को डिफ़ॉल्ट रूप से परिभाषित किया गया
+    current_panel_id = None  
+
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_top1, col_top2 = st.columns(2)
     with col_top1:
