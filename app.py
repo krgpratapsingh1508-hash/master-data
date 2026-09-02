@@ -431,7 +431,6 @@ else:
                     selected_admission_session == "-- चुनें --"):
                     st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
             
-            # यहां से बदलाव शुरू हो रहा है:
             elif entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
                 st.subheader("📊 Select Target Configurations Before Upload")
                 col_sc1, col_sc2, col_sc3 = st.columns(3)
@@ -455,7 +454,7 @@ else:
                         key="p1_session_scroll_secure_bulk_main"
                     )
 
-                # 🎯 सुधार (Correction): यहां ऊपर वाले वेरिएबल्स का नाम उपयोग करें ताकि NameError न आए
+                # 🎯 सही वेरिएबल नामों के साथ फ़ायरवॉल कंडीशन और अपलोड लॉजिक (NameError फिक्स)
                 if (p1_file_type == "-- चुनें --" or 
                     p1_admission_year == "-- चुनें --" or 
                     p1_admission_session == "-- चुनें --"):
@@ -473,27 +472,28 @@ else:
                     if uploaded_file is not None:
                         if st.button("Upload & Send to Merge Panel Now", type="primary", use_container_width=True):
                             try:
-                                #  इस नए कोड को वहां पेस्ट करें:
-if uploaded_file.name.endswith('.csv'):
-    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-elif uploaded_file.name.endswith('.xlsx'):
-    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
-elif uploaded_file.name.endswith('.xls'):
-    try:
-        # पहले सामान्य एक्सेल की तरह रीड करने की कोशिश करेगा
-        uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
-    except Exception as xls_err:
-        try:
-            # अगर एरर आया, तो यह छद्म XML/HTML फ़ाइल को पहचान कर रीड कर लेगा
-            uploaded_file.seek(0) 
-            html_tables = pd.read_html(uploaded_file)
-            if html_tables:
-                uploaded_df = html_tables[0].astype(str).fillna("") # पहली टेबल को डेटाफ्रेम बनाएगा
-            else:
-                st.error("फ़ाइल के अंदर कोई मान्य डेटा टेबल नहीं मिली।")
-        except Exception as html_err:
-            st.error(f"फ़ाइल को पढ़ने में समस्या आई: {xls_err}")
-
+                                # फ़ाइल एक्सटेंशन के आधार पर सही रीड इंजन का चयन
+                                if uploaded_file.name.endswith('.csv'):
+                                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                                elif uploaded_file.name.endswith('.xlsx'):
+                                    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
+                                elif uploaded_file.name.endswith('.xls'):
+                                    try:
+                                        # सामान्य बाइनरी .xls फ़ाइलों के लिए (xlrd फिक्स)
+                                        uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
+                                    except Exception as xls_err:
+                                        try:
+                                            # छद्म (fake) .xls फ़ाइलों के लिए जो असल में XML/HTML होती हैं
+                                            uploaded_file.seek(0) 
+                                            html_tables = pd.read_html(uploaded_file)
+                                            if html_tables:
+                                                uploaded_df = html_tables[0].astype(str).fillna("")
+                                            else:
+                                                st.error("फ़ाइल के अंदर कोई मान्य डेटा टेबल नहीं मिली।")
+                                                st.stop()
+                                        except Exception as html_err:
+                                            st.error(f"एक्सेल फ़ाइल को प्रोसेस करने में समस्या आई: {xls_err}")
+                                            st.stop()
                                 
                                 # डेटा क्लीनिंग और सेपरेशन ट्रैकिंग कॉलम्स को इंजेक्ट करना
                                 uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
@@ -550,6 +550,7 @@ elif uploaded_file.name.endswith('.xls'):
                         email = st.text_input("Email ID")
                         address = st.text_input("Address")
                         status_input = st.selectbox("Status", ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
+                    
                     submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
                     
                 if submit_student:
