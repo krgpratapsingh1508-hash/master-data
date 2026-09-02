@@ -2101,7 +2101,7 @@ else:
                     hide_index=True
                                 )
                 
-                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
+                                if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
                     try:
                         clean_edited = edited_df.drop(columns=["S.No."])
                         reverse_mapping = {get_display_name(c): c for c in render_columns}
@@ -2128,10 +2128,11 @@ else:
                         st.rerun()
                     except Exception as e:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-                        else:
+            else:
                 st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-                
+
     # ----------------------------------------------------------------------
-    # 🌟 एप्लीकेशन कोर क्लोजिंग लेयर (HTML Container Ends)
+    # 🌟 Application Container Wrap-Up Block
     # ----------------------------------------------------------------------
     st.markdown('</div>', unsafe_allow_html=True)
+
