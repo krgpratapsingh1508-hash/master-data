@@ -316,9 +316,6 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
-    # 🌟 NameError को रोकने के लिए वेरिएबल को डिफ़ॉल्ट रूप से परिभाषित किया गया
-    current_panel_id = None  
-
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_top1, col_top2 = st.columns(2)
     with col_top1:
@@ -352,11 +349,11 @@ else:
 
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
     
-        if not active_tabs_names:
+    if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0] # 🌟 आखिरी में [0] होना जरूरी है
+        current_panel_id = selected_tab_ui.split(" : ")[0]
 
 # ----------------------------------------------------------------------
 # P1: PANEL ENTRY MODULE
