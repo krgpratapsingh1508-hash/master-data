@@ -79,7 +79,7 @@ DEFAULT_COLUMNS = [
 ]
 
 # ==========================================================
-# 📁步 2: डेटा सहेजने और लोड करने वाले कोर फंक्शन्स
+# 📁ステップ 2: データ सहेजने और लोड करने वाले कोर फंक्शन्स
 # ==========================================================
 def load_pre_login_config():
     if os.path.exists(PRE_LOGIN_CONFIG_FILE):
@@ -206,11 +206,21 @@ if "cce_foil_generated" not in st.session_state: st.session_state.cce_foil_gener
 for k in DEFAULT_PANELS.keys():
     if f"hide_panel_{k}" not in st.session_state: st.session_state[f"hide_panel_{k}"] = False
 
-# 🌟 NameError को जड़ से खत्म करने के लिए वेरिएबल को डिफ़ॉल्ट रूप से इनिशियलाइज़ किया गया
+# NameError को रोकने के लिए वेरिएबल्स को डिफ़ॉल्ट मान दें
+role = ""
+username = ""
+allowed_panels = []
+active_tabs_names = []
 current_panel_id = None  
 
 # मास्टर रिपॉजिटरी लोड करना
 live_db = load_live_data()
+
+def get_display_name(internal_col_name):
+    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
+
+def get_panel_title(panel_id):
+    return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
 # ==========================================================
 # 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
@@ -312,12 +322,6 @@ if st.session_state.user_role is None:
 # ==========================================================
 # 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
-# 🌟 NameError को पूरी तरह ब्लॉक करने के लिए ग्लोबल स्तर पर डिफ़ॉल्ट मान सेट करें
-role = ""
-username = ""
-allowed_panels = []
-active_tabs_names = []
-
 if st.session_state.user_role is not None:
     role = st.session_state.user_role
     username = st.session_state.logged_username
@@ -335,7 +339,6 @@ if st.session_state.user_role is not None:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    # क्रेडेंशियल मैपिंग के अनुसार पैनल्स असाइन करना (सही इंडेंटेशन के साथ)
     if role == "full_admin":
         allowed_panels = list(DEFAULT_PANELS.keys()) 
     elif role == "p1_role": allowed_panels = ["P1", "P14"]
@@ -353,15 +356,13 @@ if st.session_state.user_role is not None:
     elif role == "p13_role": allowed_panels = ["P13", "P14"]
     elif role == "p14_role": allowed_panels = ["P14"]
 
-    # 🌟 यह लाइन 'if st.session_state.user_role is not None:' ब्लॉक के अंदर (4 स्पेस आगे) होना जरूरी है:
     active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
-
-    # साइडबार नेविगेशन रेंडर करना
+    
     if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        # 🌟 यहाँ [0] का उपयोग करें ताकि स्ट्रिंग 'P1' शुद्ध रूप से बाहर आए और नीचे के सारे 'if current_panel_id == "P1":' मैच हो सकें
+        # 🌟 सुधार: यहाँ [0] लगाना सबसे जरूरी था जिससे केवल शुद्ध स्ट्रिंग आईडी 'P1' बाहर आए और नीचे का डेटा लोड हो सके
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
 # ----------------------------------------------------------------------
