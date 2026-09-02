@@ -941,13 +941,26 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ----------------------------------------------------------------------
-        # P7: PANEL FOIL SHEET GENERATOR MODULE (University CCE Foil Sheet - Isolated View)
+                # ----------------------------------------------------------------------
+        # P7: PANEL FOIL SHEET GENERATOR MODULE (Perfect Image-to-HTML Replica)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
-            college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
             
+            # अंकों को शब्दों में बदलने का फंक्शन (0 से 20 या अधिक के लिए)
+            def num_to_words(num_str):
+                try:
+                    num = int(float(num_str))
+                    words = {
+                        0: "Zero", 1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five",
+                        6: "Six", 7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten",
+                        11: "Eleven", 12: "Twelve", 13: "Thirteen", 14: "Fourteen", 15: "Fifteen",
+                        16: "Sixteen", 17: "Seventeen", 18: "Eighteen", 19: "Nineteen", 20: "Twenty"
+                    }
+                    return words.get(num, str(num))
+                except:
+                    return ""
+
             if live_db.empty: 
                 st.warning("⚠️ मास्टर डेटाबेस वर्तमान में खाली है। कृपया पहले Panel 1 (Entry) से छात्र लोड करें।")
             else:
@@ -963,19 +976,25 @@ else:
                         key="cce_p7_sub_secure_engine"
                     )
                 with col_p7_2:
-                    chosen_option = st.selectbox(
-                        "📆 Select Semester / Year:", 
-                        options=["1 Semester", "2 Semester", "3 Semester", "4 Semester", "1 Year", "2 Year", "3 Year"], 
+                    chosen_option = st.text_input(
+                        "📆 Enter Class & Semester (जैसे: B.A. LL.B. 10th SEMESTER):", 
+                        value="B.A. LL.B. 10th SEMESTER",
                         key="cce_p7_sem_secure_engine"
                     )
                 
+                col_p7_3, col_p7_4 = st.columns(2)
+                with col_p7_3:
+                    max_marks = st.text_input("Maximum Marks:", value="20")
+                with col_p7_4:
+                    min_marks = st.text_input("Minimum Pass Marks:", value="07")
+
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
                     if st.button("🔄 Generate Foil Sheets Canvas Now", use_container_width=True, type="primary", key="p7_generate_canvas_btn_secure"): 
                         st.session_state.cce_foil_generated = True
                 with btn_col2:
                     if st.session_state.get('cce_foil_generated', False):
-                        st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save as PDF (A4 Landscape)</button>', unsafe_allow_html=True)
+                        st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save as PDF (A4 Portrait)</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 if st.session_state.get('cce_foil_generated', False):
@@ -987,60 +1006,101 @@ else:
                     if foil_filter_df.empty: 
                         st.warning("🔍 चयनित मापदंडों के आधार पर कोई छात्र रिकॉर्ड नहीं मिला।")
                     else:
-                        # 🎛️ केवल फॉयल शीट पैनल के लिए मान्य निश्चित कॉलम्स की सूची (Isolated Layout Rule)
-                        for essential_col in ["Roll No.", "Student Name", "CCE Marks Obtained", "CCE Attendance Status"]:
+                        # आवश्यक कॉलम्स सुनिश्चित करना
+                        for essential_col in ["Roll No.", "CCE Marks Obtained", "CCE Attendance Status"]:
                             if essential_col not in foil_filter_df.columns: 
                                 foil_filter_df[essential_col] = ""
                         
-                        st.markdown(f'<div style="text-align: center; font-family: Arial, sans-serif; margin-top: 10px;"><h2 style="margin: 0; color: #111; font-size: 22px; font-weight: bold;">{college_name}</h2><h3 style="margin: 5px 0; font-size: 16px; font-weight: normal; letter-spacing: 1px;">CONSOLIDATED CCE FOIL SHEET (INTERNAL ASSESSMENT REGISTER)</h3><div style="display: flex; justify-content: space-between; margin: 15px auto; width: 95%; font-weight: bold; font-size: 14px; border-bottom: 2px solid #333; padding-bottom: 8px;"><span>📚 SUBJECT: {selected_subject.upper()}</span><span>📆 TERM: {chosen_option.upper()}</span><span>📊 TOTAL STUDENTS: {len(foil_filter_df)}</span></div></div>', unsafe_allow_html=True)
+                        # इमेज के अनुसार टॉप हेडर मेटाडेटा
+                        header_html = f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #333; padding: 15px; background-color: #fff;">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 10px;">
+                                <span>Paper Code...................</span>
+                                <span>Bundle No...................</span>
+                            </div>
+                            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">
+                                <h2 style="margin: 0; font-size: 16px; font-weight: bold; letter-spacing: 0.5px;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                <h2 style="margin: 2px 0 0 0; font-size: 16px; font-weight: bold;">GWALIOR (M.P.)</h2>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 5px; margin-bottom: 10px;">
+                                <span>Examination :- CCE</span>
+                                <span>{chosen_option.upper()}</span>
+                            </div>
+                            <div style="font-size: 13px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                                <span>Subject: {selected_subject.upper()}</span>
+                                <span>Paper: ...................................</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 5px; margin-bottom: 5px;">
+                                <span>Maximum Marks: {max_marks}</span>
+                                <span>Minimum Pass Marks: {min_marks}</span>
+                            </div>
+                            <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
+                        """
                         
-                        foil_print_table = []
+                        # इमेज के अनुसार जटिल टेबल हेडर संरचना (1 और 2 नंबर इंडिकेटर के साथ)
+                        table_html = """
+                            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; text-align: center;">
+                                <thead>
+                                    <tr>
+                                        <th colspan="2" style="border: 1px solid #000; padding: 4px; width: 40%; font-size: 11px;">1</th>
+                                        <th colspan="2" style="border: 1px solid #000; padding: 4px; width: 60%; font-size: 11px;">2</th>
+                                    </tr>
+                                    <tr>
+                                        <th rowspan="2" style="border: 1px solid #000; padding: 6px; width: 12%;">Code No.</th>
+                                        <th rowspan="2" style="border: 1px solid #000; padding: 6px; width: 28%;">Roll No.</th>
+                                        <th colspan="2" style="border: 1px solid #000; padding: 4px;">Marks Obtained</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 25%;">In Figures</th>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 35%;">In Words</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        """
+                        
+                        # लूप चलाकर छात्रों का डेटा डालना
                         for idx, row in foil_filter_df.reset_index(drop=True).iterrows():
                             att_status = str(row["CCE Attendance Status"]).strip().upper()
-                            display_marks = "ABSENT" if att_status in ["ABSENT", "A", "ABS"] else str(row["CCE Marks Obtained"])
-                            if display_marks == "" or display_marks == "nan": 
-                                display_marks = "-"
-                            foil_print_table.append({
-                                "S.No.": idx + 1, 
-                                "University Roll No.": row["Roll No."], 
-                                "Student Name": row["Student Name"], 
-                                "Max Marks": "20", 
-                                "Marks Obtained (In Figures)": display_marks
-                            })
                             
-                        table_html = '<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 13px; margin-top: 10px;"><thead><tr style="background-color: #f2f2f2; text-align: center;"><th style="border: 1px solid #333; padding: 8px; width: 6%;">S.No.</th><th style="border: 1px solid #333; padding: 8px; width: 18%;">University Roll No.</th><th style="border: 1px solid #333; padding: 8px; width: 30%;">Student Name</th><th style="border: 1px solid #333; padding: 8px; width: 10%;">Max Marks</th><th style="border: 1px solid #333; padding: 8px; width: 18%;">Marks Obtained (Figures)</th><th style="border: 1px solid #333; padding: 8px; width: 18%;">Signature Verification</th></tr></thead><tbody>'
-                        for row in foil_print_table:
-                            table_html += f'<tr style="text-align: center;"><td style="border: 1px solid #333; padding: 6px; font-weight: bold;">{row["S.No."]}</td><td style="border: 1px solid #333; padding: 6px; font-family: monospace; font-size: 14px;">{row["University Roll No."]}</td><td style="border: 1px solid #333; padding: 6px; text-align: left; padding-left: 15px;">{row["Student Name"]}</td><td style="border: 1px solid #333; padding: 6px; color: #555;">{row["Max Marks"]}</td><td style="border: 1px solid #333; padding: 6px; font-weight: bold; font-size: 14px;">{row["Marks Obtained (In Figures)"]}</td><td style="border: 1px solid #333; padding: 6px; color: #ccc; font-style: italic;">________________</td></tr>'
-                        table_html += '</tbody></table>'
+                            if att_status in ["ABSENT", "A", "ABS"]:
+                                marks_fig = "ABS"
+                                marks_word = "Absent"
+                            else:
+                                val = str(row["CCE Marks Obtained"]).strip()
+                                marks_fig = val if val and val != "nan" else ""
+                                marks_word = num_to_words(marks_fig) if marks_fig else ""
+                            
+                            table_html += f"""
+                                    <tr>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 13px;">{row["Roll No."]}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{marks_fig}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{marks_word}</td>
+                                    </tr>
+                            """
+                            
+                        table_html += "</tbody></table>"
                         
+                        # इमेज के अनुसार हुबहू नोट और सिग्नेचर वाला फुटर
                         footer_html = """
-                        <div style="margin-top: 50px; display: flex; justify-content: space-between; padding: 0 30px; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold;">
-                            <div style="text-align: center;">
-                                <br><br>
-                                <span>-------------------------------------</span><br>
-                                <span>Internal Examiner Signature</span>
+                                                    <div style="margin-top: 15px; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; border-top: 1px solid #000; padding-top: 8px;">
+                                <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
                             </div>
-                            <div style="text-align: center;">
-                                <br><br>
-                                <span>-------------------------------------</span><br>
-                                <span>Internal Examiner Signature</span>
-                            </div>
-                            <div style="text-align: center;">
-                                <br><br>
-                                <span>-------------------------------------</span><br>
-                                <span>External Verification Authority</span>
-                            </div>
-                            <div style="text-align: center;">
-                                <br><br>
-                                <span>-------------------------------------</span><br>
-                                <span>Exam Controller / HOD Seal</span>
+                            <div style="margin-top: 25px; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; line-height: 1.8;">
+                                <div style="border-bottom: 1px dashed #666; padding-bottom: 4px;">Signature of Examiner...............................................................................</div>
+                                <div style="border-bottom: 1px dashed #666; padding-bottom: 4px; margin-top: 5px;">Name of Examiner.....................................................................................</div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                    <span style="width: 60%; border-bottom: 1px dashed #666; padding-bottom: 4px;">Place............................................................</span>
+                                    <span style="width: 38%; border: 1px solid #000; padding: 2px 5px; font-size: 12px; display: inline-block;">Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
+                                </div>
                             </div>
                         </div>
                         """
-                        st.markdown(table_html, unsafe_allow_html=True)
-                        st.markdown(footer_html, unsafe_allow_html=True)
+                        
+                        # पूरे तैयार दस्तावेज़ को स्ट्रीमलिट पर रेंडर करना
+                        st.markdown(header_html + table_html + footer_html, unsafe_allow_html=True)
 
-                               # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P8: PANEL CCE RECORD MODULE (Internal Assessment Ledger Entry - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
