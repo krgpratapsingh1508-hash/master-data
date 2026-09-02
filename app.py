@@ -1,570 +1,253 @@
 import streamlit as st
 import pandas as pd
 import os
-import base64
 
-# पेज का लेआउट सेट करें
+# पेज का लेआउट सेट करें (चौड़ा व्यू)
 st.set_page_config(layout="wide")
 
-# प्रिंट फ़ॉर्मेटिंग और लेआउट को व्यवस्थित करने के लिए सीएसएस (CSS)
+# सिर्फ डेटा तालिका को प्रिंट करने के लिए और बटनों को मोबाइल पर भी जबरदस्ती अगल-बगल रखने के लिए CSS
 st.markdown("""
     <style>
     @media print {
-        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
-        .stButton, .stFileUploader, [data-testid="stDecoration"], 
-        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {
+        [data-testid="stHeader"], div[element-to-hide="true"], .stButton, .stFileUploader, header, footer, [data-testid="stForm"] {
             display: none !important;
         }
-        @page {
-            margin: 5mm;
-            size: A4 landscape;
-        }
-        .main .block-container {
-            padding: 0 !important;
-            margin: 0 !important;
-        }
+        .main .block-container { padding-top: 0px !important; padding-bottom: 0px !important; }
     }
-    .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-    .header-text { display: flex; flex-direction: column; }
-    .header-text h3 { margin: 0 !important; padding: 0 !important; color: #FF5733; }
-    .header-text h1 { margin: 0 !important; }
+    
+    /* 🛠️ मोबाइल और कंप्यूटर दोनों पर एक्शन बटनों को एक ही लाइन में रखने का अचूक कोड */
+    .action-container {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+    .action-container > div {
+        flex: 1 !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# लोगो लोड करने का फंक्शन
-def get_image_base64(path):
-    if os.path.exists(path):
-        with open(path, "rb") as image_file:
-            return f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
-    return ""
+st.title("Permanent Shared Live Database")
 
-img_base64 = get_image_base64("logo pratap.png")
-logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
-
-st.markdown(f"""
-    <div class="header-container">
-        {logo_html}
-        <div class="header-text">
-            <h3>ॐ गुरुवर्य नमः</h3>
-            <h1>Permanent Shared Live Database</h1>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
+# डेटा को सुरक्षित रखने के लिए लोकल फ़ाइल पाथ
 DB_FILE = "shared_student_database.csv"
 
-# 🔑 सुरक्षा क्रेडेंशियल्स - इसे सेशन स्टेट में रखा है ताकि एडमिन इसे बदल सके
-if "credentials" not in st.session_state:
-    st.session_state.credentials = {
-        "entry": {"password": "entry123", "role": "data_entry"},
-        "viewer": {"password": "viewer123", "role": "list_viewer"},
-        "cce": {"password": "cce123", "role": "cce_handler"},
-        "admin": {"password": "admin123", "role": "full_admin"}
-    }
+# 🔑 यहाँ अपना मनपसंद पासवर्ड सेट करें (अभी 'admin123' है)
+CORRECT_PASSWORD = "admin123"
 
-# 🎯 बिल्कुल नए 20+1 कॉलम्स की मास्टर सूची
 DEFAULT_COLUMNS = [
-    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number",
-    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.",
-    "Enrollment No.", "Student Name", "Father Name", "Mother Name", "Date of Birth",
-    "Category", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
-    "Current Year"
+    "Eligibility", "Unique ID", "Roll No.", 
+    "Application No.", "Enrollment No.", "Student Name", "Father Name",
+    "Mother Name", "Date of Birth", "Category", "Subject", 
+    "Duration", "Mobile No.", "Email ID", "Address", "Status"
 ]
 
-# डेटा लोड फंक्शन (ऑटोमैटिक करंट ईयर कैलकुलेशन लॉजिक के साथ)
-def load_live_data():
-    if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
-        df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
-        df_empty.to_csv(DB_FILE, index=False)
-        return df_empty
-    try:
-        df = pd.read_csv(DB_FILE, dtype=str)
-        for col in DEFAULT_COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
-                
-        years_series = pd.to_numeric(df["Admission Year"], errors='coerce')
-        if not years_series.dropna().empty:
-            max_year = int(years_series.max())
-            mapping = {
-                max_year: "1 year",
-                max_year - 1: "2 year",
-                max_year - 2: "3 year",
-                max_year - 3: "4 year",
-                max_year - 4: "5 year",
-                max_year - 5: "6 year"
-            }
-            df["Current Year"] = years_series.map(mapping).fillna("EX-STUDENT")
-        else:
-            df["Current Year"] = "EX-STUDENT"
-            
-        return df.fillna("").reset_index(drop=True)
-    except:
-        return pd.DataFrame(columns=DEFAULT_COLUMNS)
+# ड्रॉपडाउन के लिए विकल्प (Options) डेफिनिशन
+ELIGIBILITY_OPTIONS = ["None", "U.G.", "P.G."]
+DURATION_OPTIONS = ["None", "1 Year", "2 Year", "3 Year", "4 Year", "5 Year", "6 Year"]
+STATUS_OPTIONS = ["Active", "Pending", "Pass", "Inactive"]
 
+# फ़ाइल से डेटा लोड करने का मजबूत फंक्शन (सभी डिवाइसेज के लिए)
+def load_live_data():
+    if os.path.exists(DB_FILE):
+        try:
+            df = pd.read_csv(DB_FILE, dtype=str)
+            for col in DEFAULT_COLUMNS:
+                if col not in df.columns:
+                    df[col] = ""
+            return df[DEFAULT_COLUMNS].fillna("").reset_index(drop=True)
+        except:
+            pass
+    return pd.DataFrame(columns=DEFAULT_COLUMNS)
+
+# फ़ाइल में डेटा पक्का सुरक्षित करने का फंक्शन
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# ==========================================
-# ⚙️ स्टेट मैनेजमेंट सेटअप (क्रैश प्रोटेक्शन)
-# ==========================================
-if "user_role" not in st.session_state:
-    st.session_state.user_role = None  
-if "upload_success" not in st.session_state:
-    st.session_state.upload_success = False
-if "save_success" not in st.session_state:
-    st.session_state.save_success = False
-if "admin_columns_order" not in st.session_state:
-    st.session_state.admin_columns_order = DEFAULT_COLUMNS.copy()
-if "admin_lock_state" not in st.session_state:
-    st.session_state.admin_lock_state = True  
-if "admin_unhide_edit" not in st.session_state:
-    st.session_state.admin_unhide_edit = False
-if "admin_unhide_move" not in st.session_state:
-    st.session_state.admin_unhide_move = False
-if "cce_foil_generated" not in st.session_state:
-    st.session_state.cce_foil_generated = False
+# मेमोरी स्टेट्स (Session States) को सेट करें
+if "select_all_state" not in st.session_state:
+    st.session_state.select_all_state = False
 
-# एडमिन के मास्टर हाइड/अनहाइड बटनों के वेरिएबल्स (AttributeError फिक्स)
-if "admin_hide_entry" not in st.session_state:
-    st.session_state.admin_hide_entry = False
-if "admin_hide_viewer" not in st.session_state:
-    st.session_state.admin_hide_viewer = False
-if "admin_hide_cce" not in st.session_state:
-    st.session_state.admin_hide_cce = False
-if "admin_hide_cred_panel" not in st.session_state:
-    st.session_state.admin_hide_cred_panel = False
+if "database_unlocked" not in st.session_state:
+    st.session_state.database_unlocked = False
 
-# छोटा लॉगिन पैनल टॉगल बटन वेरिएबल
-if "show_login_panel" not in st.session_state:
-    st.session_state.show_login_panel = False
+if "edit_mode" not in st.session_state:
+    st.session_state.edit_mode = False
 
+# सीधे परमानेंट स्टोरेज से लाइव डेटा लोड करें
 live_db = load_live_data()
 
-# ==========================================================
-# 🔒 मुख्य लॉगिन गेटवे (इसके बाहर कुछ नहीं दिखेगा)
-# ==========================================================
-if st.session_state.user_role is None:
-    st.markdown("---")
-    
-    # 🎯 छोटा और आकर्षक 'Login' बटन जो पासवर्ड पैनल को हाइड/अनहाइड करेगा
-    col_login_btn, _ = st.columns([1, 5])
-    with col_login_btn:
-        login_btn_label = "🔓 Hide Login" if st.session_state.show_login_panel else "🔒 Login"
-        if st.button(login_btn_label, use_container_width=True, type="secondary", key="global_login_toggle_btn"):
-            st.session_state.show_login_panel = not st.session_state.show_login_panel
+# --- सेक्शन 1: CSV फ़ाइल से बल्क डेटा अपलोड करें ---
+st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+st.header("📁 CSV File Se Bulk Data Upload Karein")
+uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+        if st.button("Upload CSV", type="primary"):
+            if "Admission No." in uploaded_df.columns:
+                uploaded_df = uploaded_df.drop(columns=["Admission No."])
+            updated_df = pd.concat([live_db, uploaded_df], ignore_index=True)
+            save_live_data(updated_df)
+            st.success("CSV डेटा सफलतापूर्वक डेटाबेस में जोड़ दिया गया है!")
             st.rerun()
+    except Exception as e:
+        st.error(f"CSV फ़ाइल पढ़ने में त्रुटि: {e}")
+st.markdown('</div>', unsafe_allow_html=True)
 
-    # यदि 'Login' बटन पर क्लिक करके अनहाइड किया गया है, तभी नीचे का पैनल दिखेगा
-    if st.session_state.show_login_panel:
-        st.subheader("🔒 Multi-User Secure Login Gateway")
-        user_input = st.selectbox("Username (भूमिका) चुनें:", options=list(st.session_state.credentials.keys()))
-        password_input = st.text_input("Password दर्ज करें:", type="password")
+
+# --- सेक्शन 2: नया स्टूडेंट डेटा मैनुअली ऐड करें ---
+st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+st.header("➕ Naya Student Data Add Karein")
+
+with st.form(key="student_form", clear_on_submit=True):
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        eligibility = st.selectbox("Eligibility", ELIGIBILITY_OPTIONS)
+        enr_no = st.text_input("Enrollment No.")
+        m_name = st.text_input("Mother Name")
+        duration = st.selectbox("Duration", DURATION_OPTIONS)
+    with col2:
+        unique_id = st.text_input("Unique ID")
+        dob = st.text_input("Date of Birth")
+        mobile = st.text_input("Mobile No.")
+        email = st.text_input("Email ID")
+    with col3:
+        roll_no = st.text_input("Roll No.")
+        category = st.text_input("Category")
+        subject = st.text_input("Subject")
+        address = st.text_input("Address")
+    with col4:
+        application_no = st.text_input("Application No.")
+        s_name = st.text_input("Student Name")
+        f_name = st.text_input("Father Name")
+        status_input = st.selectbox("Status", STATUS_OPTIONS)
+
+    submit_button = st.form_submit_button("Save Student Data", use_container_width=True, type="primary")
+
+if submit_button:
+    if s_name.strip() == "":
+        st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
+    else:
+        new_row = {
+            "Eligibility": eligibility, "Unique ID": unique_id, "Roll No.": roll_no,
+            "Application No.": application_no, "Enrollment No.": enr_no, "Student Name": s_name, "Father Name": f_name,
+            "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject": subject,
+            "Duration": duration, "Mobile No.": mobile, "Email ID": email, "Address": address, "Status": status_input
+        }
         
-        if st.button("Secure Login", use_container_width=True, type="primary"):
-            if user_input in st.session_state.credentials and st.session_state.credentials[user_input]["password"] == password_input:
-                st.session_state.user_role = st.session_state.credentials[user_input]["role"]
-                st.session_state.upload_success = False
-                st.session_state.save_success = False
-                st.session_state.admin_lock_state = True  
-                st.session_state.admin_unhide_edit = False
-                st.session_state.admin_unhide_move = False
-                st.session_state.cce_foil_generated = False
-                st.session_state.show_login_panel = False # लॉगिन के बाद इसे स्वतः हाइड करें
-                st.success("✅ लॉगिन सफल!")
-                st.rerun()
-            else:
-                st.error("❌ गलत पासवर्ड!")
-
-# ==========================================================
-# 🔑 लॉगिन के बाद का मुख्य सिस्टम (केवल पासवर्ड डालने पर एक्टिव होगा)
-# ==========================================================
-else:
-    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-    if st.button("🔒 मुख्य लॉगआउट (Exit Secure System)", type="primary", use_container_width=True):
-        st.session_state.user_role = None
-        st.session_state.upload_success = False
-        st.session_state.save_success = False
+        fresh_db = load_live_data()
+        updated_df = pd.concat([fresh_db, pd.DataFrame([new_row])], ignore_index=True)
+        
+        save_live_data(updated_df)
+        st.success("डेटा सफलतापूर्वक हमेशा के लिए सेव हो गया है!")
         st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+
+# --- पासवर्ड इनपुट बॉक्स ---
+if not st.session_state.database_unlocked:
+    st.markdown("---")
+    st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+    st.subheader("🔒 Live Student Database Lock")
+
+    user_password = st.text_input(
+        "नीचे का लाइव डेटाबेस देखने के लिए पासवर्ड दर्ज करें और Enter दबाएं:", 
+        type="password", 
+        key="password_input_field"
+    )
+
+    if user_password == CORRECT_PASSWORD:
+        st.session_state.database_unlocked = True
+        st.rerun()
+
+    if user_password != "" and user_password != CORRECT_PASSWORD:
+        st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
-    role = st.session_state.user_role
-    st.info(f"🔑 वर्तमान सत्र भूमिका: **{role.upper()}**")
 
-        # --------------------------------------------------
-    # 📁 1. DATA ENTRY PANEL (Role: data_entry या full_admin)
-    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
-    # --------------------------------------------------
-    if role in ["data_entry", "full_admin"] and not st.session_state.admin_hide_entry:
-        st.header("📝 Student Data Entry Panel")
+# --- यदि डेटाबेस अनलॉक है, तभी नीचे का सिस्टम दिखेगा ---
+if st.session_state.database_unlocked:
+
+    st.header("📊 Live Student Database")
+
+    if not live_db.empty and len(live_db) > 0:
+        display_df = live_db.copy().reset_index(drop=True)
         
-        entry_method = st.selectbox(
-            "⚙️ डेटा एंट्री का माध्यम चुनें (Choose Entry Method):",
-            options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"],
-            key="data_entry_method_selector"
-        )
-        st.markdown("---")
-
-        if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-            st.subheader("📁 CSV File Bulk Upload")
-            if "csv_uploader_id" not in st.session_state:
-                st.session_state.csv_uploader_id = 100
-
-            uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"], key=f"csv_uploader_{st.session_state.csv_uploader_id}")
-            if uploaded_file is not None:
-                try:
-                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                    if st.button("Upload CSV Now", use_container_width=True, type="primary", key="csv_upload_submit_btn"):
-                        for col in DEFAULT_COLUMNS:
-                            if col not in uploaded_df.columns:
-                                uploaded_df[col] = ""
-                        cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                        current_db = load_live_data()
-                        if current_db.empty:
-                            updated_df = cleaned_uploaded_df
-                        else:
-                            updated_df = pd.concat([current_db, cleaned_uploaded_df], ignore_index=True)
-                        save_live_data(updated_df)
-                        st.session_state.upload_success = True
-                        st.session_state.csv_uploader_id += 1
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"त्रुटि: {e}")
-
-            if st.session_state.upload_success:
-                st.success("✅ CSV Data Filtered & Successfully Uploaded!")
-                st.session_state.upload_success = False
-
-        elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
-            st.subheader("➕ Naya Student Data Add Karein")
-            with st.form(key="student_add_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    admission_year = st.text_input("Admission Year (प्रवेश वर्ष)")
-                    eligibility_name = st.text_input("Eligibility Name (योग्यता का नाम)")
-                    admission_date = st.text_input("Admission Date (प्रवेश तिथि)")
-                    roll_no = st.text_input("Roll No. (रोल नंबर)")
-                    enrollment_no = st.text_input("Enrollment No. (स्थायी नामांकन संख्या)")
-                    f_name = st.text_input("Father Name (पिता का नाम)")
-                    dob = st.text_input("Date of Birth (जन्म तिथि)")
-                    subject = st.text_input("Subject (विषय/स्ट्रीम)")
-                    mobile = st.text_input("Mobile Number (मोबाइल नंबर)")
-                    address = st.text_input("Address (पता)")
-                with col2:
-                    admission_session = st.text_input("Admission Session (सत्र)")
-                    admission_app_no = st.text_input("Admission Application Number (आवेदन संख्या)")
-                    unique_id = st.text_input("Unique ID (आधार या स्कॉलर नंबर)")
-                    app_enroll_no = st.text_input("Application Enrollment No. (एप्लिकेशन नामांकन संख्या)")
-                    s_name = st.text_input("Student Name (छात्र का नाम)")
-                    m_name = st.text_input("Mother Name (माता का नाम)")
-                    category = st.selectbox("Category (कैटेगरी)", ["General", "OBC", "SC", "ST"])
-                    duration = st.text_input("Duration (कोर्स की अवधि)")
-                    email = st.text_input("Email ID (ईमेल आईडी)")
-                    status_input = st.selectbox("Status (स्थिति)", ["Active", "Pending", "Pass", "Inactive"])
-                submit_student = st.form_submit_button("Save Student Data", type="primary", use_container_width=True)
-
-            if submit_student:
-                if s_name.strip() == "":
-                    st.warning("कृपया कम से कम Student Name ज़रूर भरें।")
-                else:
-                    new_row = {
-                        "Admission Year": admission_year, "Admission Session": admission_session, 
-                        "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no,
-                        "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
-                        "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
-                        "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, 
-                        "Category": category, "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
-                        "Email ID": email, "Address": address, "Status": status_input, "Current Year": ""
-                    }
-                    current_db = load_live_data()
-                    if current_db.empty:
-                        updated_df = pd.DataFrame([new_row])
-                    else:
-                        updated_df = pd.concat([current_db, pd.DataFrame([new_row])], ignore_index=True)
-                    save_live_data(updated_df)
-                    st.session_state.save_success = True
-                    st.rerun()
-
-            if st.session_state.save_success:
-                st.success("✅ Student data saved successfully")
-                st.session_state.save_success = False
-
-    # --------------------------------------------------
-    # 👁️ 2. LIST VIEWER PANEL (Role: list_viewer या full_admin)
-    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
-    # --------------------------------------------------
-    if role in ["list_viewer", "full_admin"] and not st.session_state.admin_hide_viewer:
-        st.header("Student Live Database List (Viewer Mode)")
-        st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+        # --- एक्शन बटन रो (Row): 4 बटन्स बिल्कुल सटीक स्पेसिंग के साथ ---
+        st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
         
-        # पहले कॉलम नाम स्क्रॉल करके चुनने का सिस्टमिक ड्रॉपडाउन
-        selected_search_column = st.selectbox("🔍 किस कॉलम में सर्च करना चाहते हैं? कॉलम चुनें:", options=DEFAULT_COLUMNS, key="viewer_panel_column_selector")
-        search_query = st.text_input(f"'{selected_search_column}' के अंदर सर्च करने के लिए टाइप करें:", key="viewer_panel_search_query_input")
+        with act_col1:
+            btn_label = "⬜ सब सेलेक्ट करें" if not st.session_state.select_all_state else "⬛ सभी अन-सेलेक्ट करें"
+            if st.button(btn_label, use_container_width=True):
+                st.session_state.select_all_state = not st.session_state.select_all_state
+                st.rerun()
+                
+        with act_col2:
+            csv_data = live_db.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="💾 CSV डाउनलोड करें",
+                data=csv_data,
+                file_name="student_database_export.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="secondary"
+            )
+            
+        with act_col3:
+            # सुरक्षित इंडेंटेशन के साथ प्रिंट बटन कार्यक्षमता
+            if st.button("🖨️ लिस्ट प्रिंट करें", use_container_width=True, type="secondary"):
+                st.markdown("""<script>window.print();</script>""", unsafe_allow_html=True)
+            
+        with act_col4:
+            if st.button("🔒 लॉगआउट करें", use_container_width=True, type="primary"):
+                st.session_state.database_unlocked = False
+                st.session_state.edit_mode = False
+                st.session_state.select_all_state = False
+                st.rerun()
+                
         st.markdown('</div>', unsafe_allow_html=True)
 
-        filtered_db = live_db.copy()
-        if search_query:
-            filtered_db = filtered_db[filtered_db[selected_search_column].str.contains(search_query, case=False, na=False)]
-            
-        st.write(f"Kul Student Record: **{len(filtered_db)}**")
-        
-        if not filtered_db.empty:
-            display_df = filtered_db.copy()
-            display_df.insert(0, "S.No.", range(1, len(display_df) + 1))
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-            
-            st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                csv_buffer = filtered_db.to_csv(index=False).encode('utf-8')
-                st.download_button(label="Download Student List (CSV)", data=csv_buffer, file_name="student_database_list.csv", mime="text/csv", use_container_width=True, key="viewer_panel_csv_download_action")
-            with col_btn2:
-                st.markdown("""
-                    <button onclick="window.print()" style="width: 100%; background-color: #FF5733; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 500; line-height: 1.6; text-align: center; box-sizing: border-box;">Direct Print</button>
-                """, unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # तालिका सेटअप
+        display_df.insert(0, "Delete स्टूडेंट", st.session_state.select_all_state)
+        display_df.index = display_df.index + 1
+        display_df.index.name = "S. No."
+
+        column_configuration = {
+            "Delete स्टूडेंट": st.column_config.CheckboxColumn("Delete स्टूडेंट", help="डेटा डिलीट करने के लिए टिक करें"),
+            "Eligibility": st.column_config.SelectboxColumn("Eligibility", options=ELIGIBILITY_OPTIONS, required=True),
+            "Duration": st.column_config.SelectboxColumn("Duration", options=DURATION_OPTIONS, required=True),
+            "Status": st.column_config.SelectboxColumn("Status", options=STATUS_OPTIONS, required=True)
+        }
+
+        if st.session_state.edit_mode:
+            disabled_cols = ["Delete स्टूडेंट"]
+            st.info("📝 एडमिट मोड एक्टिव है! तालिका में सीधे बदलाव कर सकते हैं।")
         else:
-            st.warning("Record match nahi hua.")
+            disabled_cols = [col for col in display_df.columns if col != "Delete Student" and col != "Delete स्टूडेंट"]
 
-    # --------------------------------------------------
-    # 📝 3. CCE HANDLER PANEL (Role: cce_handler या full_admin)
-    # 🎯 एडमिन कंट्रोल लिंक्ड: यदि एडमिन ने इसे हाइड किया है तो नहीं दिखेगा
-    # --------------------------------------------------
-    if role in ["cce_handler", "full_admin"] and not st.session_state.admin_hide_cce:
-        st.header("College CCE Foil Sheet Generator")
-        st.write("Institute of Law, Govt. Kamlaraja Girls Post-Graduate Autonomous College, Gwalior (M.P.)")
+        edited_df = st.data_editor(
+            display_df,
+            hide_index=False,
+            column_config=column_configuration,
+            disabled=disabled_cols,
+            use_container_width=True
+        )
 
-        if not live_db.empty:
-            semesters = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-            def reset_foil_state():
-                st.session_state.cce_foil_generated = False
-
-            target_sem = st.selectbox("Kaun sa Semester chahiye?", semesters, key="cce_sem_box", on_change=reset_foil_state)
-            sem_to_year_text = {"1": "1 year", "2": "1 year", "3": "2 year", "4": "2 year", "5": "3 year", "6": "3 year", "7": "4 year", "8": "4 year", "9": "5 year", "10": "5 year"}
-            target_year_text = sem_to_year_text[target_sem]
-
-            college_name = "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)"
-            exam_info = f"Examination :- CCE                                             B.A. LL.B. {target_sem}th SEMESTER"
-
-            if st.button("Generate CCE Foil Sheets Now", use_container_width=True, type="primary", key="generate_foil_btn"):
-                st.session_state.cce_foil_generated = True
-
-            if st.session_state.cce_foil_generated:
-                roll_numbers = []
-                for _, row in live_db.iterrows():
-                    roll = str(row.get('Roll No.', row.get('Roll No', ''))).strip()
-                    status = str(row.get('Status', row.get('STATUS', ''))).strip().upper()
-                    current_year_val = str(row.get('Current Year', '')).strip().lower()
-                    if not roll or roll == "nan" or roll == "":
-                        continue
-                    if target_year_text in current_year_val and ('REGULAR' in status or 'ACTIVE' in status):
-                        roll_numbers.append(roll)
-                    elif 'EX-STUDENT' in current_year_val or 'EX-STUDENT' in status or 'EX' in status:
-                        if target_year_text in current_year_val:
-                            roll_numbers.append(roll)
-
-                roll_numbers = sorted(list(set(roll_numbers)))
-
-                if roll_numbers:
-                    st.success(f"Total {len(roll_numbers)} students mile hain.")
-                    left_side_rolls = roll_numbers[:30]
-                    right_side_rolls = roll_numbers[30:60]
-
-                    def generate_cce_html_block(rolls, start_idx, foil_label, has_data):
-                        if not has_data:
-                            return '<div class="foil-unit" style="border:none; background:transparent;"></div>'
-                        block = f"""
-                        <div class="foil-unit">
-                            <div class="top-fields"><div></div><div>Paper Code....................</div></div>
-                            <div class="top-fields" style="margin-top: 5px;"><div></div><div>Bundle No....................</div></div>
-                            <div class="header-box">{college_name}</div>
-                            <div class="sub-box exam-right">{exam_info}</div>
-                            <div class="sub-box">Subject.................................................... Paper.........................</div>
-                            <div class="marks-info"><div>Max. Marks: ...................</div><div>Min. Pass Marks: ...................</div></div>
-                            <div class="foil-title">{foil_label}</div>
-                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
-                                <tr><th style="border:1px solid black; padding:4px;" style="width: 8%;">1</th><th style="border:1px solid black; padding:4px;" style="width: 30%;" colspan="3">2</th></tr>
-                                <tr><th style="border:1px solid black; padding:4px;" rowspan="2">Code No.</th><th style="border:1px solid black; padding:4px;" rowspan="2">Roll No.</th><th style="border:1px solid black; padding:4px;" colspan="2">Marks Obtained</th></tr>
-                                <tr><th style="border:1px solid black; padding:4px; width: 15%;">In Figures</th><th style="border:1px solid black; padding:4px; width: 45%;">In Words</th></tr>
-                        """
-                        for idx_foil, r_foil in enumerate(rolls, start=start_idx):
-                            block += f"<tr><td style='border:1px solid black; padding:4px;'><b>{idx_foil}</b></td><td style='border:1px solid black; padding:4px;'>{r_foil}</td><td style='border:1px solid black; padding:4px;'></td><td style='border:1px solid black; padding:4px;'></td></tr>"
-                        current_len = len(rolls)
-                        if current_len < 30:
-                            for k in range(current_len + start_idx, 30 + start_idx):
-                                block += "<tr><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td><td style='border:1px solid black; padding:4px;'>&nbsp;</td></tr>"
-                        block += f"""
-                            </table>
-                            <div class="note" style="font-size:10px; margin-top:10px;"><b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully.</div>
-                            <div class="footer-fields">Signature of Examiner......................................<br>Date: ___/___/2026</div>
-                        </div>
-                        """
-                        return block
-
-                    left_block_html = generate_cce_html_block(left_side_rolls, 1, "FOIL", True)
-                    right_block_html = generate_cce_html_block(right_side_rolls, 31, "FOIL", len(right_side_rolls) > 0)
-
-                    html_style = """
-                    <style>
-                        #foil-capture-area { display: flex; justify-content: space-between; gap: 20px; width: 1100px; padding: 15px; background: white; margin: auto; }
-                        .foil-unit { width: 49%; border: 1px solid black; padding: 12px; box-sizing: border-box; background: white; }
-                        .top-fields { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; }
-                        .header-box { text-align: center; border-top: 2px solid black; border-bottom: 2px solid black; padding: 6px 0; margin-top: 8px; font-weight: bold; font-size: 16px; }
-                        .sub-box { border-bottom: 2px solid black; padding: 5px 0; font-size: 12px; font-weight: bold; }
-                        .exam-right { text-align: right; }
-                        .marks-info { display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; border-bottom: 2px solid black; font-size: 12px; }
-                        .foil-title { text-align: center; font-weight: bold; font-size: 16px; margin: 10px 0; }
-                        .footer-fields { margin-top: 15px; font-size: 12px; font-weight: bold; }
-                    </style>
-                    """
+        # --- एडिट और सेव बटन्स ---
+        st.markdown('<div element-to-hide="true">', unsafe_allow_html=True)
+        col_ed1, col_ed2 = st.columns(2)
+        
+        with col_ed1:
+            if st.button("📝 पूरी लिस्ट एडिट करें (Edit Mode)", use_container_width=True, type="secondary"):
+                st.session_state.edit_mode = True
+                st.rerun()
                     
-                    full_html = f"""
-                    <html>
-                    <head>
-                        {html_style}
-                        <script src="https://cloudflare.com"></script>
-                        <script>
-                        function downloadFoilAsPNG() {{
-                            const element = document.getElementById("foil-capture-area");
-                            html2canvas(element, {{ scale: 2 }}).then(canvas => {{
-                                let link = document.createElement("a");
-                                link.download = "cce_foil_sheet.png";
-                                link.href = canvas.toDataURL("image/png");
-                                link.click();
-                            }});
-                        }}
-                        </script>
-                    </head>
-                    <body>
-                        <div class="print-hide" style="text-align: center; margin-bottom: 15px; display:flex; gap:20px; justify-content:center;">
-                            <button onclick="window.print()" style="background:#FF5733; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Direct Print Only Foil</button>
-                            <button onclick="downloadFoilAsPNG()" style="background:#4CAF50; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Download File in PNG File</button>
-                        </div>
-                        <div id="foil-capture-area">
-                            {left_block_html}
-                            {right_block_html}
-                        </div>
-                    </body>
-                    </html>
-                    """
-                    st.components.v1.html(full_html, height=1600, scrolling=True)
-                else:
-                    st.error("Is Semester ka koi data live list me nahi mila.")
-        else:
-            st.error("Live database file khali hai.")
-
-    # --------------------------------------------------
-    # 🛠️ 4. FULL ADMIN ROLE PANEL (Role: केवल full_admin)
-    # --------------------------------------------------
-    if role == "full_admin":
-        st.header("🛠️ Full Admin Management Panel")
-        
-        # 🎯 पार्ट ए: 4 विजिबिलिटी कंट्रोलर मास्टर बटन्स (पैनल्स की विजिबिलिटी को लाइव कंट्रोल करने के लिए)
-        st.subheader("🛡️ Global Panels Visibility Controller")
-        col_vis1, col_vis2, col_vis3, col_vis4 = st.columns(4)
-        
-        with col_vis1:
-            entry_btn_label = "👁️ Data Entry Panel: UNHIDDEN" if not st.session_state.admin_hide_entry else "🙈 Data Entry Panel: HIDDEN"
-            if st.button(entry_btn_label, use_container_width=True, key="admin_master_toggle_entry"):
-                st.session_state.admin_hide_entry = not st.session_state.admin_hide_entry
-                st.rerun()
+        with col_ed2:
+            if st.button("💾 डेटा लॉक और सेव करें (Save & Lock Changes)", use_container_width=True, type="primary"):
                 
-        with col_vis2:
-            viewer_btn_label = "👁️ Viewer Panel: UNHIDDEN" if not st.session_state.admin_hide_viewer else "🙈 Viewer Panel: HIDDEN"
-            if st.button(viewer_btn_label, use_container_width=True, key="admin_master_toggle_viewer"):
-                st.session_state.admin_hide_viewer = not st.session_state.admin_hide_viewer
-                st.rerun()
-                
-        with col_vis3:
-            cce_btn_label = "👁️ CCE Panel: UNHIDDEN" if not st.session_state.admin_hide_cce else "🙈 CCE Panel: HIDDEN"
-            if st.button(cce_btn_label, use_container_width=True, key="admin_master_toggle_cce"):
-                st.session_state.admin_hide_cce = not st.session_state.admin_hide_cce
-                st.rerun()
-
-        with col_vis4:
-            cred_btn_label = "👁️ Password Panel: UNHIDDEN" if not st.session_state.admin_hide_cred_panel else "🙈 Password Panel: HIDDEN"
-            if st.button(cred_btn_label, use_container_width=True, key="admin_master_toggle_cred_panel"):
-                st.session_state.admin_hide_cred_panel = not st.session_state.admin_hide_cred_panel
-                st.rerun()
-
-        st.markdown("---")
-
-        # 🔑 पासवर्ड अपडेट पैनल (यदि एडमिन द्वारा अनहाइड हो)
-        if not st.session_state.admin_hide_cred_panel:
-            st.subheader("🔐 Change User Credentials System")
-            with st.form(key="credentials_change_form"):
-                target_user = st.selectbox("किस यूजर का क्रेडेंशियल बदलना चाहते हैं?", options=list(st.session_state.credentials.keys()))
-                new_password = st.text_input("नया पासवर्ड दर्ज करें:", type="password")
-                submit_cred = st.form_submit_button("Update Password Now", type="primary")
-                
-                if submit_cred:
-                    if new_password.strip() == "":
-                        st.error("पासवर्ड खाली नहीं हो सकता।")
-                    else:
-                        st.session_state.credentials[target_user]["password"] = new_password
-                        st.success(f"✅ '{target_user}' का पासवर्ड सफलतापूर्वक अपडेट हो गया है!")
-            st.markdown("---")
-
-        st.subheader("📊 Master Database List View & Advanced Controls")
-        
-        # एडवांस कंट्रोल टूल्स
-        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-        with col_ctrl1:
-            if st.button("📝 एडिट टेक्स्ट फ़ंक्शन अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_text_edit"):
-                st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                st.rerun()
-        with col_ctrl2:
-            if st.button("🔀 कॉलम मूव बटन्स अनहाइड/हाइड करें", use_container_width=True, key="admin_btn_unhide_column_move"):
-                st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                st.rerun()
-        with col_ctrl3:
-            lock_label = "🔒 लिस्ट लॉक करें" if not st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें"
-            if st.button(lock_label, use_container_width=True, key="admin_btn_toggle_lock_state"):
-                st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-                st.rerun()
-
-        # कॉलम मूव सिस्टम (यदि अनहाइड हो)
-        if st.session_state.admin_unhide_move:
-            st.info("🔄 कॉलम मूव कंट्रोल्स एक्टिव हैं:")
-            target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="admin_col_shift_select")
-            c_left, c_right = st.columns(2)
-            
-            if c_left.button("⬅️ सिलेक्ट कॉलम लेफ्ट (Shift Left)", use_container_width=True, key="admin_shift_left_trigger"):
-                idx = st.session_state.admin_columns_order.index(target_col)
-                if idx > 0:
-                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                    st.rerun()
-                    
-            if c_right.button("➡️ सिलेक्ट कॉलम राइट (Shift Right)", use_container_width=True, key="admin_shift_right_trigger"):
-                idx = st.session_state.admin_columns_order.index(target_col)
-                if idx < len(st.session_state.admin_columns_order) - 1:
-                    st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-                    st.rerun()
-
-        # मास्टर ग्रिड मैपिंग
-        ordered_db = live_db[st.session_state.admin_columns_order].copy()
-        ordered_db.insert(0, "S.No.", range(1, len(ordered_db) + 1))
-        
-        st.write(f"कुल मास्टर रिकॉर्ड संख्या: **{len(ordered_db)}**")
-        
-        # स्थिति 1: जब लिस्ट अनलॉक और टेक्स्ट एडिट अनहाइड हो (डायरेक्ट लाइव टेक्स्ट एडिटिंग)
-        if not st.session_state.admin_lock_state and st.session_state.admin_unhide_edit:
-            st.warning("⚠️ लाइव डायरेक्ट टेक्स्ट संपादन सक्रिय है। ग्रिड में किया गया बदलाव सीधे सेव हो जाएगा।")
-            edited_df = st.data_editor(
-                ordered_db,
-                use_container_width=True,
-                disabled=["S.No.", "Current Year"],
-                key="admin_live_data_editor",
-                hide_index=True
-            )
-            clean_edited = edited_df.drop(columns=["S.No."])
-            for col in clean_edited.columns:
-                if col != "Current Year":
-                    live_db[col] = clean_edited[col].values
-            save_live_data(live_db)
-            
-        # स्थिति 2: साधारण रीड-ओनली मास्टर ग्रिड व्यू
-        else:
-            st.dataframe(ordered_db, use_container_width=True, hide_index=True)
-            
