@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import base64
 import json
+import io
 
 # ==========================================================
 # ⚙️ स्टेप 1: पेज का लेआउट सेट करें और डिफ़ॉल्ट थीम्स बनाएं
@@ -16,7 +17,9 @@ MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
 NOTICE_FILE = "notice_board_schema.json"
 PRE_LOGIN_CONFIG_FILE = "pre_login_view_config.json"
-MERGE_SCHEMA_FILE = "merge_custom_schemas.json"
+
+# न्यू कस्टमाइज़्ड सूचियों के लिए स्कीमा फ़ाइल पाथ
+DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 
 # डिफ़ॉल्ट कॉन्फ़िगरेशन बैकअप डिक्शनरी (लॉगिन से पहले की थीम के लिए)
 DEFAULT_PRE_LOGIN_CONFIG = {
@@ -27,10 +30,14 @@ DEFAULT_PRE_LOGIN_CONFIG = {
     "notice_board_bg_color": "#f9f9f9"
 }
 
-# पैनल 13 के लिए डायनेमिक ड्रॉपडाउन लिस्ट स्कीमा बैकअप
-DEFAULT_MERGE_SCHEMAS = {
-    "file_types": ["admission file", "admission fee file"],
-    "academic_years": [str(year) for year in range(2014, 2027)]
+# 🎯 Panel 1 के लिए डिफ़ॉल्ट 3 स्क्रॉल सूचियों का स्कीमा बैकअप
+DEFAULT_DYNAMIC_LISTS = {
+    "file_types": [
+        "admission file", "admission fee file", "unique id file", 
+        "roll no file", "enrollment file", "promotion file", "result file"
+    ],
+    "academic_years": [str(year) for year in range(2014, 2027)],
+    "academic_sessions": [f"{year}-{str(year+1)[2:]}" for year in range(2014, 2027)]
 }
 
 # डिफ़ॉल्ट कॉलेज नोटिस बोर्ड टेक्स्ट
@@ -93,19 +100,19 @@ def save_pre_login_config(config_dict):
     with open(PRE_LOGIN_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config_dict, f, ensure_ascii=False, indent=4)
 
-def load_merge_schemas():
-    if os.path.exists(MERGE_SCHEMA_FILE):
+def load_dynamic_lists():
+    if os.path.exists(DYNAMIC_LISTS_FILE):
         try:
-            with open(MERGE_SCHEMA_FILE, "r", encoding="utf-8") as f:
+            with open(DYNAMIC_LISTS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, dict) and "file_types" in data and "academic_years" in data:
+                if isinstance(data, dict) and "file_types" in data and "academic_years" in data and "academic_sessions" in data:
                     return data
-        except: return DEFAULT_MERGE_SCHEMAS.copy()
-    return DEFAULT_MERGE_SCHEMAS.copy()
+        except: return DEFAULT_DYNAMIC_LISTS.copy()
+    return DEFAULT_DYNAMIC_LISTS.copy()
 
-def save_merge_schemas(schemas_dict):
-    with open(MERGE_SCHEMA_FILE, "w", encoding="utf-8") as f:
-        json.dump(schemas_dict, f, ensure_ascii=False, indent=4)
+def save_dynamic_lists(lists_dict):
+    with open(DYNAMIC_LISTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(lists_dict, f, ensure_ascii=False, indent=4)
 
 def load_credentials():
     if os.path.exists(CRED_FILE):
@@ -175,8 +182,8 @@ def get_image_base64(path):
 if "pre_login_config" not in st.session_state or not isinstance(st.session_state.pre_login_config, dict):
     st.session_state.pre_login_config = load_pre_login_config()
 
-if "merge_schemas" not in st.session_state:
-    st.session_state.merge_schemas = load_merge_schemas()
+if "dynamic_lists" not in st.session_state:
+    st.session_state.dynamic_lists = load_dynamic_lists()
 
 if "credentials" not in st.session_state or len(st.session_state.credentials) < 15:
     st.session_state.credentials = load_credentials()
@@ -206,13 +213,38 @@ for k in DEFAULT_PANELS.keys():
 # मास्टर रिपॉजिटरी लोड करना
 live_db = load_live_data()
 
+# ⚙️ स्टेप 2.5: पैनल 1 के लिए डायनेमिक ड्रॉपडाउन लिस्ट स्कीमा बैकअप और लोड इंजन
+if "p1_dropdown_schemas" not in st.session_state:
+    P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
+    DEFAULT_P1_SCHEMAS = {
+        "file_types": [
+            "admission file", "admission fee file", "Unique id file", 
+            "Roll No File", "Enrollment File", "Promotion File", "Result File"
+        ],
+        "academic_years": [str(year) for year in range(2014, 2027)],
+        "academic_sessions": [f"{year}-{str(year+1)[2:]}" for year in range(2014, 2027)]
+    }
+    if os.path.exists(P1_SCHEMA_FILE):
+        try:
+            with open(P1_SCHEMA_FILE, "r", encoding="utf-8") as f:
+                st.session_state.p1_dropdown_schemas = json.load(f)
+        except:
+            st.session_state.p1_dropdown_schemas = DEFAULT_P1_SCHEMAS.copy()
+    else:
+        st.session_state.p1_dropdown_schemas = DEFAULT_P1_SCHEMAS.copy()
+
+def save_p1_dropdown_schemas():
+    P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
+    with open(P1_SCHEMA_FILE, "w", encoding="utf-8") as f:
+        json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
+
 def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 def get_panel_title(panel_id):
     return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
-    # ==========================================================
+# ==========================================================
 # 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
@@ -262,7 +294,7 @@ if st.session_state.pre_login_config.get("show_header_text", True):
     """, unsafe_allow_html=True)
 
 # ==========================================================
-# 🛑 स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (ओरिजनल ड्रॉपडाउन सिस्टम)
+# 🛑ステップ 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (ओरिजनल ड्रॉपडाउन सिस्टम)
 # ==========================================================
 if st.session_state.user_role is None:
     formatted_notice = "".join([f"<p>{line.strip()}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
@@ -356,29 +388,95 @@ else:
         current_panel_id = selected_tab_ui.split(" : ")[0]
 
         # ----------------------------------------------------------------------
-        # P1: PANEL ENTRY MODULE
+        # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
         # ----------------------------------------------------------------------
         if current_panel_id == "P1":
             st.header(f"📝 {get_panel_title('P1')} (Student Data Onboarding)")
-            entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
-            if entry_method == "📁 CSV फ़ाइल बल्क अपलोड (Bulk CSV Upload)":
-                uploaded_file = st.file_uploader("CSV फ़ाइल चुनें", type=["csv"])
-                if uploaded_file is not None:
-                    if st.button("Upload CSV Now", type="primary", use_container_width=True):
-                        try:
-                            uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                            for col in DEFAULT_COLUMNS:
-                                if col not in uploaded_df.columns: uploaded_df[col] = ""
-                            cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                            updated_df = pd.concat([load_live_data(), cleaned_uploaded_df], ignore_index=True)
-                            save_live_data(updated_df)
-                            st.success("✅ CSV डेटा सफलतापूर्वक मुख्य डेटाबेस में अपलोड हो गया है!")
-                        except Exception as e: st.error(f"त्रुटि: {e}")
+            entry_method = st.selectbox("⚙️ डेटा एंट्री का माध्यम चुनें:", options=["📁 फ़ाइल बल्क अपलोड (Bulk File Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"])
+            
+            if entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
+                st.subheader("📊 Select Target Configurations Before Upload")
+                col_sc1, col_sc2, col_sc3 = st.columns(3)
+                
+                with col_sc1:
+                    p1_file_type = st.selectbox(
+                        "1. फ़ाइल प्रकार चुनें (Select File Type):",
+                        options=["-- चुनें --"] + st.session_state.p1_dropdown_schemas["file_types"],
+                        key="p1_scroll_file_type"
+                    )
+                with col_sc2:
+                    p1_admission_year = st.selectbox(
+                        "2. Admission Year चुनें:",
+                        options=["-- चुनें --"] + st.session_state.p1_dropdown_schemas["academic_years"],
+                        key="p1_scroll_admission_year"
+                    )
+                with col_sc3:
+                    p1_admission_session = st.selectbox(
+                        "3. Admission Session चुनें:",
+                        options=["-- चुनें --"] + st.session_state.p1_dropdown_schemas["academic_sessions"],
+                                            key="p1_session_scroll_secure_bulk"
+                )
+
+                # शर्तों का मिलान होने पर ही फ़ाइल अपलोडर सक्रिय होगा
+                if (file_segment_choice == "-- चुनें --" or 
+                    selected_admission_year == "-- चुनें --" or 
+                    selected_admission_session == "-- चुनें --"):
+                    st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
+                else:
+                    st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{file_segment_choice.upper()}** | वर्ष: **{selected_admission_year}** | सत्र: **{selected_admission_session}**")
+                    
+                    # 📁 CSV, XLSX, XLS तीनों फ़ाइल फॉर्मेट्स का सपोर्ट
+                    uploaded_file = st.file_uploader(
+                        f"अपलोड करने के लिए '{file_segment_choice}' की फ़ाइल चुनें:", 
+                        type=["csv", "xlsx", "xls"],
+                        key="p1_bulk_file_uploader_widget"
+                    )
+                    
+                    if uploaded_file is not None:
+                        if st.button("Upload & Send to Merge Panel Now", type="primary", use_container_width=True):
+                            try:
+                                # फ़ाइल एक्सटेंशन के आधार पर सही रीड इंजन का चयन
+                                if uploaded_file.name.endswith('.csv'):
+                                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                                elif uploaded_file.name.endswith('.xlsx'):
+                                    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
+                                elif uploaded_file.name.endswith('.xls'):
+                                    uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
+                                
+                                # डेटा क्लीनिंग और सेपरेशन ट्रैकिंग कॉलम्स को इंजेक्ट करना
+                                uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+                                
+                                # यह सुनिश्चित करना कि मास्टर स्कीमा के कॉलम्स मौजूद हों
+                                for col in DEFAULT_COLUMNS:
+                                    if col not in uploaded_df.columns: 
+                                        uploaded_df[col] = ""
+                                
+                                # यूज़र द्वारा चुने गए सेपरेटर पैरामीटर्स को डेटा रो में मैप करना
+                                uploaded_df["Admission Year"] = selected_admission_year
+                                uploaded_df["Admission Session"] = selected_admission_session
+                                
+                                # विशेष फ़ाइल सेगमेंट के अनुसार डेटा आइसोलेशन मार्कर सेट करना
+                                if "Uploaded File Type" not in uploaded_df.columns:
+                                    uploaded_df["Uploaded File Type"] = file_segment_choice
+                                
+                                cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                                
+                                # पुराने लाइव डेटाबेस के साथ सुरक्षित रूप से कंबाइन करना
+                                current_live_db = load_live_data()
+                                updated_df = pd.concat([current_live_db, cleaned_uploaded_df], ignore_index=True)
+                                
+                                save_live_data(updated_df)
+                                st.success(f"🎉 सफलता! '{file_segment_choice.upper()}' का डेटा सफलतापूर्वक सिस्टम में समाहित हो गया है और यह P13 (Merge Panel) के लिए तैयार है।")
+                                st.rerun()
+                            except Exception as e: 
+                                st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
+                                
             elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
                 with st.form(key="student_add_form", clear_on_submit=True):
                     col1, col2 = st.columns(2)
                     with col1:
-                        admission_year = st.text_input("Admission Year")
+                        # मैनुअल एंट्री फॉर्म में भी कस्टमाइज्ड ड्रॉपडाउन का उपयोग
+                        admission_year = st.selectbox("Admission Year", options=st.session_state.p1_dropdown_schemas["academic_years"])
                         eligibility_name = st.text_input("Eligibility Name")
                         admission_date = st.text_input("Admission Date")
                         roll_no = st.text_input("Roll No.")
@@ -389,7 +487,7 @@ else:
                         subject = st.text_input("Subject")
                         mobile = st.text_input("Mobile Number")
                     with col2:
-                        admission_session = st.text_input("Admission Session")
+                        admission_session = st.selectbox("Admission Session", options=st.session_state.p1_dropdown_schemas["academic_sessions"])
                         admission_app_no = st.text_input("Admission Application Number")
                         unique_id = st.text_input("Unique ID")
                         app_enroll_no = st.text_input("Application Enrollment No.")
@@ -401,11 +499,22 @@ else:
                         address = st.text_input("Address")
                         status_input = st.selectbox("Status", ["Regular Student", "Regular", "Pending", "Pass", "EX-STUDENT"])
                     submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
+                    
                 if submit_student:
-                    if s_name.strip() == "": st.warning("Student Name भरना अनिवार्य है।")
+                    if s_name.strip() == "": 
+                        st.warning("Student Name भरना अनिवार्य है।")
                     else:
                         new_row = {c: "" for c in DEFAULT_COLUMNS}
-                        new_row.update({"Admission Year": admission_year, "Admission Session": admission_session, "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no, "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, "Date of Birth": dob, "Category": category, "Subject Code": subject_code, "Subject": subject, "Duration": duration, "Mobile Number": mobile, "Email ID": email, "Address": address, "Status": status_input})
+                        new_row.update({
+                            "Admission Year": admission_year, "Admission Session": admission_session, 
+                            "Eligibility Name": eligibility_name, "Admission Application Number": admission_app_no, 
+                            "Admission Date": admission_date, "Unique ID": unique_id, "Roll No.": roll_no, 
+                            "Application Enrollment No.": app_enroll_no, "Enrollment No.": enrollment_no, 
+                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
+                            "Date of Birth": dob, "Category": category, "Subject Code": subject_code, 
+                            "Subject": subject, "Duration": duration, "Mobile Number": mobile, 
+                            "Email ID": email, "Address": address, "Status": status_input
+                        })
                         updated_df = pd.concat([load_live_data(), pd.DataFrame([new_row])], ignore_index=True)
                         save_live_data(updated_df)
                         st.success("✅ नया छात्र रिकॉर्ड सुरक्षित सेव हो गया है!")
@@ -423,7 +532,7 @@ else:
                 if "admitted payment date" not in live_db.columns:
                     live_db["admitted payment date"] = ""
                 
-                # 📅 डेट रेंज फ़िल्टर सब-सिस्टम
+                # 📅 डेटレンジ फ़िल्टर सब-सिस्टम
                 st.subheader("📆 Filter Records By Payment Date Range")
                 use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", key="p2_enable_date_filter_secure")
                 
@@ -562,7 +671,7 @@ else:
                             key="p2_download_excel_secure_btn"
                         )
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P3":
@@ -658,9 +767,9 @@ else:
                             st.rerun()
                             
                         except Exception as e:
-                            st.error(f"डेटाबेेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                            st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P4: PANEL ROLL NO MODULE (University Roll Number Allocation - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P4":
@@ -671,7 +780,7 @@ else:
             else:
                 st.markdown("""
                     <div style="background-color: #f7f9fa; border-left: 5px solid #28a745; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय रोल नंबर (Roll No.) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय रोल नंबर (Roll No.) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता. है।
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -757,7 +866,8 @@ else:
                             
                         except Exception as e:
                             st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-        # ----------------------------------------------------------------------
+
+                # ----------------------------------------------------------------------
         # P5: PANEL ENROLLMENT MODULE (University Enrollment Manager - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P5":
@@ -799,7 +909,7 @@ else:
                 if role == "full_admin":
                     # एडमिन के लिए केवल एनरोलमेंट नंबर फ़ील्ड्स ही एडिट करने योग्य रहेंगे
                     disabled_cols = ["S.No.", "Admission Application Number", "Student Name", "Father Name", "Subject"]
-                    st.info("🔓 **एडमिन控制 मोड:** आपके पास विश्वविद्यालय नामांकन नंबर एडिट और सिंक करने का पूर्ण अधिकार है।")
+                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास विश्वविद्यालय नामांकन नंबर एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     # सामान्य ऑपरेटर के लिए पूरे ग्रिड के सभी कॉलम्स लॉक (Read-Only List View) रहेंगे
                     disabled_cols = [c for c in render_df.columns]
@@ -829,7 +939,7 @@ else:
                             for _, row_edit in clean_edited.iterrows():
                                 app_num = str(row_edit["Admission Application Number"]).strip()
                                 
-                                # 'Admission Application Number' के आधार पर इंडेक्स मैच खोजना
+                                # 'Admission Application Number' के आधार पर इंडेक्स match खोजना
                                 idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
@@ -846,7 +956,7 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P6: PANEL SCHOLARSHIP MODULE (Portal & Scholarship Tracker - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P6":
@@ -941,7 +1051,7 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-               # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE (Smart Year Mapping Engine)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
@@ -1209,14 +1319,13 @@ else:
                             
                             # Commit operations down into the physical master CSV database file
                             save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्र रिकॉर्ड्स का सीसीई आंतरिक मूल्यांकन पंजी मुख्य डेटाबेस (Live CSV) में सिंक हो गया है!")
+                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्र रिकॉर्ड्स का सीसीई आंतरिक मूल्यांकन पंजी मुख्य देशाबेस (Live CSV) में सिंक हो गया है!")
                             st.rerun()
                             
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
         
-
-            # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P9: PANEL PROMOTION MODULE (Academic Year Batch Progression Control - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P9":
@@ -1318,7 +1427,7 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P10: PANEL RESULT MODULE (Tabulation Register & Exam Controller - Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P10":
@@ -1419,7 +1528,7 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P11: NOTICE BOARD EDIT MODULE (Official Notice Board Customizer - Secure View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
@@ -1477,7 +1586,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P12: PRE-LOGIN VIEW CUSTOMIZER MODULE (Secure Isolated View)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P12":
@@ -1592,38 +1701,55 @@ else:
             # 👑 सुपर एडमिन पावर विंडो: स्क्रॉल सूची का संपादन (Dropdown Lists Editor)
             if role == "full_admin":
                 st.subheader("👑 Super-Admin Master Dropdown List Customizer")
-                with st.expander("🛠️ मर्ज पैनल के स्क्रॉल सूचियों में नाम / वर्ष जोड़ने के लिए यहाँ क्लिक करें", expanded=False):
-                    col_adm_m1, col_adm_m2 = st.columns(2)
+                with st.expander("🛠️ मर्ज पैनल और P1 के स्क्रॉल सूचियों में नाम / वर्ष जोड़ने के लिए यहाँ क्लिक करें", expanded=False):
+                    col_adm_m1, col_adm_m2, col_adm_m3 = st.columns(3)
                     
                     with col_adm_m1:
                         st.markdown("**📁 Manage File Segment Types**")
-                        st.write("वर्तमान लिस्ट:", st.session_state.merge_schemas["file_types"])
-                        new_file_type = st.text_input("नया फ़ाइल प्रकार नाम लिखें (जैसे: sports fee, caution money):", key="p13_add_new_file_type_input_final").strip().lower()
-                        if st.button("➕ Add File Type to List", use_container_width=True, key="p13_add_file_type_btn_final"):
-                            if new_file_type and new_file_type not in st.session_state.merge_schemas["file_types"]:
-                                st.session_state.merge_schemas["file_types"].append(new_file_type)
-                                save_merge_schemas(st.session_state.merge_schemas)
-                                st.success(f"✅ '{new_file_type}' सूची में जोड़ दिया गया!")
+                        st.write("वर्तमान लिस्ट:", st.session_state.p1_dropdown_schemas["file_types"])
+                        new_file_type = st.text_input("नया फ़ाइल प्रकार लिखें (जैसे: unique id file, roll no file):", key="p13_add_new_file_type_input").strip().lower()
+                        if st.button("➕ Add File Type to List", use_container_width=True, key="p13_add_file_type_btn"):
+                            if new_file_type and new_file_type not in st.session_state.p1_dropdown_schemas["file_types"]:
+                                st.session_state.p1_dropdown_schemas["file_types"].append(new_file_type)
+                                save_merge_schemas(st.session_state.p1_dropdown_schemas) # स्कीमा स्टोरेज अपडेट
+                                st.success(f"✅ '{new_file_type}' सूची में जोड़ा गया!")
                                 st.rerun()
                             
                     with col_adm_m2:
                         st.markdown("**📆 Manage Academic Years**")
-                        st.write("वर्तमान वर्ष:", st.session_state.merge_schemas["academic_years"])
-                        new_year_input = st.text_input("नया शैक्षणिक वर्ष जोड़ें (जैसे: 2027, 2028):", key="p13_add_new_year_input_final").strip()
-                        if st.button("➕ Add Year to List", use_container_width=True, key="p13_add_year_btn_final"):
-                            if new_year_input and new_year_input not in st.session_state.merge_schemas["academic_years"]:
-                                st.session_state.merge_schemas["academic_years"].append(new_year_input)
-                                # वर्ष अनुसार शॉर्टिंग सेट करना
-                                st.session_state.merge_schemas["academic_years"] = sorted(st.session_state.merge_schemas["academic_years"])
-                                save_merge_schemas(st.session_state.merge_schemas)
-                                st.success(f"✅ वर्ष '{new_year_input}' सूची में जोड़ दिया गया!")
+                        st.write("वर्तमान वर्ष:", st.session_state.p1_dropdown_schemas["academic_years"])
+                        new_year_input = st.text_input("नया शैक्षणिक वर्ष जोड़ें (जैसे: 2027, 2028):", key="p13_add_new_year_input").strip()
+                        if st.button("➕ Add Year to List", use_container_width=True, key="p13_add_year_btn"):
+                            if new_year_input and new_year_input not in st.session_state.p1_dropdown_schemas["academic_years"]:
+                                st.session_state.p1_dropdown_schemas["academic_years"].append(new_year_input)
+                                st.session_state.p1_dropdown_schemas["academic_years"] = sorted(st.session_state.p1_dropdown_schemas["academic_years"])
+                                save_merge_schemas(st.session_state.p1_dropdown_schemas)
+                                st.success(f"✅ वर्ष '{new_year_input}' सूची में जोड़ा गया!")
+                                st.rerun()
+
+                    with col_adm_m3:
+                        st.markdown("**⏳ Manage Academic Sessions**")
+                        st.write("वर्तमान सत्र:", st.session_state.p1_dropdown_schemas["academic_sessions"])
+                        new_session_input = st.text_input("नया सत्र जोड़ें (जैसे: 2027-28):", key="p13_add_new_session_input").strip()
+                        if st.button("➕ Add Session to List", use_container_width=True, key="p13_add_session_btn"):
+                            if new_session_input and new_session_input not in st.session_state.p1_dropdown_schemas["academic_sessions"]:
+                                st.session_state.p1_dropdown_schemas["academic_sessions"].append(new_session_input)
+                                st.session_state.p1_dropdown_schemas["academic_sessions"] = sorted(st.session_state.p1_dropdown_schemas["academic_sessions"])
+                                save_merge_schemas(st.session_state.p1_dropdown_schemas)
+                                st.success(f"✅ सत्र '{new_session_input}' सूची में जोड़ा गया!")
                                 st.rerun()
                     
                     st.markdown("<br>", unsafe_allow_html=True)
-                    if st.button("🔄 Reset Lists to Default Factory Settings", type="secondary", use_container_width=True, key="p13_reset_schemas_btn_final"):
-                        st.session_state.merge_schemas = DEFAULT_MERGE_SCHEMAS.copy()
-                        save_merge_schemas(DEFAULT_MERGE_SCHEMAS)
-                        st.warning("🔄 सूचियाँ डिफ़ॉल्ट रूप से रीसेट कर दी गई हैं।")
+                    if st.button("🔄 Reset Dropdowns to Default Factory Settings", type="secondary", use_container_width=True, key="p13_reset_schemas_btn"):
+                        # डिफ़ॉल्ट स्कीमा पर रीसेट करने की व्यवस्था
+                        factory_defaults = {
+                            "file_types": ["admission file", "admission fee file", "unique id file", "roll no file", "enrollment file", "promotion file", "result file"],
+                            "academic_years": [str(year) for year in range(2014, 2027)],
+                            "academic_sessions": [f"{y}-{str(y+1)[2:]}" for y in range(2014, 2027)]
+                        }
+                        st.session_state.p1_dropdown_schemas = factory_defaults.copy()
+                        save_merge_schemas(factory_defaults)
+                        st.warning("🔄 सूचियाँ फ़ैक्टरी डिफ़ॉल्ट सेटिंग्स पर रीसेट कर दी गई हैं।")
                         st.rerun()
 
                 st.markdown("---")
@@ -1634,53 +1760,64 @@ else:
             st.subheader("🚀 Execute Smart Database Merge Operations")
             
             # डायनेमिक कस्टमाइज्ड सूचियों को स्क्रॉल मेनू से लिंक करना
-            file_type_options = ["-- चयन करें / Select --"] + st.session_state.merge_schemas["file_types"]
-            year_options = ["-- चयन करें / Select --"] + st.session_state.merge_schemas["academic_years"]
+            file_type_options = ["-- चयन करें / Select --"] + st.session_state.p1_dropdown_schemas["file_types"]
+            year_options = ["-- चयन करें / Select --"] + st.session_state.p1_dropdown_schemas["academic_years"]
+            session_options = ["-- चयन करें / Select --"] + st.session_state.p1_dropdown_schemas["academic_sessions"]
             
-            file_type_choice = st.selectbox(
-                "1. अपलोड की जाने वाली फ़ाइल का प्रकार चुनें (Select Segment Type):",
-                options=file_type_options,
-                key="p13_file_type_scroll_secure_final"
-            )
+            col_m_sel1, col_m_sel2, col_m_sel3 = st.columns(3)
+            with col_m_sel1:
+                file_type_choice = st.selectbox(
+                    "1. अपलोड की जाने वाली फ़ाइल का नाम प्रकार चुनें (Segment Type):",
+                    options=file_type_options, key="p13_file_type_scroll_secure"
+                )
+            with col_m_sel2:
+                selected_target_year = st.selectbox(
+                    "2. शैक्षणिक वर्ष का चयन करें (Target Year Scope):",
+                    options=year_options, key="p13_year_scroll_secure"
+                )
+            with col_m_sel3:
+                selected_target_session = st.selectbox(
+                    "3. शैक्षणिक सत्र का चयन करें (Target Session Scope):",
+                    options=session_options, key="p13_session_scroll_secure"
+                )
             
-            selected_target_year = st.selectbox(
-                "2. शैक्षणिक वर्ष का चयन करें (Select Target Year Scope):",
-                options=year_options,
-                key="p13_year_scroll_secure_final"
-            )
-            
-            # शर्तों का मिलान होने पर ही अपलोडर सक्रिय होगा
-            if file_type_choice == "-- चयन करें / Select --" or selected_target_year == "-- चयन करें / Select --":
-                st.info("💡 आगे बढ़ने और फ़ाइल अपलोड विंडो खोलने के लिए कृपया ऊपर दिए गए दोनों विकल्पों (File Type और Year) का चयन करें।")
+            # शर्तों का मिलान होने पर ही फ़ाइल अपलोडर सक्रिय होगा
+            if file_type_choice == "-- चयन करें / Select --" or selected_target_year == "-- चयन करें / Select --" or selected_target_session == "-- चयन करें / Select --":
+                st.info("💡 आगे बढ़ने और फ़ाइल अपलोड विंडो खोलने के लिए कृपया ऊपर दिए गए तीनों विकल्पों (File Type, Year और Session) का चयन करें।")
             else:
-                st.success(f"✅ स्वीकृत कॉन्फ़िगरेशन: **{file_type_choice.upper()}** | लक्षित वर्ष: **{selected_target_year}**")
+                st.success(f"✅ स्वीकृत कॉन्फ़िगरेशन: **{file_type_choice.upper()}** | लक्षित वर्ष: **{selected_target_year}** | सत्र: **{selected_target_session}**")
                 
+                # 📁 बहु-प्रारूप सपोर्ट (CSV, XLSX, XLS)
                 uploaded_merge_file = st.file_uploader(
-                    f"मर्ज करने के लिए अपनी कस्टमाइज्ड CSV/Excel फ़ाइल चुनें ({file_type_choice} अपलोड करें):", 
-                    type=["csv", "xlsx"], 
-                    key="p13_smart_merge_uploader_widget_secure_final"
+                    f"मर्ज करने के लिए अपनी कस्टमाइज्ड फ़ाइल चुनें ({file_type_choice} अपलोड करें):", 
+                    type=["csv", "xlsx", "xls"], key="p13_smart_merge_uploader_widget"
                 )
                 
                 if uploaded_merge_file is not None:
                     try:
+                        # एक्सटेंशन के आधार पर फ़ाइल को सुरक्षित रीड करना
                         if uploaded_merge_file.name.endswith('.csv'):
                             incoming_df = pd.read_csv(uploaded_merge_file, dtype=str).fillna("")
-                        else:
-                            incoming_df = pd.read_excel(uploaded_merge_file, dtype=str).fillna("")
+                        elif uploaded_merge_file.name.endswith('.xlsx'):
+                            incoming_df = pd.read_excel(uploaded_merge_file, engine='openpyxl', dtype=str).fillna("")
+                        elif uploaded_merge_file.name.endswith('.xls'):
+                            incoming_df = pd.read_excel(uploaded_merge_file, engine='xlrd', dtype=str).fillna("")
                         
                         st.markdown("### 📋 Uploaded Segment Sheet Preview (First 3 Rows)")
                         st.dataframe(incoming_df.head(3), use_container_width=True, hide_index=True)
                         
-                        # की कॉलम वेरिएंट्स मैपिंग लिस्ट
+                        # की कॉलम वेरिएंट्स मैपिंग लिस्ट (Structural Mapping Firewall)
                         app_col_variants = ["Admission Application Number", "Application Number", "Application No", "Application No.", "Application ID"]
                         date_col_variants = ["Payment Date", "payment date", "Date", "Transaction Date", "admitted payment date", "PAYMENT_DATE"]
                         year_col_variants = ["Admission Year", "Year", "year", "Session Year"]
+                        session_col_variants = ["Admission Session", "Session", "session"]
                         
                         incoming_app_col = next((c for c in incoming_df.columns if c in app_col_variants), None)
                         incoming_date_col = next((c for c in incoming_df.columns if c in date_col_variants), None)
                         incoming_year_col = next((c for c in incoming_df.columns if c in year_col_variants), None)
+                        incoming_session_col = next((c for c in incoming_df.columns if c in session_col_variants), None)
                         
-                        if not incoming_app_col:
+                                                if not incoming_app_col:
                             st.error("❌ त्रुटि: अपलोड की गई फ़ाइल में 'Admission Application Number' या इसके समकक्ष कोई ट्रैकिंग की (Key) कॉलम नहीं मिला!")
                         else:
                             if st.button(f"Execute {file_type_choice.upper()} Alignment & Merge", type="primary", use_container_width=True, key="p13_execute_alignment_btn_secure_final"):
@@ -1694,23 +1831,29 @@ else:
                                     # डेटा क्लीनिंग स्ट्रिपिंग प्रोसेस
                                     live_db["Admission Application Number"] = live_db["Admission Application Number"].astype(str).str.strip()
                                     live_db["Admission Year"] = live_db["Admission Year"].astype(str).str.strip()
+                                    live_db["Admission Session"] = live_db["Admission Session"].astype(str).str.strip()
+                                    
                                     incoming_df[incoming_app_col] = incoming_df[incoming_app_col].astype(str).str.strip()
                                     
                                     if incoming_year_col:
                                         incoming_df[incoming_year_col] = incoming_df[incoming_year_col].astype(str).str.strip()
+                                    if incoming_session_col:
+                                        incoming_df[incoming_session_col] = incoming_df[incoming_session_col].astype(str).str.strip()
                                     
-                                                                        # Cross-referencing matching loop structures traversing dataset variables arrays
+                                    # Cross-referencing matching loop structures traversing dataset variables arrays
                                     for _, row_incoming in incoming_df.iterrows():
                                         incoming_app_val = str(row_incoming[incoming_app_col]).strip()
                                         if incoming_app_val == "":
                                             continue
                                             
                                         row_year_val = str(row_incoming[incoming_year_col]).strip() if incoming_year_col else selected_target_year
+                                        row_session_val = str(row_incoming[incoming_session_col]).strip() if incoming_session_col else selected_target_session
                                         
-                                        # Strict Dual Binding Verification Logic rule sequence constraint checking
+                                        # Strict Dual/Triple Binding Verification Logic rule sequence constraint checking
                                         idx_matches = live_db[
                                             (live_db["Admission Application Number"] == incoming_app_val) & 
-                                            (live_db["Admission Year"] == row_year_val)
+                                            (live_db["Admission Year"] == row_year_val) &
+                                            (live_db["Admission Session"] == row_session_val)
                                         ].index
                                         
                                         if not idx_matches.empty:
@@ -1722,13 +1865,13 @@ else:
                                                 # Standard structural fields alignment logic
                                                 else:
                                                     for col in incoming_df.columns:
-                                                        if col not in [incoming_app_col, incoming_year_col] and col in live_db.columns:
+                                                        if col not in [incoming_app_col, incoming_year_col, incoming_session_col] and col in live_db.columns:
                                                             live_db.at[match_idx, col] = str(row_incoming[col]).strip()
                                                             
                                     # Commit updated structural data matrix arrays down into central CSV storage
                                     save_live_data(live_db)
                                     st.success("🎉 स्मार्ट मर्ज सफलतापूर्वक पूरा हुआ!")
-                                    st.write(f"✅ वर्ष **{selected_target_year}** के लिए सफलतापूर्वक सिंक हुए कुल रिकॉर्ड्स: **{merge_counter}**")
+                                    st.write(f"✅ वर्ष **{selected_target_year}** | सत्र **{selected_target_session}** के लिए सफलतापूर्वक सिंक हुए कुल रिकॉर्ड्स: **{merge_counter}**")
                                     st.info("💡 डेटा सुरक्षित सेव हो गया है। आप 'Panel 2 : Panal admission' पर जाकर कस्टमाइज्ड प्रिंट या एक्सेल एक्सपोर्ट कर सकते हैं।")
                                     st.rerun()
                                     
@@ -1806,7 +1949,7 @@ else:
                 # Apply display label text conversions configured via admin mapping schemas
                 display_ready_df = display_ready_df.rename(columns={c: get_display_name(c) for c in display_ready_df.columns})
                 display_ready_df.insert(0, "S.No.", range(1, len(display_ready_df) + 1))
-                
+
                 # Render structured read-only lookup spreadsheet canvas onto viewport
                 st.dataframe(
                     display_ready_df,
@@ -1826,7 +1969,7 @@ else:
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि के आधार पर कोई रिकॉर्ड नहीं मिला। (No records found matching specified target filters.)")
 
-                        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P15: PANEL ADMIN (15 PANELS SUPREME ENGINE & NOTICE BOARD MANAGER)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P15":
@@ -1954,7 +2097,7 @@ else:
                     num_rows="dynamic", 
                     key="p15_admin_live_editor_grid_container_final", 
                     hide_index=True
-                )
+                                )
                 
                 if st.button("Save & Sync Matrix Changes", type="primary", use_container_width=True, key="p15_save_matrix_master_btn_final"):
                     try:
@@ -1970,7 +2113,7 @@ else:
                             for display_name_key in clean_edited.columns:
                                 internal_key = reverse_mapping.get(display_name_key, display_name_key)
                                 if internal_key in synced_data:
-                                                            synced_data[internal_key].append(row_edit[display_name_key])
+                                    synced_data[internal_key].append(row_edit[display_name_key])
                         
                         max_len = max(len(lst) for lst in synced_data.values()) if synced_data.values() else 0
                         for k_key in synced_data.keys():
@@ -1983,5 +2126,10 @@ else:
                         st.rerun()
                     except Exception as e:
                         st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-            else:
-                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)            
+                        else:
+                st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+                
+    # ----------------------------------------------------------------------
+    # 🌟 एप्लीकेशन कोर क्लोजिंग लेयर (HTML Container Ends)
+    # ----------------------------------------------------------------------
+    st.markdown('</div>', unsafe_allow_html=True)
