@@ -616,7 +616,7 @@ else:
                 # 🎛️ एडमिशन के लिए कस्टमाइज्ड निश्चित कॉलम्स की सूची
                 admission_fixed_cols = [
                     "Application Number", "Student Abc Id", "Student Name", "Father Name", 
-                    "Mother Name", "Gender", "Date Of Birth"="Date Of Birth", "Category", "Admission Category", 
+                    "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
                     "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", 
                     "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No", 
                     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date"
