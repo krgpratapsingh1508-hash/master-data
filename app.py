@@ -1613,9 +1613,9 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-               # ----------------------------------------------------------------------
+                # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Live Preview & Precision Row Update Engine)
-        # ----------------------------------------------------------------------
+        # ======================================================================
         elif current_panel_id == "P13":
             st.header(f"🔀 {get_panel_title('P13')} (Live Multi-Column Merge Verification Room)")
             
@@ -1713,7 +1713,7 @@ else:
                     # अन्य फ़ाइल के वे कॉलम जिनका डेटा मेन फ़ाइल में भेजना है
                     anya_return_cols = st.multiselect(
                         "Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D कॉलम्स):",
-                        options=[c for c in anya_file_subset.columns if c not in [anya_match_key, "Uploaded File Name", "Target Panel Visibility"]],
+                        options=[c for c in anya_file_subset.columns if c not in ["Uploaded File Name", "Target Panel Visibility"]],
                         default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No."] if c in anya_file_subset.columns],
                         key="xl_anya_return_cols_v3"
                     )
@@ -1727,8 +1727,8 @@ else:
                             main_clean_keys = main_file_db[main_match_key].astype(str).str.strip()
                             anya_file_subset[anya_match_key] = anya_file_subset[anya_match_key].astype(str).str.strip()
                             
-                            # अन्य फ़ाइल का साफ डेटा
-                            anya_clean = anya_file_subset[[anya_match_key] + anya_return_cols].copy().drop_duplicates(subset=[anya_match_key])
+                            # अन्य फ़ाइल का साफ़ डेटा (मैचिंग कीज़ को हटाए बिना)
+                            anya_clean = anya_file_subset[[anya_match_key] + [c for c in anya_return_cols if c != anya_match_key]].copy().drop_duplicates(subset=[anya_match_key])
                             
                             # लाइव मर्ज प्रीव्यू टेबल जनरेट करना (Left Join)
                             preview_merged = pd.merge(
@@ -1746,9 +1746,18 @@ else:
                                 if new_col_name in preview_merged.columns:
                                     preview_merged[col] = preview_merged[new_col_name].fillna(preview_merged[col]).astype(str)
                             
-                            # अतिरिक्त कॉलम हटाना
-                            keep_preview_cols = [c for c in preview_merged.columns if not c.endswith('_new_data') and c != anya_match_key]
+                            # 🛑 फिक्स: मैचिंग कॉलम का असली डेटा सुरक्षित रखना
+                            if main_match_key in preview_merged.columns:
+                                if f"{main_match_key}_new_data" in preview_merged.columns:
+                                    preview_merged[main_match_key] = preview_merged[main_match_key].fillna(preview_merged[f"{main_match_key}_new_data"])
+                            
+                            # अतिरिक्त सफिक्स कॉलम हटाना
+                            keep_preview_cols = [c for c in preview_merged.columns if not c.endswith('_new_data') and c != f"{anya_match_key}_y"]
                             final_preview_df = preview_merged[keep_preview_cols].copy()
+                            
+                            # नाम अलाइनमेंट फिक्स
+                            if main_match_key not in final_preview_df.columns and f"{main_match_key}_x" in final_preview_df.columns:
+                                final_preview_df = final_preview_df.rename(columns={f"{main_match_key}_x": main_match_key})
                             
                             st.markdown("#### 📈 Live Merge Preview (जांचें कि सही मर्ज है या नहीं)")
                             st.caption("नीचे दी गई तालिका दिखा रही है कि अप्रूव करने पर मेन फ़ाइल में डेटा किस प्रकार अपडेट होकर सेव होगा:")
@@ -1790,8 +1799,11 @@ else:
                                 final_preview_df["Target Panel Visibility"] = parsed_panel_id
                                 
                                 # मुख्य लाइव डेटाबेस से पुराने रिकॉर्ड्स को हटाकर नए अपडेटेड रिकॉर्ड्स को मर्ज करना (Row Overwrite)
-                                # 1. मुख्य डेटाबेस में से इस पैनल के पुराने डेटा को बाहर निकालें
                                 remaining_master_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] != target_main_panel_id].copy()
+                                
+                                # 🛑 सुनिश्चित करें कि मैचिंग कॉलम का असली नाम वापस आ जाए ताकि डेटा गायब न हो
+                                if main_match_key not in final_preview_df.columns and f"{main_match_key}_from_master" in final_preview_df.columns:
+                                    final_preview_df[main_match_key] = final_preview_df[f"{main_match_key}_from_master"]
                                 
                                 # 2. सुनिश्चित करें कि नए डेटा का स्कीमा मास्टर से पूरी तरह मैच करे
                                 for col in DEFAULT_COLUMNS:
@@ -1807,7 +1819,7 @@ else:
                                 save_stage_db = remaining_stage_db.copy()
                                 save_stage_data(save_stage_db)
                                 
-                                st.success(f"🎉 शत-प्रतिशत सफलता! Anya फ़ाइल का केवल वही डेटा जो आवश्यक था, मुख्य फ़ाइल की रोज़ में अपडेट होकर {parsed_panel_id} पैनल पर लाइव हो चुका है!")
+                                st.success(f"🎉 शत-प्रतिशत सफलता! Anya फ़ाइल का डेटा मुख्य फ़ाइल में सही जगह अपडेट होकर और मैचिंग कॉलम के साथ {parsed_panel_id} पर लाइव हो चुका है!")
                                 st.balloons()
                                 st.rerun()
                                 
