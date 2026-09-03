@@ -1642,80 +1642,83 @@ else:
                 st.write(f"📄 चयनित फ़ाइल: **{selected_file_to_process}** | कुल उपलब्ध छात्र रिकॉर्ड्स: `{len(file_subset)}`")
 
                 # ======================================================================
-                # 🔍 🆕 नया जोड़ा गया: XLOOKUP / SMART DATA MAPPING ENGINE
+                # 🔍 ⚡ MULTI-COLUMN XLOOKUP ENGINE
                 # ======================================================================
                 st.markdown("---")
-                with st.expander("🔍 ⚡ XLOOKUP / डेटा मैपिंग टूल (खाली कॉलम भरने के लिए)", expanded=False):
-                    st.markdown("इस टूल की मदद से आप वर्तमान फ़ाइल के किसी खाली कॉलम को **मुख्य लाइव डेटाबेस** के डेटा से मैच करके भर सकते हैं।")
+                with st.expander("🔍 ⚡ XLOOKUP / डेटा मैपिंग टूल (एक साथ कई कॉलम भरने के लिए)", expanded=False):
+                    st.markdown("इस टूल की मदद से आप मुख्य लाइव डेटाबेस से **एक साथ कई कॉलम्स** का डेटा खींचकर वर्तमान फ़ाइल में भर सकते हैं।")
                     
                     master_db_lookup = load_live_data()
                     
                     if master_db_lookup.empty:
                         st.warning("⚠️ मुख्य लाइव डेटाबेस (Master DB) वर्तमान में खाली है, इसलिए लुकअप नहीं किया जा सकता।")
                     else:
-                        col_xl1, col_xl2, col_xl3 = st.columns(3)
+                        col_xl1, col_xl2 = st.columns(2)
                         
                         with col_xl1:
-                            # वर्तमान फ़ाइल का वो कॉलम जिससे मैच करना है (जैसे Application Number या Roll No)
                             current_lookup_key = st.selectbox(
                                 "1. इस फ़ाइल का मैचिंग कॉलम चुनें (Lookup Value Column):",
                                 options=list(file_subset.columns),
                                 key="xl_curr_key"
                             )
                         with col_xl2:
-                            # मास्टर डेटाबेस का वो कॉलम जिससे मैचिंग करानी है
                             master_lookup_key = st.selectbox(
                                 "2. मुख्य DB का मैचिंग कॉलम चुनें (Lookup Array Column):",
                                 options=list(master_db_lookup.columns),
                                 key="xl_mast_key"
                             )
-                        with col_xl3:
-                            # मास्टर डेटाबेस का वो कॉलम जिसका डेटा हमें खींचकर लाना है
-                            master_return_col = st.selectbox(
-                                "3. मुख्य DB का वो कॉलम चुनें जिसका डेटा लाना है (Return Array):",
-                                options=list(master_db_lookup.columns),
-                                key="xl_return_col"
-                            )
                             
-                        target_fill_col = st.selectbox(
-                            "🎯 इस फ़ाइल के किस कॉलम में डेटा भरना (Overwrite) चाहते हैं?",
-                            options=list(file_subset.columns),
-                            key="xl_target_fill"
+                        # 🆕 यहाँ सिंगल ड्रॉपडाउन की जगह MULTISELECT लगाया गया है
+                        master_return_cols = st.multiselect(
+                            "3. मुख्य DB के वे कॉलम्स चुनें जिनका डेटा लाना है (Return Arrays):",
+                            options=[c for c in master_db_lookup.columns if c != master_lookup_key],
+                            key="xl_return_cols_multi"
                         )
                         
-                        if st.button("⚡ Run XLOOKUP & Map Data", type="secondary", use_container_width=True):
-                            try:
-                                # मैचिंग के लिए डुप्लीकेट्स हटाकर डिक्शनरी मैप तैयार करना
-                                lookup_map = master_db_lookup.dropna(subset=[master_lookup_key]).drop_duplicates(subset=[master_lookup_key])
-                                lookup_dict = dict(zip(lookup_map[master_lookup_key].astype(str).str.strip(), lookup_map[master_return_col]))
-                                
-                                # लुकअप वैल्यूज को स्ट्रिंग में बदलना और स्पेस साफ करना
-                                match_keys = file_subset[current_lookup_key].astype(str).str.strip()
-                                
-                                # डेटा मैप करना (अगर मैच न मिले तो पुराना डेटा ही रहेगा)
-                                mapped_values = match_keys.map(lookup_dict)
-                                
-                                # केवल वही डेटा ओवरराइट करना जहां मैच मिला हो
-                                updated_rows_count = mapped_values.notna().sum()
-                                file_subset[target_fill_col] = mapped_values.fillna(file_subset[target_fill_col])
-                                
-                                # स्टेजिंग डेटाबेस को अपडेट करना ताकि बदलाव सेव हो जाएं
-                                stage_db.loc[stage_db["Uploaded File Name"] == selected_file_to_process, target_fill_col] = file_subset[target_fill_col]
-                                save_stage_data(stage_db)
-                                
-                                st.success(f"🎉 XLOOKUP सफल! कुल `{updated_rows_count}` छात्र रिकॉर्ड्स में डेटा सफलता-पूर्वक अपडेट कर दिया गया है। नीचे ग्रिड में जांचें।")
-                                # स्क्रीन रिफ्रेश करना ताकि नया डेटा ग्रिड में दिखे
-                                st.rerun()
-                            except Exception as xl_err:
-                                st.error(f"लुकअप मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
+                        if not master_return_cols:
+                            st.info("💡 कृपया डेटा लाने के लिए ऊपर कम से कम एक रिटर्न कॉलम (Step 3) ज़रूर चुनें।")
+                        else:
+                            st.caption(f"ℹ️ यह टूल मुख्य DB के चुने गए कॉलम्स का डेटा आपकी फ़ाइल के उन्हीं नाम वाले कॉलम्स में ऑटो-मैप कर देगा।")
+                        
+                        if st.button("⚡ Run Multi-Column XLOOKUP & Map Data", type="secondary", use_container_width=True):
+                            if not master_return_cols:
+                                st.error("❌ कृपया पहले मुख्य DB से कम से कम एक रिटर्न कॉलम चुनें!")
+                            else:
+                                try:
+                                    # मास्टर डेटाबेस में से केवल मैचिंग और चुने हुए रिटर्न कॉलम्स का यूनिक मैप तैयार करना
+                                    lookup_subset = master_db_lookup[[master_lookup_key] + master_return_cols].dropna(subset=[master_lookup_key])
+                                    lookup_subset = lookup_subset.drop_duplicates(subset=[master_lookup_key])
+                                    
+                                    # लुकअप कीज को साफ़ करना (Trim spaces)
+                                    lookup_subset[master_lookup_key] = lookup_subset[master_lookup_key].astype(str).str.strip()
+                                    file_subset_keys = file_subset[current_lookup_key].astype(str).str.strip()
+                                    
+                                    # इंडेक्स सेट करके सीधे री-इंडेक्स मैपिंग करना (Fastest Way for Multi-Columns)
+                                    lookup_subset = lookup_subset.set_index(master_lookup_key)
+                                    
+                                    # मैचिंग रो खोजना
+                                    mapped_df = lookup_subset.reindex(file_subset_keys).reset_index(drop=True)
+                                    
+                                    updated_cols_log = []
+                                    for col in master_return_cols:
+                                        if col in file_subset.columns:
+                                            # जहां मैच मिला उसे रिप्लेस करें, बाकी पुराना डेटा रखें
+                                            file_subset[col] = mapped_df[col].fillna(file_subset[col]).astype(str)
+                                            # मूल स्टेजिंग डेटाबेस कतार में अपडेट सिंक करना
+                                            stage_db.loc[stage_db["Uploaded File Name"] == selected_file_to_process, col] = file_subset[col]
+                                            updated_cols_log.append(col)
+                                    
+                                    save_stage_data(stage_db)
+                                    st.success(f"🎉 सफल! इन कॉलम्स का डेटा ऑटो-अपडेट हो गया है: {', '.join([f'**{c}**' for c in updated_cols_log])}")
+                                    st.rerun()
+                                except Exception as xl_err:
+                                    st.error(f"मल्टी-कॉलम लुकअप मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
                 st.markdown("---")
                 # ======================================================================
 
                 # Render subset on layout grid sheet
                 display_cols = ["Admission Year", "Admission Session", "Application Number", "Student Name", "Father Name", "Branch", "Target Panel Visibility"]
-                # सुनिश्चित करें कि ग्रिड में वे सभी कॉलम दिखें जो आपने लुकअप के लिए चुने हैं
-                extended_display_cols = list(set(display_cols + [target_fill_col if 'target_fill_col' in locals() else "Target Panel Visibility"]))
-                render_subset = file_subset[[c for c in extended_display_cols if c in file_subset.columns]].copy()
+                render_subset = file_subset[[c for c in display_cols if c in file_subset.columns]].copy()
                 st.dataframe(render_subset, use_container_width=True)
                 
                 st.markdown("#### ⚙️ Conditional Routing Approval Parameters Matrix")
@@ -1754,7 +1757,7 @@ else:
                         
                         # Wipe out reference safely from temporary staging queue pipeline file
                         remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
-                        save_stage_data(remaining_stage_db)
+                                                save_stage_data(remaining_stage_db)
                         
                         st.success(f"🎉 सफलता! '{selected_file_to_process}' फ़ाइल का डेटा सफलतापूर्वक स्वीकृत होकर केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
                         st.balloons()
