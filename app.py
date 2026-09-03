@@ -1613,11 +1613,11 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-               # ----------------------------------------------------------------------
-        # P13: 🔀 MERGE & APPROVE PANEL (Conditional Data Routing Gateway Room)
+        # ----------------------------------------------------------------------
+        # P13: 🔀 MERGE & APPROVE PANEL (Multi-File Inter-Matching Engine)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
-            st.header(f"🔀 {get_panel_title('P13')} (Structural Merge & Target Panel Approval Room)")
+            st.header(f"🔀 {get_panel_title('P13')} (Inter-File Smart Cross Merge Room)")
             
             # Load the un-approved isolated staging queue database records
             stage_db = load_stage_data()
@@ -1626,116 +1626,132 @@ else:
                 st.success("🟢 शानदार! स्टेजिंग कतार पूर्णतः खाली है। पैनल 1 से भेजी गयी सभी फाइलें प्रोसेस की जा चुकी हैं।")
             else:
                 st.markdown("""
-                    <div style="background-color: #e3f2fd; border-left: 5px solid #0d47a1; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                        🎯 <b>कंडीशनल राउटिंग गेटवे:</b> नीचे पैनल 1 (Entry Module) द्वारा भेजी गयी फ़ाइलों का कच्चा डेटा दिख रहा है। 
-                        आप यहाँ से तय करेंगे कि किस फ़ाइल का डेटा किस विशिष्ट पैनल पर लाइव विज़िबल करना है।
+                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                        🎯 <b>मल्टी-फ़ाइल क्रॉस मर्जिंग गेटवे:</b> यहाँ आप अपनी <b>Main File</b> को स्टेजिंग में आई हुई किसी भी <b>Anya File</b> के साथ रो-बाय-रो (Row-by-Row) मैच करके उसका छूटा हुआ डेटा (जैसे B, C, D कॉलम्स) खींच सकते हैं।
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Filter individual separate lists of source file strings inside staging database queue
+                # स्टेजिंग में उपलब्ध सभी अलग-अलग फाइलों की लिस्ट
                 distinct_files = list(stage_db["Uploaded File Name"].unique())
-                selected_file_to_process = st.selectbox("📁 प्रोसेस करने के लिए लक्षित फ़ाइल का नाम चुनें:", options=distinct_files)
                 
-                # Fetch only selected file subset rows
-                file_subset = stage_db[stage_db["Uploaded File Name"] == selected_file_to_process].copy()
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    selected_main_file = st.selectbox(
+                        "👑 1. अपनी मुख्य फ़ाइल चुनें (Select MAIN File to Approve):", 
+                        options=distinct_files,
+                        key="p13_main_file_select"
+                    )
+                with col_f2:
+                    remaining_files = [f for f in distinct_files if f != selected_main_file]
+                    selected_anya_file = st.selectbox(
+                        "📄 2. डेटा खींचने के लिए अन्य फ़ाइल चुनें (Select ANYA File for Reference Data):",
+                        options=["-- कोई अन्य फ़ाइल नहीं चुनें --"] + remaining_files,
+                        key="p13_anya_file_select"
+                    )
                 
-                st.write(f"📄 चयनित फ़ाइल: **{selected_file_to_process}** | कुल उपलब्ध छात्र रिकॉर्ड्स: `{len(file_subset)}`")
+                # मेन फ़ाइल का डेटा अलग निकालें
+                file_subset = stage_db[stage_db["Uploaded File Name"] == selected_main_file].copy()
+                st.write(f"📊 **Main File:** `{selected_main_file}` | उपलब्ध छात्र रिकॉर्ड्स संख्या: `{len(file_subset)}`")
 
                 # ======================================================================
-                # 🔍 ⚡ SUPER BULK MERGE / DATAMAP ENGINE (एक्सेल से बेहतर)
+                # 🔄 ⚡ INTER-FILE CROSS ROW MATCHING ENGINE
                 # ======================================================================
-                st.markdown("---")
-                with st.expander("🔍 ⚡ सुपर डेटा मैपिंग टूल (एक साथ कई कॉलम भरने के लिए)", expanded=False):
-                    st.markdown("यह टूल मुख्य लाइव डेटाबेस से **एक साथ कई कॉलम्स** का डेटा खींचकर वर्तमान फ़ाइल में भर देता है।")
-                    
-                    master_db_lookup = load_live_data()
-                    
-                    if master_db_lookup.empty:
-                        st.warning("⚠️ मुख्य लाइव डेटाबेस (Master DB) वर्तमान में खाली है, इसलिए लुकअप नहीं किया जा सकता।")
-                    else:
-                        col_xl1, col_xl2 = st.columns(2)
+                if selected_anya_file != "-- कोई अन्य फ़ाइल नहीं चुनें --":
+                    st.markdown("---")
+                    with st.expander(f"🔍 ⚡ क्रॉस फ़ाइल मैचिंग सेटिंग्स ({selected_anya_file} ➡️ {selected_main_file})", expanded=True):
+                        st.markdown("यह इंजन दोनों फ़ाइलों के यूनिक सेल आईडी को मिलाकर सही रो (Row) खोजेगा और डेटा ट्रांसफर करेगा।")
                         
-                        with col_xl1:
-                            current_lookup_key = st.selectbox(
-                                "1. इस फ़ाइल का मैचिंग कॉलम चुनें (जैसे Application Number):",
+                        # अन्य फ़ाइल का डेटा लोड करें
+                        anya_file_subset = stage_db[stage_db["Uploaded File Name"] == selected_anya_file].copy()
+                        
+                        col_m1, col_m2 = st.columns(2)
+                        with col_m1:
+                            main_match_key = st.selectbox(
+                                "1. Main File का मैचिंग कॉलम चुनें (जैसे Unique id या App No):",
                                 options=list(file_subset.columns),
-                                key="xl_curr_key"
+                                key="xl_main_match_key"
                             )
-                        with col_xl2:
-                            master_lookup_key = st.selectbox(
-                                "2. मुख्य DB का मैचिंग कॉलम चुनें (जैसे Application Number):",
-                                options=list(master_db_lookup.columns),
-                                key="xl_mast_key"
+                        with col_m2:
+                            anya_match_key = st.selectbox(
+                                "2. Anya File का मैचिंग कॉलम चुनें (जैसे Unique id या App No):",
+                                options=list(anya_file_subset.columns),
+                                key="xl_anya_match_key"
                             )
                             
-                        # मुख्य DB के वे कॉलम्स जिन्हें लेकर आना है
-                        master_return_cols = st.multiselect(
-                            "3. मुख्य DB के वे कॉलम्स चुनें जिनका डेटा खींचना है:",
-                            options=[c for c in master_db_lookup.columns if c != master_lookup_key],
-                            key="xl_return_cols_multi"
+                        # अन्य फ़ाइल के वे कॉलम जिनका डेटा मेन फ़ाइल में ओवरराइट/भरना है
+                        anya_return_cols = st.multiselect(
+                            "3. Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D):",
+                            options=[c for c in anya_file_subset.columns if c not in [anya_match_key, "Uploaded File Name", "Target Panel Visibility"]],
+                            key="xl_anya_return_cols"
                         )
                         
-                        if st.button("⚡ Run Data Merge & Map Now", type="secondary", use_container_width=True):
-                            if not master_return_cols:
-                                st.error("❌ कृपया पहले मुख्य DB से कम से कम एक रिटर्न कॉलम चुनें!")
+                        if st.button("⚡ Run Inter-File Row Match & Merge", type="secondary", use_container_width=True):
+                            if not anya_return_cols:
+                                st.error("❌ कृपया Anya File से कम से कम एक ऐसा कॉलम चुनें जिसका डेटा आप मेन फ़ाइल में लाना चाहते हैं!")
                             else:
                                 try:
-                                    # 1. डेटा क्लीनअप: स्पेस हटाना और स्ट्रिंग में बदलना ताकि मैचिंग फेल न हो
-                                    file_subset[current_lookup_key] = file_subset[current_lookup_key].astype(str).str.strip()
+                                    # दोनों फाइलों के मैचिंग कीज को क्लीन करना (ताकि स्पेस की वजह से मैच फेल न हो)
+                                    file_subset[main_match_key] = file_subset[main_match_key].astype(str).str.strip()
+                                    anya_file_subset[anya_match_key] = anya_file_subset[anya_match_key].astype(str).str.strip()
                                     
-                                    # मास्टर डेटाबेस से डुप्लीकेट्स हटाना ताकि डेटा गुणा न हो
-                                    m_clean = master_db_lookup[[master_lookup_key] + master_return_cols].copy()
-                                    m_clean[master_lookup_key] = m_clean[master_lookup_key].astype(str).str.strip()
-                                    m_clean = m_clean.drop_duplicates(subset=[master_lookup_key])
+                                    # अन्य फ़ाइल से डुप्लीकेट्स हटाना ताकि डेटा रो मल्टीप्लाई न हो
+                                    anya_clean = anya_file_subset[[anya_match_key] + anya_return_cols].copy()
+                                    anya_clean = anya_clean.drop_duplicates(subset=[anya_match_key])
                                     
-                                    # 2. Pandas Left Join (Merge Function) का उपयोग
-                                    # यह फ़ाइल के क्रम को बिना बिगाड़े डेटा को आपस में लिंक कर देता है
+                                    # ताक़तवर Pandas Left Join (Merge) ऑपरेशन
                                     merged_res = pd.merge(
-                                        file_subset, 
-                                        m_clean, 
-                                        left_on=current_lookup_key, 
-                                        right_on=master_lookup_key, 
+                                        file_subset,
+                                        anya_clean,
+                                        left_on=main_match_key,
+                                        right_on=anya_match_key,
                                         how='left',
-                                        suffixes=('', '_from_master')
+                                        suffixes=('', '_from_anya')
                                     )
                                     
-                                    # 3. वर्तमान फ़ाइल के कॉलम में मास्टर का डेटा भरना
+                                    # मेन फ़ाइल के ओरिजिनल कॉलम्स में अन्य फ़ाइल का डेटा सिंक करना
                                     updated_cols_log = []
-                                    for col in master_return_cols:
-                                        master_col_name = f"{col}_from_master" if f"{col}_from_master" in merged_res.columns else col
+                                    for col in anya_return_cols:
+                                        anya_col_name = f"{col}_from_anya" if f"{col}_from_anya" in merged_res.columns else col
                                         
-                                        # जहां भी नया डेटा मिला है उसे अपडेट करें, खाली जगह पर पुराना डेटा रहने दें
-                                        if master_col_name in merged_res.columns:
-                                            merged_res[col] = merged_res[master_col_name].fillna(merged_res[col]).astype(str)
+                                        if anya_col_name in merged_res.columns:
+                                            # जहां डेटा मैच हुआ है वहां भरें, बाकी जगह मेन फ़ाइल का ही पुराना डेटा रहने दें
+                                            merged_res[col] = merged_res[anya_col_name].fillna(merged_res[col]).astype(str)
                                             updated_cols_log.append(col)
                                     
-                                    # अतिरिक्त टेम्परेरी कॉलम्स को डिलीट करना
-                                    cols_to_keep = [c for c in merged_res.columns if not c.endswith('_from_master') and c != master_lookup_key]
-                                    final_file_subset = merged_res[cols_to_keep].copy()
+                                    # एक्स्ट्रा टेम्परेरी जॉइन कॉलम्स को हटाना
+                                    cols_to_keep = [c for c in merged_res.columns if not c.endswith('_from_anya') and c != anya_match_key]
+                                    final_main_subset = merged_res[cols_to_keep].copy()
                                     
-                                    # 4. मुख्य स्टेजिंग डेटाबेस फ़ाइल में डेटा रिप्लेस करना
-                                    # पुरानी रो हटाकर नई अपडेटेड रो जोड़ना
-                                    stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
-                                    stage_db = pd.concat([stage_db, final_file_subset], ignore_index=True)
-                                    
+                                    # वर्तमान स्टेजिंग डेटाबेस कतार में मेन फ़ाइल का डेटा ओवरराइट करके सुरक्षित सेव करना
+                                    stage_db = stage_db[stage_db["Uploaded File Name"] != selected_main_file]
+                                    stage_db = pd.concat([stage_db, final_main_subset], ignore_index=True)
                                     save_stage_data(stage_db)
-                                    st.success(f"🎉 डेटा सफ़लतापूर्वक मर्ज हो गया! इन कॉलम्स में डेटा अपडेट हुआ है: {', '.join([f'**{c}**' for c in updated_cols_log])}")
+                                    
+                                    st.success(f"🎉 रो मैचिंग सफल! Anya फ़ाइल से {', '.join([f'**{c}**' for c in updated_cols_log])} का डेटा मुख्य फ़ाइल में सही जगह भर दिया गया है।")
                                     st.rerun()
                                 except Exception as xl_err:
-                                    st.error(f"डेटा मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
-                st.markdown("---")
+                                    st.error(f"इंट्रा-फ़ाइल मर्ज चक्र के दौरान तकनीकी त्रुटि: {xl_err}")
+                    st.markdown("---")
                 # ======================================================================
 
-                # Render subset on layout grid sheet
+                # लाइव ग्रिड री-रेंडर करना ताकि यूजर डेटा वेरीफाई कर सके
+                st.markdown("#### 👁️ Main File Live Data Preview (अपडेटेड डेटा की जांच करें)")
                 display_cols = ["Admission Year", "Admission Session", "Application Number", "Student Name", "Father Name", "Branch", "Target Panel Visibility"]
+                
+                # अगर कोई नया कॉलम अभी-अभी मर्ज हुआ है तो उसे भी प्रीव्यू ग्रिड में दिखाएँ
+                if 'anya_return_cols' in locals() and anya_return_cols:
+                    display_cols = list(set(display_cols + anya_return_cols))
+                    
                 render_subset = file_subset[[c for c in display_cols if c in file_subset.columns]].copy()
                 st.dataframe(render_subset, use_container_width=True)
                 
+                # ----------------------------------------------------------------------
+                # 🚀 FINAL ROUTING APPROVAL MECHANISM
+                # ----------------------------------------------------------------------
                 st.markdown("#### ⚙️ Conditional Routing Approval Parameters Matrix")
                 col_app1, col_app2 = st.columns(2)
                 
                 with col_app1:
-                    # 🎯 Targeted Routing Rules Selection Dropdown Map 
                     target_routing_panel = st.selectbox(
                         "📌 इस फ़ाइल के डेटा को किस विशिष्ट वर्किंग पैनल पर विज़िबल करना है?",
                         options=[
@@ -1746,30 +1762,36 @@ else:
                             "P6 : Panal scholarship / Matrix Tracker",
                             "P8 : Panal CCE Record Ledger",
                             "P10 : Panal Result Tabulation Register"
-                        ]
+                        ],
+                        key="p13_target_panel_routing_dropdown"
                     )
                     parsed_panel_id = target_routing_panel.split(" : ")[0].strip()
                     
                 with col_app2:
                     st.write("")
                     st.write("")
-                    approve_action_btn = st.button("🚀 Approve & Sync Structural Matrix Route", type="primary", use_container_width=True)
+                    approve_action_btn = st.button("🚀 Approve & Sync Structural Matrix Route", type="primary", use_container_width=True, key="p13_final_approve_btn")
                 
                 if approve_action_btn:
                     try:
-                        # Append visibility routing token detail match inside rows
+                        # फाइनल अप्रूव्ड मेन फ़ाइल के अंदर 'Target Panel Visibility' का टैग सेट करना
                         file_subset["Target Panel Visibility"] = parsed_panel_id
                         
-                        # Process configuration structural updates into permanent master live database file
+                        # सभी डिफॉल्ट मास्टर कॉलम्स का होना सुनिश्चित करें
+                        for col in DEFAULT_COLUMNS:
+                            if col not in file_subset.columns:
+                                file_subset[col] = ""
+                                
+                        # मास्टर लाइव डेटाबेस लोड करें और फाइनल डेटा को उसमें सेव करें
                         master_db = load_live_data()
                         final_merged_master = pd.concat([master_db, file_subset[DEFAULT_COLUMNS]], ignore_index=True)
                         save_live_data(final_merged_master)
                         
-                        # Wipe out reference safely from temporary staging queue pipeline file
-                        remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
+                        # मुख्य स्टेजिंग कतार में से इस प्रोसेस्ड मेन फ़ाइल को सुरक्षित तरीके से हटा देना
+                        remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_main_file]
                         save_stage_data(remaining_stage_db)
                         
-                        st.success(f"🎉 सफलता! '{selected_file_to_process}' फ़ाइल का डेटा सफलतापूर्वक स्वीकृत होकर केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
+                        st.success(f"🎉 शत-प्रतिशत सफलता! '{selected_main_file}' फ़ाइल का पूरा मर्ज्ड डेटा स्वीकृत होकर अब केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
                         st.balloons()
                         st.rerun()
                     except Exception as err:
