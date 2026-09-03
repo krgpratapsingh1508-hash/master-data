@@ -1750,9 +1750,9 @@ else:
                 # ----------------------------------------------------------------------
                 # 🔍 केस बी: जब यूजर मर्ज करने के लिए स्टेजिंग से कोई ANYA FILE सेलेक्ट करता है
                 # ----------------------------------------------------------------------
-            else:
-                anya_file_subset = stage_db[stage_db["Uploaded File Name"] == selected_anya_file].copy()
-                st.write(f"📦 **Anya File (Staging Column Source):** `{selected_anya_file}` | छात्र रिकॉर्ड्स: `{len(anya_file_subset)}`")
+                else:
+                    anya_file_subset = stage_db[stage_db["Uploaded File Name"] == selected_anya_file].copy()
+                    st.write(f"📦 **Anya File (Staging Column Source):** `{selected_anya_file}` | छात्र रिकॉर्ड्स: `{len(anya_file_subset)}`")
 
                 # गलत फाइल हटाने का डेंजर ज़ोन
                 with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
