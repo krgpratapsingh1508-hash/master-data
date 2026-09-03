@@ -543,7 +543,7 @@ else:
                         enroll_no = st.text_input("Enrollment No")
                         fees_paid = st.text_input("Admssion & Enrollment Fees")
                         scholarship_name = st.text_input("Scholarship Name")
-                        payment_date = st.text_input("Payment Date (YYYY-MM-DD)")
+                        payment_date = st.text_input("Payment Date (DD-MM-YYYY)")
                     
                     st.markdown("<p style='color:gray;'>* चिन्ह वाले फ़ील्ड्स डेटाबेस ट्रैकिंग के लिए महत्वपूर्ण हैं।</p>", unsafe_allow_html=True)
                     submit_student = st.form_submit_button("Save Student Data Systematically", type="primary", use_container_width=True)
@@ -1732,9 +1732,9 @@ else:
                     st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
                 else:
                     st.session_state.p11_dropdown_schemas = {
-                        "file_types": ["Admission List", "Counseling Data", "Direct Entry", "Management Quota"],
+                        "file_types": ["Admission List", "Unique ID List", "Roll No. List", "Enrollment List", "Promotion List", "Result List"],
                         "academic_years": ["2024", "2025", "2026", "2027"],
-                        "academic_sessions": ["July-Dec", "Jan-June"]
+                        "academic_sessions": ["2024-25", "2025-26", "2026-27", "2027-28"]
                     }
             
             st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
