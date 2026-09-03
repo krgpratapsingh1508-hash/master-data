@@ -63,11 +63,21 @@ DEFAULT_CREDENTIALS = {
 }
 
 DEFAULT_PANELS = {
-    "P1": "Panal entry", "P2": "Panal admission", "P3": "Panal unique",
-    "P4": "Panal roll", "P5": "Panal enrollment", "P6": "Panal scholarship",
-    "P7": "Panal foil", "P8": "Panal cce record", "P9": "Panal promotion",
-    "P10": "Panal result", "P11": "notice board info", "P12": "📢 Desk Board Editer",
-    "P13": "🔀 Merge & Approve Panel", "P14": "Panal viewer", "P15": "Panel admin"
+    "P1": "Panal entry", 
+    "P2": "Admission panel", 
+    "P3": "Unique ID panel", 
+    "P4": "Roll No. panel", 
+    "P5": "Enrollment panel", 
+    "P6": "Scholarship panel", 
+    "P7": "CCE panel", 
+    "P8": "Promotion panel", 
+    "P9": "Result panel", 
+    "P10": "Register panel", 
+    "P11": "notice board info", 
+    "P12": "📢 Desk Board Editer",
+    "P13": "🔀 Merge & Approve Panel", 
+    "P14": "Panal viewer", 
+    "P15": "Panel admin"
 }
 
 DEFAULT_COLUMNS = [
@@ -603,12 +613,12 @@ else:
                 st.markdown("---")
                 
                 admission_fixed_cols = [
-                    "Application Number", "Student Abc Id", "Student Name", "Father Name", 
-                    "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
-                    "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", 
-                    "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No",  
-                                        "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date"
-                ]
+    "Application Number", "Student Abc Id", "Student Name", "Father Name", 
+    "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
+    "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", 
+    "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No", 
+    "Admission & Enrollment Fees", "Scholarship Name", "Payment Date"
+]
                 
                 for target_col in admission_fixed_cols:
                     if target_col not in admission_display_db.columns:
@@ -694,7 +704,7 @@ else:
                             key="p2_download_excel_secure_btn"
                         )
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Displays Only Content Approved for P3)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P3":
@@ -727,7 +737,11 @@ else:
                     ]
                 
                 # केवल यूनिक आईडी पैनल के लिए निश्चित कॉलम्स की सूची
-                unique_fixed_cols = ["Application Number", "Student Name", "Father Name", "Unique ID"]
+                unique_fixed_cols = [
+    "Admission Year", "Admission Session", "HIGHER EDU ID", "Unique ID", 
+    "FULL NAME", "FATHER NAME", "MOTHER NAME", "DATE OF BIRTH", "CATEGORY", 
+    "Drgree", "MAJOR SUB", "MINOR SUB", "OPEN-ELECTIVE SUB", "VOCATIONAL SUB", "PROJECT WORK"
+]
                 
                 for col in unique_fixed_cols:
                     if col not in unique_filter_df.columns:
@@ -806,7 +820,11 @@ else:
                         roll_filter_df[roll_search_field].astype(str).str.contains(roll_search_query, case=False, na=False)
                     ]
                 
-                roll_fixed_cols = ["Application Number", "Unique ID", "Student Name", "Roll No."]
+                roll_fixed_cols = [
+    "Admission Year", "Admission Session", "HIGHER EDU ID", "Roll No.", 
+    "FULL NAME", "FATHER NAME", "MOTHER NAME", "DATE OF BIRTH", "CATEGORY", 
+    "Drgree", "MAJOR SUB", "MINOR SUB", "OPEN-ELECTIVE SUB", "VOCATIONAL SUB", "PROJECT WORK"
+]
                 
                 for col in roll_fixed_cols:
                     if col not in roll_filter_df.columns:
@@ -883,7 +901,11 @@ else:
                     filtered_enrollment = filtered_enrollment[filtered_enrollment["Branch"].str.strip() == selected_subject]
                 
                 # 🎛️ केवल एनरोलमेंट पैनल के लिए मान्य निश्चित कॉलम्स की सूची (As Per Custom Layout)
-                enrollment_fixed_cols = ["Application Number", "Student Name", "Father Name", "Branch", "Enrollment No"]
+                enrollment_fixed_cols = [
+    "Admission Year", "Admission Session", "application_no", "enroll_no", 
+    "Name", "gender", "father_name", "dob", "category", "mob_no", "collegename", 
+    "coursename", "branchname", "branchmode", "status", "session", "univ_or_board"
+]
                 
                 # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
                 for col in enrollment_fixed_cols:
@@ -980,8 +1002,12 @@ else:
                     filtered_scholarship = filtered_scholarship[filtered_scholarship["Category"].str.strip() == selected_category]
                 
                 # 🎛️ केवल स्कॉलरशिप पैनल के लिए मान्य निश्चित कॉलम्स की सूची (As Per Custom Layout)
-                scholarship_fixed_cols = ["Application Number", "Unique ID", "Student Name", "Category", "Scholarship Name", "Scholarship Status"]
-                
+                scholarship_fixed_cols = [
+    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+    "Admission Date", "Unique Id", "Roll No.", "Application Enrollment No.", "Student Name", 
+    "Father Name", "Mother Name", "Date Of Birth", "Category", "Subject", "Duretion", 
+    "Mobile Number", "Email Id", "Address", "Year", "Status"
+]
                 # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
                 for col in scholarship_fixed_cols:
                     if col not in filtered_scholarship.columns:
@@ -1235,7 +1261,12 @@ else:
                 if selected_sub != "All": 
                     filtered_cce = filtered_cce[filtered_cce["Branch"].str.strip() == selected_sub]
                 
-                cce_fixed_cols = ["Application Number", "Roll No.", "Student Name", "Branch", "CCE Marks Obtained", "CCE Attendance Status"]
+                cce_fixed_cols = [
+    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+    "Admission Date", "Unique Id", "Roll No.", "Application Enrollment No.", "Student Name", 
+    "Father Name", "Mother Name", "Date Of Birth", "Category", "Subject", "Duretion", 
+    "Mobile Number", "Email Id", "Address", "Year", "Status"
+]
                 
                 for col in cce_fixed_cols:
                     if col not in filtered_cce.columns:
@@ -1320,7 +1351,10 @@ else:
                 if selected_year != "All": 
                     filtered_promo = filtered_promo[filtered_promo["Current Year"].str.strip() == selected_year]
                 
-                promotion_fixed_cols = ["Application Number", "Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"]
+                promotion_fixed_cols = [
+    "Admission Year", "Admission Session", "Applicant ID", "Roll No.", "Enroll No.", 
+    "Student Name", "Father Name", "Mother Name", "Caste", "Mob No.", "Subject", "Year", "Result"
+]
                 
                 for col in promotion_fixed_cols:
                     if col not in filtered_promo.columns:
