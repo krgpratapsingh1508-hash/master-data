@@ -80,41 +80,6 @@ DEFAULT_COLUMNS = [
     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility" # 🆕 नया कॉलम ट्रैकिंग के लिए
 ]
 
-# ==============================================================================
-# 🆕 स्टेप 1.5: डायनेमिक कॉलम मैपिंग इंजन (DEFAULT_COLUMNS के ठीक नीचे पेस्ट करें)
-# ==============================================================================
-
-# सभी पैनल्स/फ़ाइलों के अलग कॉलम नामों को मुख्य लाइव डेटाबेस के असली नामों से जोड़ने वाली डिक्शनरी
-PANEL_TO_DB_COLUMN_MAP = {
-    # अपलोडेड फ़ाइल का नाम        : मुख्य लाइव डेटाबेस का असली नाम
-    "Application Number": "Admission Application Number",
-    "Payment Date": "Admission Date",
-    "Email": "Email ID",
-    "Date Of Birth": "Date of Birth",
-    "Student Abc Id": "Student Abc Id",
-    "Admssion & Enrollment Fees": "Admssion & Enrollment Fees"
-}
-
-def map_panel_to_db_schema(panel_df):
-    """
-    यह फ़ंक्शन पैनल की फ़ाइल के किसी भी अलग नाम वाले कॉलम (जैसे Payment Date) को 
-    ढूँढकर उसे लाइव डेटाबेस के सही कॉलम (Admission Date) में ट्रांसफर कर देता है।
-    """
-    mapped_df = panel_df.copy()
-    
-    # डिक्शनरी के नियमों के अनुसार केवल उन्हीं कॉलम्स का नाम बदलें जो फ़ाइल में मौजूद हैं
-    rename_dict = {k: v for k, v in PANEL_TO_DB_COLUMN_MAP.items() if k in mapped_df.columns}
-    if rename_dict:
-        mapped_df = mapped_df.rename(columns=rename_dict)
-        
-    # सुरक्षा के लिए सुनिश्चित करना कि मास्टर स्कीमा (DEFAULT_COLUMNS) के सभी कॉलम्स मौजूद हों
-    for col in DEFAULT_COLUMNS:
-        if col not in mapped_df.columns:
-            mapped_df[col] = ""
-            
-    # केवल लाइव डेटाबेस के मान्य कॉलम्स का डेटा ही क्रम अनुसार रिटर्न करेगा
-    return mapped_df[DEFAULT_COLUMNS]
-
 # ==========================================================
 # 📁 स्टेप 2: डेटा सहेजने और लोड करने वाले कोर फंक्शन्स
 # ==========================================================
@@ -1683,28 +1648,23 @@ else:
                 
                 if approve_action_btn:
                     try:
-                        # 1. विज़िबिलिटी टैग सेट करें कि यह डेटा किस पैनल पर भेजना है
+                        # Append visibility routing token detail match inside rows
                         file_subset["Target Panel Visibility"] = parsed_panel_id
                         
-                        # 2. 🆕 डायनेमिक मैपर फ़ंक्शन को कॉल करें (यह अलग नामों वाले कॉलम्स का डेटा सही जगह सिंक कर देगा)
-                        clean_mapped_subset = map_panel_to_db_schema(file_subset)
-                        
-                        # 3. मुख्य लाइव डेटाबेस (shared_student_database.csv) लोड करें
+                        # Process configuration structural updates into permanent master live database file
                         master_db = load_live_data()
-                        
-                        # 4. कनवर्टेड डेटा को मुख्य लाइव डेटाबेस के साथ कम्बाइन (Merge) करें
-                        final_merged_master = pd.concat([master_db, clean_mapped_subset], ignore_index=True)
+                        final_merged_master = pd.concat([master_db, file_subset[DEFAULT_COLUMNS]], ignore_index=True)
                         save_live_data(final_merged_master)
                         
-                        # 5. स्टेजिंग कतार (Staging Queue) से इस फ़ाइल का डेटा सुरक्षित हटाएँ
+                        # Wipe out reference safely from temporary staging queue pipeline file
                         remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
                         save_stage_data(remaining_stage_db)
                         
-                        st.success(f"🎉 सफलता! '{selected_file_to_process}' फ़ाइल का डेटा सफलतापूर्वक मैप होकर केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
+                        st.success(f"🎉 सफलता! '{selected_file_to_process}' फ़ाइल का डेटा सफलतापूर्वक स्वीकृत होकर केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
                         st.balloons()
                         st.rerun()
                     except Exception as err:
-                        st.error(f"कंडीशनल डेटा राउटिंग और कॉलम मैपिंग चक्र में तकनीकी समस्या आई: {err}")
+                        st.error(f"कंडीशनल डेटा राउटिंग चक्र में तकनीकी समस्या आई: {err}")
 
         # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
