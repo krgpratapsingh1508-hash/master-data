@@ -1613,7 +1613,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # ======================================================================
+              # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
         elif current_panel_id == "P13":
@@ -1680,8 +1680,7 @@ else:
                     st.markdown("---")
                     st.subheader("🚀 बिना मर्ज किए सीधे अप्रूव करें (Direct Approval Window)")
                     
-                    # स्टेजिंग की पहली उपलब्ध फाइल को टारगेट बनाएं जिसे बिना मर्ज किए भेजना है
-                    direct_target_file_name = distinct_files[0] if distinct_files else ""
+                    direct_target_file_name = distinct_files if distinct_files else ""
                     
                     if not direct_target_file_name:
                         st.warning("कतार में कोई फ़ाइल उपलब्ध नहीं है।")
@@ -1704,14 +1703,13 @@ else:
                                 ],
                                 key="p13_direct_panel_routing_dropdown"
                             )
-                            parsed_direct_panel_id = direct_routing_panel.split(" : ")[0].strip()
+                            parsed_direct_panel_id = direct_routing_panel.split(" : ").strip()
                             
                         with col_dir2:
                             st.write("")
                             st.write("")
                             direct_approve_btn = st.button("🚀 सीधे अप्रूव करें (Direct Approve & Sync)", type="primary", use_container_width=True, key="p13_direct_approve_btn")
                         
-                        # गलत फाइल हटाने का विकल्प डायरेक्ट विंडो में भी
                         with st.expander("⚠️ डेंजर ज़ोन: इस फ़ाइल को स्टेजिंग से हटाएं (बिना अप्रूव किए)", expanded=False):
                             confirm_delete_dir = st.checkbox("हाँ, मैं इस फ़ाइल को पूरी तरह कतार से हटाना चाहता हूँ।", key="confirm_delete_dir_key")
                             if st.button("🗑️ इस फ़ाइल को डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete_dir):
@@ -1722,25 +1720,15 @@ else:
 
                         if direct_approve_btn:
                             try:
-                                # 1. इस फ़ाइल के अंदर 'Target Panel Visibility' का टैग सेट करना
                                 file_subset_direct["Target Panel Visibility"] = parsed_direct_panel_id
-                                
-                                # 2. सुनिश्चित करें कि सभी डिफॉल्ट मास्टर कॉलम्स मौजूद हों
                                 for col in DEFAULT_COLUMNS:
                                     if col not in file_subset_direct.columns:
                                         file_subset_direct[col] = ""
-                                        
-                                # 3. यदि मुख्य डेटाबेस में पहले से इस पैनल का कोई डेटा है, तो उसे हटाकर फ्रेश ओवरराइट करना
                                 remaining_master_db_dir = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_direct_panel_id].copy()
-                                
-                                # 4. मास्टर लाइव डेटाबेस में नया डेटा जोड़कर सेव करना
                                 final_direct_master = pd.concat([remaining_master_db_dir, file_subset_direct[DEFAULT_COLUMNS]], ignore_index=True)
                                 save_live_data(final_direct_master)
-                                
-                                # 5. स्टेजिंग कतार (Staging Queue) से इस फ़ाइल को सुरक्षित तरीके से हटा देना
                                 remaining_stage_db_dir = stage_db[stage_db["Uploaded File Name"] != direct_target_file_name]
                                 save_stage_data(remaining_stage_db_dir)
-                                
                                 st.success(f"🎉 शत-प्रतिशत सफलता! आपकी फ़ाइल बिना किसी बदलाव के सीधे स्वीकृत होकर {parsed_direct_panel_id} पैनल पर लाइव हो चुकी है!")
                                 st.balloons()
                                 st.rerun()
@@ -1754,143 +1742,136 @@ else:
                     anya_file_subset = stage_db[stage_db["Uploaded File Name"] == selected_anya_file].copy()
                     st.write(f"📦 **Anya File (Staging Column Source):** `{selected_anya_file}` | छात्र रिकॉर्ड्स: `{len(anya_file_subset)}`")
 
-                # गलत फाइल हटाने का डेंजर ज़ोन
-                with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
-                    st.warning(f"क्या आप निश्चित रूप से फ़ाइल '**{selected_anya_file}**' को स्टेजिंग कतार से हटाना चाहते हैं?")
-                    confirm_delete = st.checkbox("हाँ, मैं इस फ़ाइल को डिलीट करना चाहता हूँ।", key="confirm_delete_v3")
-                    if st.button("🗑️ परमानेंटली डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete):
-                        updated_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
-                        save_stage_data(updated_stage_db)
-                        st.error(f"💥 फ़ाइल '{selected_anya_file}' हटा दी गई!")
-                        st.rerun()
+                    with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
+                        st.warning(f"क्या आप निश्चित रूप से फ़ाइल '**{selected_anya_file}**' को स्टेजिंग कतार से हटाना चाहते हैं?")
+                        confirm_delete = st.checkbox("हाँ, मैं इस फ़ाइल को डिलीट करना चाहता हूँ।", key="confirm_delete_v3")
+                        if st.button("🗑️ परमानेंटली डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete):
+                            updated_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
+                            save_stage_data(updated_stage_db)
+                            st.error(f"💥 फ़ाइल '{selected_anya_file}' हटा दी गई!")
+                            st.rerun()
 
-                st.markdown("---")
-                st.subheader("🔍 Step 3: Configure Matching & 4-Columns Data Retrieval")
-                
-                if main_file_db.empty:
-                    st.info("💡 अन्य फ़ाइल से मर्ज करने के लिए मुख्य पैनल में कम से कम एक डेटा रिकॉर्ड होना आवश्यक है।")
-                else:
-                    col_m1, col_m2 = st.columns(2)
-                    with col_m1:
-                        main_match_key = st.selectbox(
-                            "Main File का मैचिंग कॉलम चुनें (जैसे Application Number):",
-                            options=list(main_file_db.columns),
-                            key="xl_main_match_key_v3"
-                        )
-                    with col_m2:
-                        anya_match_key = st.selectbox(
-                            "Anya File का मैचिंग कॉलम चुनें (जैसे Application Number):",
-                            options=list(anya_file_subset.columns),
-                            key="xl_anya_match_key_v3"
-                        )
-                        
-                    # अन्य फ़ाइल के वे कॉलम जिनका डेटा मेन फ़ाइल में भेजना है
-                    anya_return_cols = st.multiselect(
-                        "Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D कॉलम्स):",
-                        options=[c for c in anya_file_subset.columns if c not in ["Uploaded File Name", "Target Panel Visibility"]],
-                        default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No."] if c in anya_file_subset.columns],
-                        key="xl_anya_return_cols_v3"
-                    )
-
-                    # ----------------------------------------------------------------------
-                    # 👁️ लाइव मर्ज प्रीव्यू इंजन
-                    # ----------------------------------------------------------------------
-                    if anya_return_cols:
-                        try:
-                            main_file_db[main_match_key] = main_file_db[main_match_key].astype(str).str.strip()
-                            anya_file_subset[anya_match_key] = anya_file_subset[anya_match_key].astype(str).str.strip()
-                            
-                            # अन्य फ़ाइल का साफ़ डेटा (मैचिंग कीज़ को हटाए बिना)
-                            anya_clean = anya_file_subset[[anya_match_key] + [c for c in anya_return_cols if c != anya_match_key]].copy().drop_duplicates(subset=[anya_match_key])
-                            
-                            # लाइव मर्ज प्रीव्यू टेबल जनरेट करना (Left Join)
-                            preview_merged = pd.merge(
-                                main_file_db,
-                                anya_clean,
-                                left_on=main_match_key,
-                                right_on=anya_match_key,
-                                how='left',
-                                suffixes=('', '_new_data')
+                    st.markdown("---")
+                    st.subheader("🔍 Step 3: Configure Matching & 4-Columns Data Retrieval")
+                    
+                    if main_file_db.empty:
+                        st.info("💡 अन्य फ़ाइल से मर्ज करने के लिए मुख्य पैनल में कम से कम एक डेटा रिकॉर्ड होना आवश्यक है।")
+                    else:
+                        col_m1, col_m2 = st.columns(2)
+                        with col_m1:
+                            main_match_key = st.selectbox(
+                                "Main File का मैचिंग कॉलम चुनें (जैसे Application Number):",
+                                options=list(main_file_db.columns),
+                                key="xl_main_match_key_v3"
+                            )
+                        with col_m2:
+                            anya_match_key = st.selectbox(
+                                "Anya File का मैचिंग कॉलम चुनें (जैसे Application Number):",
+                                options=list(anya_file_subset.columns),
+                                key="xl_anya_match_key_v3"
                             )
                             
-                            # ओवरराइट प्रीव्यू लॉजिक बनाना
-                            for col in anya_return_cols:
-                                new_col_name = f"{col}_new_data" if f"{col}_new_data" in preview_merged.columns else col
-                                if new_col_name in preview_merged.columns:
-                                    preview_merged[col] = preview_merged[new_col_name].fillna(preview_merged[col]).astype(str)
-                            
-                            # Match key डेटा रिकवरी फिक्स
-                            if main_match_key in preview_merged.columns:
-                                if f"{main_match_key}_new_data" in preview_merged.columns:
-                                    preview_merged[main_match_key] = preview_merged[main_match_key].fillna(preview_merged[f"{main_match_key}_new_data"])
-                            
-                            keep_preview_cols = [c for c in preview_merged.columns if not c.endswith('_new_data') and c != f"{anya_match_key}_y"]
-                            final_preview_df = preview_merged[keep_preview_cols].copy()
-                            
-                            if main_match_key not in final_preview_df.columns and f"{main_match_key}_x" in final_preview_df.columns:
-                                final_preview_df = final_preview_df.rename(columns={f"{main_match_key}_x": main_match_key})
-                            
-                            st.markdown("#### 📈 Live Merge Preview (जांचें कि सही मर्ज है या नहीं)")
-                            st.caption("नीचे दी गई तालिका दिखा रही है कि अप्रूव करने पर मेन फ़ाइल में डेटा किस प्रकार अपडेट होकर सेव होगा:")
-                            
-                            preview_display_cols = list(set(["Admission Year", main_match_key, "Student Name", "Father Name", "Target Panel Visibility"] + anya_return_cols))
-                            st.dataframe(final_preview_df[[c for c in preview_display_cols if c in final_preview_df.columns]], use_container_width=True)
-                            
-                            # ----------------------------------------------------------------------
-                            # 🚀 फाइनल अप्रूवल और रो ओवरराइटिंग सेटिंग्स
-                            # ----------------------------------------------------------------------
-                            st.markdown("---")
-                            st.subheader("🚀 Step 4: Finalize & Precision Approve")
-                            
-                            col_app1, col_app2 = st.columns(2)
-                            with col_app1:
-                                target_routing_panel = st.selectbox(
-                                    "📌 इस स्वीकृत डेटा को किस वर्किंग पैनल पर विज़िबल रखना है?",
-                                    options=[
-                                        "P2 : Panal admission / Control Tracker",
-                                        "P3 : Panal unique / ID Engine",
-                                        "P4 : Panal roll / Number Allocation",
-                                        "P5 : Panal enrollment / Permanent Manager",
-                                        "P6 : Panal scholarship / Matrix Tracker",
-                                        "P8 : Panal CCE Record Ledger",
-                                        "P10 : Panal Result Tabulation Register"
-                                    ],
-                                    key="p13_target_panel_routing_dropdown_v3"
+                        anya_return_cols = st.multiselect(
+                            "Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D कॉलम्स):",
+                            options=[c for c in anya_file_subset.columns if c not in ["Uploaded File Name", "Target Panel Visibility"]],
+                            default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No."] if c in anya_file_subset.columns],
+                            key="xl_anya_return_cols_v3"
+                        )
+
+                        # ----------------------------------------------------------------------
+                        # 👁️ लाइव मर्ज प्रीव्यू इंजन
+                        # ----------------------------------------------------------------------
+                        if anya_return_cols:
+                            try:
+                                main_file_db[main_match_key] = main_file_db[main_match_key].astype(str).str.strip()
+                                anya_file_subset[anya_match_key] = anya_file_subset[anya_match_key].astype(str).str.strip()
+                                
+                                anya_clean = anya_file_subset[[anya_match_key] + [c for c in anya_return_cols if c != anya_match_key]].copy().drop_duplicates(subset=[anya_match_key])
+                                
+                                preview_merged = pd.merge(
+                                    main_file_db,
+                                    anya_clean,
+                                    left_on=main_match_key,
+                                    right_on=anya_match_key,
+                                    how='left',
+                                    suffixes=('', '_new_data')
                                 )
-                                parsed_panel_id = target_routing_panel.split(" : ")[0].strip()
                                 
-                            with col_app2:
-                                st.write("")
-                                st.write("")
-                                approve_action_btn = st.button("🚀 Approve & Update Selected Data Rows", type="primary", use_container_width=True, key="p13_final_approve_btn_v3")
-                            
-                            if approve_action_btn:
-                                final_preview_df["Target Panel Visibility"] = parsed_panel_id
+                                for col in anya_return_cols:
+                                    new_col_name = f"{col}_new_data" if f"{col}_new_data" in preview_merged.columns else col
+                                    if new_col_name in preview_merged.columns:
+                                        preview_merged[col] = preview_merged[new_col_name].fillna(preview_merged[col]).astype(str)
                                 
-                                # मुख्य लाइव डेटाबेस से पुराने रिकॉर्ड्स को हटाकर नए अपडेटेड रिकॉर्ड्स को मर्ज करना
-                                remaining_master_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_panel_id].copy()
+                                if main_match_key in preview_merged.columns:
+                                    if f"{main_match_key}_new_data" in preview_merged.columns:
+                                        preview_merged[main_match_key] = preview_merged[main_match_key].fillna(preview_merged[f"{main_match_key}_new_data"])
                                 
-                                if main_match_key not in final_preview_df.columns and f"{main_match_key}_from_master" in final_preview_df.columns:
-                                    final_preview_df[main_match_key] = final_preview_df[f"{main_match_key}_from_master"]
+                                keep_preview_cols = [c for c in preview_merged.columns if not c.endswith('_new_data') and c != f"{anya_match_key}_y"]
+                                final_preview_df = preview_merged[keep_preview_cols].copy()
                                 
-                                for col in DEFAULT_COLUMNS:
-                                    if col not in final_preview_df.columns:
-                                        final_preview_df[col] = ""
-                                        
-                                final_updated_master_db = pd.concat([remaining_master_db, final_preview_df[DEFAULT_COLUMNS]], ignore_index=True)
-                                save_live_data(final_updated_master_db)
+                                if main_match_key not in final_preview_df.columns and f"{main_match_key}_x" in final_preview_df.columns:
+                                    final_preview_df = final_preview_df.rename(columns={f"{main_match_key}_x": main_match_key})
                                 
-                                # स्टेजिंग कतार से इस अन्य फ़ाइल (Anya File) को हटाना
-                                remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
-                                save_stage_data(remaining_stage_db)
+                                st.markdown("#### 📈 Live Merge Preview (जांचें कि सही मर्ज है या नहीं)")
+                                st.caption("नीचे दी गई तालिका दिखा रही है कि अप्रूव करने पर मेन फ़ाइल में डेटा किस प्रकार अपडेट होकर सेव होगा:")
                                 
-                                st.success(f"🎉 शत-प्रतिशत सफलता! Anya फ़ाइल का डेटा मुख्य फ़ाइल में सही जगह अपडेट होकर और मैचिंग कॉलम के साथ {parsed_panel_id} पर लाइव हो चुका है!")
-                                st.balloons()
-                                st.rerun()
+                                preview_display_cols = list(set(["Admission Year", main_match_key, "Student Name", "Father Name", "Target Panel Visibility"] + anya_return_cols))
+                                st.dataframe(final_preview_df[[c for c in preview_display_cols if c in final_preview_df.columns]], use_container_width=True)
                                 
-                        except Exception as merge_err:
-
-
+                                # ----------------------------------------------------------------------
+                                # 🚀 फाइनल अप्रूवल और रो ओवरराइटिंग सेटिंग्स
+                                # ----------------------------------------------------------------------
+                                st.markdown("---")
+                                st.subheader("🚀 Step 4: Finalize & Precision Approve")
+                                
+                                col_app1, col_app2 = st.columns(2)
+                                with col_app1:
+                                    target_routing_panel = st.selectbox(
+                                        "📌 इस स्वीकृत डेटा को किस वर्किंग पैनल पर विज़िबल रखना है?",
+                                        options=[
+                                            "P2 : Panal admission / Control Tracker",
+                                            "P3 : Panal unique / ID Engine",
+                                            "P4 : Panal roll / Number Allocation",
+                                            "P5 : Panal enrollment / Permanent Manager",
+                                            "P6 : Panal scholarship / Matrix Tracker",
+                                            "P8 : Panal CCE Record Ledger",
+                                            "P10 : Panal Result Tabulation Register"
+                                        ],
+                                        key="p13_target_panel_routing_dropdown_v3"
+                                    )
+                                    parsed_panel_id = target_routing_panel.split(" : ")[0].strip()
+                                    
+                                with col_app2:
+                                    st.write("")
+                                    st.write("")
+                                    approve_action_btn = st.button("🚀 Approve & Update Selected Data Rows", type="primary", use_container_width=True, key="p13_final_approve_btn_v3")
+                                
+                                if approve_action_btn:
+                                    final_preview_df["Target Panel Visibility"] = parsed_panel_id
+                                    
+                                    remaining_master_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_panel_id].copy()
+                                    
+                                    if main_match_key not in final_preview_df.columns and f"{main_match_key}_from_master" in final_preview_df.columns:
+                                        final_preview_df[main_match_key] = final_preview_df[f"{main_match_key}_from_master"]
+                                    
+                                    for col in DEFAULT_COLUMNS:
+                                        if col not in final_preview_df.columns:
+                                            final_preview_df[col] = ""
+                                            
+                                    final_updated_master_db = pd.concat([remaining_master_db, final_preview_df[DEFAULT_COLUMNS]], ignore_index=True)
+                                    save_live_data(final_updated_master_db)
+                                    
+                                    remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
+                                    save_stage_data(remaining_stage_db)
+                                    
+                                    st.success(f"🎉 शत-प्रतिशत सफलता! Anya फ़ाइल का डेटा मुख्य फ़ाइल में सही जगह अपडेट होकर और मैचिंग कॉलम के साथ {parsed_panel_id} पर लाइव हो चुका है!")
+                                    st.balloons()
+                                    st.rerun()
+                                    
+                            except Exception as merge_err:
+                                st.error(f"लाइव मर्ज वेरिफिकेशन के दौरान तकनीकी समस्या आई: {merge_err}")
+                        else:
+                            st.info("💡 कृपया प्रीव्यू और अपडेट इंजन को सक्रिय करने के लिए Step 3 से कम से कम एक रिटर्न कॉलम ज़रूर चुनें।")
 
         # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
