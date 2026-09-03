@@ -1757,7 +1757,7 @@ else:
                         
                         # Wipe out reference safely from temporary staging queue pipeline file
                         remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
-                                                save_stage_data(remaining_stage_db)
+                        save_stage_data(remaining_stage_db)
                         
                         st.success(f"🎉 सफलता! '{selected_file_to_process}' फ़ाइल का डेटा सफलतापूर्वक स्वीकृत होकर केवल {parsed_panel_id} पैनल पर लाइव कर दिया गया है!")
                         st.balloons()
