@@ -476,7 +476,7 @@ else:
                                     if col not in uploaded_df.columns: 
                                         uploaded_df[col] = ""
                                 
-                                                                uploaded_df["Admission Year"] = p1_admission_year
+                                uploaded_df["Admission Year"] = p1_admission_year
                                 uploaded_df["Admission Session"] = p1_admission_session
                                 
                                 # 🆕 Add security tag for conditional visibility routing
