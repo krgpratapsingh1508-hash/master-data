@@ -1613,8 +1613,8 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # ----------------------------------------------------------------------
-        # P13: 🔀 MERGE & APPROVE PANEL (Multi-File 4-Column Merge Engine)
+              # ----------------------------------------------------------------------
+        # P13: 🔀 MERGE & APPROVE PANEL (With File Delete Functionality)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
             st.header(f"🔀 {get_panel_title('P13')} (4-Column Smart Data Merge Room)")
@@ -1648,6 +1648,28 @@ else:
                         options=["-- कोई अन्य फ़ाइल नहीं चुनें --"] + remaining_files,
                         key="p13_anya_file_select"
                     )
+
+                # ======================================================================
+                # 🗑️ 🆕 नया जोड़ा गया: गलत फाइल हटाने का डेंजर ज़ोन (Delete File Option)
+                # ======================================================================
+                with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
+                    st.warning(f"क्या आप निश्चित रूप से फ़ाइल '**{selected_main_file}**' को स्टेजिंग कतार से हटाना चाहते हैं? यह डेटा हमेशा के लिए डिलीट हो जाएगा।")
+                    
+                    # दुर्घटनावश डिलीट होने से बचाने के लिए कन्फर्मेशन चेकमार्क
+                    confirm_delete = st.checkbox("हाँ, मैं इस फ़ाइल को डिलीट करना चाहता हूँ।", key="confirm_delete_checkbox")
+                    
+                    if st.button("🗑️ परमानेंटली डिलीट करें (Delete This File Permanently)", type="primary", use_container_width=True, disabled=not confirm_delete):
+                        try:
+                            # कतार से सेलेक्टेड फ़ाइल का सारा डेटा फ़िल्टर करके हटाना
+                            updated_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_main_file]
+                            save_stage_data(updated_stage_db)
+                            
+                            st.error(f"💥 फ़ाइल '{selected_main_file}' को स्टेजिंग कतार से सफलतापूर्वक हटा दिया गया है!")
+                            st.rerun()
+                        except Exception as delete_err:
+                            st.error(f"फ़ाइल हटाने के दौरान तकनीकी खराबी आई: {delete_err}")
+                st.markdown("---")
+                # ======================================================================
                 
                 # मेन फ़ाइल का ताज़ा डेटा अलग निकालें
                 file_subset = stage_db[stage_db["Uploaded File Name"] == selected_main_file].copy()
@@ -1677,7 +1699,6 @@ else:
                                 key="xl_anya_match_key"
                             )
                             
-                        # यहाँ यूजर एक साथ 4 या जितने चाहें उतने कॉलम चुन सकता है
                         anya_return_cols = st.multiselect(
                             "3. Anya File के वे कॉलम्स चुनें जिनका डेटा खींचना है (जैसे B, C, D कॉलम्स):",
                             options=[c for c in anya_file_subset.columns if c not in [anya_match_key, "Uploaded File Name", "Target Panel Visibility"]],
@@ -1690,15 +1711,12 @@ else:
                                 st.error("❌ कृपया कम से कम एक या अधिक कॉलम्स ज़रूर चुनें!")
                             else:
                                 try:
-                                    # कीज को क्लीन करना ताकि स्पेस की वजह से मैच फेल न हो
                                     file_subset[main_match_key] = file_subset[main_match_key].astype(str).str.strip()
                                     anya_file_subset[anya_match_key] = anya_file_subset[anya_match_key].astype(str).str.strip()
                                     
-                                    # अन्य फ़ाइल से डुप्लीकेट्स हटाना
                                     anya_clean = anya_file_subset[[anya_match_key] + anya_return_cols].copy()
                                     anya_clean = anya_clean.drop_duplicates(subset=[anya_match_key])
                                     
-                                    # Pandas Left Join के द्वारा मैचिंग करना (XLOOKUP का सबसे बेस्ट विकल्प)
                                     merged_res = pd.merge(
                                         file_subset,
                                         anya_clean,
@@ -1708,22 +1726,17 @@ else:
                                         suffixes=('', '_from_anya')
                                     )
                                     
-                                    # चुनी हुई अन्य फ़ाइल के सभी कॉलम्स का डेटा मेन फ़ाइल में डालना
                                     for col in anya_return_cols:
                                         anya_col_name = f"{col}_from_anya" if f"{col}_from_anya" in merged_res.columns else col
                                         if anya_col_name in merged_res.columns:
-                                            # खाली जगह भरना या डेटा को अपडेट करना
                                             merged_res[col] = merged_res[anya_col_name].fillna(merged_res[col]).astype(str)
                                             
-                                            # 🛑 क्रिटिकल फिक्स: अगर यह कॉलम DEFAULT_COLUMNS लिस्ट में नहीं है, तो उसे डायनेमिकली जोड़ना
                                             if col not in DEFAULT_COLUMNS:
                                                 DEFAULT_COLUMNS.append(col)
                                     
-                                    # फालतू टेम्परेरी कॉलम्स को साफ करना
                                     final_cols = [c for c in merged_res.columns if not c.endswith('_from_anya') and c != anya_match_key]
                                     final_main_subset = merged_res[final_cols].copy()
                                     
-                                    # स्टेजिंग डेटाबेस फाइल में डेटा अपडेट करना
                                     stage_db = stage_db[stage_db["Uploaded File Name"] != selected_main_file]
                                     stage_db = pd.concat([stage_db, final_main_subset], ignore_index=True)
                                     save_stage_data(stage_db)
@@ -1733,13 +1746,11 @@ else:
                                 except Exception as xl_err:
                                     st.error(f"मर्ज चक्र के दौरान तकनीकी त्रुटि: {xl_err}")
                     st.markdown("---")
-                # ======================================================================
 
                 # लाइव ग्रिड प्रीव्यू
                 st.markdown("#### 👁️ Main File Live Data Preview")
                 display_cols = ["Admission Year", "Admission Session", "Application Number", "Student Name", "Father Name", "Branch", "Target Panel Visibility"]
                 
-                # अगर नए कॉलम मर्ज हुए हैं तो उन्हें ग्रिड में दिखाना
                 if 'anya_return_cols' in locals() and anya_return_cols:
                     for c in anya_return_cols:
                         if c not in display_cols:
@@ -1749,7 +1760,7 @@ else:
                 st.dataframe(render_subset, use_container_width=True)
                 
                 # ----------------------------------------------------------------------
-                # 🚀 FINAL APPROVAL & SYSTEM ROUTING (पूरी तरह सुरक्षित)
+                # 🚀 FINAL APPROVAL & SYSTEM ROUTING
                 # ----------------------------------------------------------------------
                 st.markdown("#### ⚙️ Conditional Routing Approval Parameters Matrix")
                 col_app1, col_app2 = st.columns(2)
@@ -1777,7 +1788,7 @@ else:
                 
                 if approve_action_btn:
                     try:
-                        # 🛑 फिक्स: अप्रूव बटन दबाते ही तुरंत फ़ाइल का सबसे नया मर्ज्ड डेटा स्टेजिंग से लोड करना
+                        # अप्रूव बटन दबाते ही तुरंत फ़ाइल का सबसे नया मर्ज्ड डेटा स्टेजिंग से लोड करना
                         fresh_stage_db = load_stage_data()
                         file_subset_approved = fresh_stage_db[fresh_stage_db["Uploaded File Name"] == selected_main_file].copy()
                         
