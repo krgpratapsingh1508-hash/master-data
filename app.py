@@ -1788,12 +1788,13 @@ else:
                     st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
                     st.rerun()
 
-            # कॉलम मूव बटन्स एक्टिव होने पर ही लेफ्ट-राइट बटन अनहाइड होंगे
+                        # कॉलम मूव बटन्स एक्टिव होने पर ही लेफ्ट-राइट बटन अनहाइड होंगे
             if st.session_state.admin_unhide_move:
                 st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
                 target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
                 c_left, c_right = st.columns(2)
-                                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
+                
+                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx > 0:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
@@ -1851,5 +1852,3 @@ else:
                             st.rerun()
                         except Exception as e:
                             st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
-
-
