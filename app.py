@@ -63,21 +63,11 @@ DEFAULT_CREDENTIALS = {
 }
 
 DEFAULT_PANELS = {
-    "P1": "Panal entry", 
-    "P2": "Admission panel", 
-    "P3": "Unique ID panel", 
-    "P4": "Roll No. panel", 
-    "P5": "Enrollment panel", 
-    "P6": "Scholarship panel", 
-    "P7": "CCE panel", 
-    "P8": "Promotion panel", 
-    "P9": "Result panel", 
-    "P10": "Register panel", 
-    "P11": "notice board info", 
-    "P12": "📢 Desk Board Editer",
-    "P13": "🔀 Merge & Approve Panel", 
-    "P14": "Panal viewer", 
-    "P15": "Panel admin"
+    "P1": "Panal entry", "P2": "Admission panel", "P3": "Unique ID panel",
+    "P4": "Roll No. panel", "P5": "Enrollment panel", "P6": "Scholarship panel",
+    "P7": "CCE panel", "P8": "Promotion panel", "P9": "Result panel",
+    "P10": "Register panel", "P11": "notice board info", "P12": "📢 Desk Board Editer",
+    "P13": "🔀 Merge & Approve Panel", "P14": "Panal viewer", "P15": "Panel admin"
 }
 
 DEFAULT_COLUMNS = [
