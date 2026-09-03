@@ -1613,7 +1613,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # ======================================================================
+        # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
         elif current_panel_id == "P13":
@@ -1888,7 +1888,7 @@ else:
                                 st.balloons()
                                 st.rerun()
                                 
-                        except Exception as merge_err:
+        except Exception as merge_err:
 
         # ----------------------------------------------------------------------
         # P14: PANEL VIEWER (INTEGRATED INDEX SYSTEM - Isolated Inspector Window)
