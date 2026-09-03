@@ -1613,7 +1613,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-              # ======================================================================
+        # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
         elif current_panel_id == "P13":
@@ -1680,7 +1680,8 @@ else:
                     st.markdown("---")
                     st.subheader("🚀 बिना मर्ज किए सीधे अप्रूव करें (Direct Approval Window)")
                     
-                    direct_target_file_name = distinct_files if distinct_files else ""
+                    # 🛑 फिक्स: पूरी लिस्ट पास करने के बजाय कतार की पहली फ़ाइल का नाम (स्ट्रिंग) निकालें
+                    direct_target_file_name = distinct_files[0] if distinct_files else ""
                     
                     if not direct_target_file_name:
                         st.warning("कतार में कोई फ़ाइल उपलब्ध नहीं है।")
@@ -1703,13 +1704,14 @@ else:
                                 ],
                                 key="p13_direct_panel_routing_dropdown"
                             )
-                            parsed_direct_panel_id = direct_routing_panel.split(" : ").strip()
+                            parsed_direct_panel_id = direct_routing_panel.split(" : ")[0].strip()
                             
                         with col_dir2:
                             st.write("")
                             st.write("")
                             direct_approve_btn = st.button("🚀 सीधे अप्रूव करें (Direct Approve & Sync)", type="primary", use_container_width=True, key="p13_direct_approve_btn")
                         
+                        # गलत फाइल हटाने का विकल्प डायरेक्ट विंडो में भी
                         with st.expander("⚠️ डेंजर ज़ोन: इस फ़ाइल को स्टेजिंग से हटाएं (बिना अप्रूव किए)", expanded=False):
                             confirm_delete_dir = st.checkbox("हाँ, मैं इस फ़ाइल को पूरी तरह कतार से हटाना चाहता हूँ।", key="confirm_delete_dir_key")
                             if st.button("🗑️ इस फ़ाइल को डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete_dir):
@@ -1720,15 +1722,25 @@ else:
 
                         if direct_approve_btn:
                             try:
+                                # 1. इस फ़ाइल के अंदर 'Target Panel Visibility' का टैग सेट करना
                                 file_subset_direct["Target Panel Visibility"] = parsed_direct_panel_id
+                                
+                                # 2. सुनिश्चित करें कि सभी डिफॉल्ट मास्टर कॉलम्स मौजूद हों
                                 for col in DEFAULT_COLUMNS:
                                     if col not in file_subset_direct.columns:
                                         file_subset_direct[col] = ""
+                                        
+                                # 3. यदि मुख्य डेटाबेस में पहले से इस पैनल का कोई डेटा है, तो उसे हटाकर फ्रेश ओवरराइट करना
                                 remaining_master_db_dir = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_direct_panel_id].copy()
+                                
+                                # 4. मास्टर लाइव डेटाबेस में नया डेटा जोड़कर सेव करना
                                 final_direct_master = pd.concat([remaining_master_db_dir, file_subset_direct[DEFAULT_COLUMNS]], ignore_index=True)
                                 save_live_data(final_direct_master)
+                                
+                                # 5. स्टेजिंग कतार (Staging Queue) से इस फ़ाइल को सुरक्षित तरीके से हटा देना
                                 remaining_stage_db_dir = stage_db[stage_db["Uploaded File Name"] != direct_target_file_name]
                                 save_stage_data(remaining_stage_db_dir)
+                                
                                 st.success(f"🎉 शत-प्रतिशत सफलता! आपकी फ़ाइल बिना किसी बदलाव के सीधे स्वीकृत होकर {parsed_direct_panel_id} पैनल पर लाइव हो चुकी है!")
                                 st.balloons()
                                 st.rerun()
