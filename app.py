@@ -1613,7 +1613,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # ----------------------------------------------------------------------
+               # ----------------------------------------------------------------------
         # P13: 🔀 MERGE & APPROVE PANEL (Conditional Data Routing Gateway Room)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
@@ -1642,11 +1642,11 @@ else:
                 st.write(f"📄 चयनित फ़ाइल: **{selected_file_to_process}** | कुल उपलब्ध छात्र रिकॉर्ड्स: `{len(file_subset)}`")
 
                 # ======================================================================
-                # 🔍 ⚡ MULTI-COLUMN XLOOKUP ENGINE
+                # 🔍 ⚡ SUPER BULK MERGE / DATAMAP ENGINE (एक्सेल से बेहतर)
                 # ======================================================================
                 st.markdown("---")
-                with st.expander("🔍 ⚡ XLOOKUP / डेटा मैपिंग टूल (एक साथ कई कॉलम भरने के लिए)", expanded=False):
-                    st.markdown("इस टूल की मदद से आप मुख्य लाइव डेटाबेस से **एक साथ कई कॉलम्स** का डेटा खींचकर वर्तमान फ़ाइल में भर सकते हैं।")
+                with st.expander("🔍 ⚡ सुपर डेटा मैपिंग टूल (एक साथ कई कॉलम भरने के लिए)", expanded=False):
+                    st.markdown("यह टूल मुख्य लाइव डेटाबेस से **एक साथ कई कॉलम्स** का डेटा खींचकर वर्तमान फ़ाइल में भर देता है।")
                     
                     master_db_lookup = load_live_data()
                     
@@ -1657,62 +1657,72 @@ else:
                         
                         with col_xl1:
                             current_lookup_key = st.selectbox(
-                                "1. इस फ़ाइल का मैचिंग कॉलम चुनें (Lookup Value Column):",
+                                "1. इस फ़ाइल का मैचिंग कॉलम चुनें (जैसे Application Number):",
                                 options=list(file_subset.columns),
                                 key="xl_curr_key"
                             )
                         with col_xl2:
                             master_lookup_key = st.selectbox(
-                                "2. मुख्य DB का मैचिंग कॉलम चुनें (Lookup Array Column):",
+                                "2. मुख्य DB का मैचिंग कॉलम चुनें (जैसे Application Number):",
                                 options=list(master_db_lookup.columns),
                                 key="xl_mast_key"
                             )
                             
-                        # 🆕 यहाँ सिंगल ड्रॉपडाउन की जगह MULTISELECT लगाया गया है
+                        # मुख्य DB के वे कॉलम्स जिन्हें लेकर आना है
                         master_return_cols = st.multiselect(
-                            "3. मुख्य DB के वे कॉलम्स चुनें जिनका डेटा लाना है (Return Arrays):",
+                            "3. मुख्य DB के वे कॉलम्स चुनें जिनका डेटा खींचना है:",
                             options=[c for c in master_db_lookup.columns if c != master_lookup_key],
                             key="xl_return_cols_multi"
                         )
                         
-                        if not master_return_cols:
-                            st.info("💡 कृपया डेटा लाने के लिए ऊपर कम से कम एक रिटर्न कॉलम (Step 3) ज़रूर चुनें।")
-                        else:
-                            st.caption(f"ℹ️ यह टूल मुख्य DB के चुने गए कॉलम्स का डेटा आपकी फ़ाइल के उन्हीं नाम वाले कॉलम्स में ऑटो-मैप कर देगा।")
-                        
-                        if st.button("⚡ Run Multi-Column XLOOKUP & Map Data", type="secondary", use_container_width=True):
+                        if st.button("⚡ Run Data Merge & Map Now", type="secondary", use_container_width=True):
                             if not master_return_cols:
                                 st.error("❌ कृपया पहले मुख्य DB से कम से कम एक रिटर्न कॉलम चुनें!")
                             else:
                                 try:
-                                    # मास्टर डेटाबेस में से केवल मैचिंग और चुने हुए रिटर्न कॉलम्स का यूनिक मैप तैयार करना
-                                    lookup_subset = master_db_lookup[[master_lookup_key] + master_return_cols].dropna(subset=[master_lookup_key])
-                                    lookup_subset = lookup_subset.drop_duplicates(subset=[master_lookup_key])
+                                    # 1. डेटा क्लीनअप: स्पेस हटाना और स्ट्रिंग में बदलना ताकि मैचिंग फेल न हो
+                                    file_subset[current_lookup_key] = file_subset[current_lookup_key].astype(str).str.strip()
                                     
-                                    # लुकअप कीज को साफ़ करना (Trim spaces)
-                                    lookup_subset[master_lookup_key] = lookup_subset[master_lookup_key].astype(str).str.strip()
-                                    file_subset_keys = file_subset[current_lookup_key].astype(str).str.strip()
+                                    # मास्टर डेटाबेस से डुप्लीकेट्स हटाना ताकि डेटा गुणा न हो
+                                    m_clean = master_db_lookup[[master_lookup_key] + master_return_cols].copy()
+                                    m_clean[master_lookup_key] = m_clean[master_lookup_key].astype(str).str.strip()
+                                    m_clean = m_clean.drop_duplicates(subset=[master_lookup_key])
                                     
-                                    # इंडेक्स सेट करके सीधे री-इंडेक्स मैपिंग करना (Fastest Way for Multi-Columns)
-                                    lookup_subset = lookup_subset.set_index(master_lookup_key)
+                                    # 2. Pandas Left Join (Merge Function) का उपयोग
+                                    # यह फ़ाइल के क्रम को बिना बिगाड़े डेटा को आपस में लिंक कर देता है
+                                    merged_res = pd.merge(
+                                        file_subset, 
+                                        m_clean, 
+                                        left_on=current_lookup_key, 
+                                        right_on=master_lookup_key, 
+                                        how='left',
+                                        suffixes=('', '_from_master')
+                                    )
                                     
-                                    # मैचिंग रो खोजना
-                                    mapped_df = lookup_subset.reindex(file_subset_keys).reset_index(drop=True)
-                                    
+                                    # 3. वर्तमान फ़ाइल के कॉलम में मास्टर का डेटा भरना
                                     updated_cols_log = []
                                     for col in master_return_cols:
-                                        if col in file_subset.columns:
-                                            # जहां मैच मिला उसे रिप्लेस करें, बाकी पुराना डेटा रखें
-                                            file_subset[col] = mapped_df[col].fillna(file_subset[col]).astype(str)
-                                            # मूल स्टेजिंग डेटाबेस कतार में अपडेट सिंक करना
-                                            stage_db.loc[stage_db["Uploaded File Name"] == selected_file_to_process, col] = file_subset[col]
+                                        master_col_name = f"{col}_from_master" if f"{col}_from_master" in merged_res.columns else col
+                                        
+                                        # जहां भी नया डेटा मिला है उसे अपडेट करें, खाली जगह पर पुराना डेटा रहने दें
+                                        if master_col_name in merged_res.columns:
+                                            merged_res[col] = merged_res[master_col_name].fillna(merged_res[col]).astype(str)
                                             updated_cols_log.append(col)
                                     
+                                    # अतिरिक्त टेम्परेरी कॉलम्स को डिलीट करना
+                                    cols_to_keep = [c for c in merged_res.columns if not c.endswith('_from_master') and c != master_lookup_key]
+                                    final_file_subset = merged_res[cols_to_keep].copy()
+                                    
+                                    # 4. मुख्य स्टेजिंग डेटाबेस फ़ाइल में डेटा रिप्लेस करना
+                                    # पुरानी रो हटाकर नई अपडेटेड रो जोड़ना
+                                    stage_db = stage_db[stage_db["Uploaded File Name"] != selected_file_to_process]
+                                    stage_db = pd.concat([stage_db, final_file_subset], ignore_index=True)
+                                    
                                     save_stage_data(stage_db)
-                                    st.success(f"🎉 सफल! इन कॉलम्स का डेटा ऑटो-अपडेट हो गया है: {', '.join([f'**{c}**' for c in updated_cols_log])}")
+                                    st.success(f"🎉 डेटा सफ़लतापूर्वक मर्ज हो गया! इन कॉलम्स में डेटा अपडेट हुआ है: {', '.join([f'**{c}**' for c in updated_cols_log])}")
                                     st.rerun()
                                 except Exception as xl_err:
-                                    st.error(f"मल्टी-कॉलम लुकअप मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
+                                    st.error(f"डेटा मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
                 st.markdown("---")
                 # ======================================================================
 
