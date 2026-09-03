@@ -1613,7 +1613,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P13: 🔀 MERGE & APPROVE PANEL (Conditional Data Routing Gateway Room)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P13":
@@ -1640,10 +1640,82 @@ else:
                 file_subset = stage_db[stage_db["Uploaded File Name"] == selected_file_to_process].copy()
                 
                 st.write(f"📄 चयनित फ़ाइल: **{selected_file_to_process}** | कुल उपलब्ध छात्र रिकॉर्ड्स: `{len(file_subset)}`")
-                
+
+                # ======================================================================
+                # 🔍 🆕 नया जोड़ा गया: XLOOKUP / SMART DATA MAPPING ENGINE
+                # ======================================================================
+                st.markdown("---")
+                with st.expander("🔍 ⚡ XLOOKUP / डेटा मैपिंग टूल (खाली कॉलम भरने के लिए)", expanded=False):
+                    st.markdown("इस टूल की मदद से आप वर्तमान फ़ाइल के किसी खाली कॉलम को **मुख्य लाइव डेटाबेस** के डेटा से मैच करके भर सकते हैं।")
+                    
+                    master_db_lookup = load_live_data()
+                    
+                    if master_db_lookup.empty:
+                        st.warning("⚠️ मुख्य लाइव डेटाबेस (Master DB) वर्तमान में खाली है, इसलिए लुकअप नहीं किया जा सकता।")
+                    else:
+                        col_xl1, col_xl2, col_xl3 = st.columns(3)
+                        
+                        with col_xl1:
+                            # वर्तमान फ़ाइल का वो कॉलम जिससे मैच करना है (जैसे Application Number या Roll No)
+                            current_lookup_key = st.selectbox(
+                                "1. इस फ़ाइल का मैचिंग कॉलम चुनें (Lookup Value Column):",
+                                options=list(file_subset.columns),
+                                key="xl_curr_key"
+                            )
+                        with col_xl2:
+                            # मास्टर डेटाबेस का वो कॉलम जिससे मैचिंग करानी है
+                            master_lookup_key = st.selectbox(
+                                "2. मुख्य DB का मैचिंग कॉलम चुनें (Lookup Array Column):",
+                                options=list(master_db_lookup.columns),
+                                key="xl_mast_key"
+                            )
+                        with col_xl3:
+                            # मास्टर डेटाबेस का वो कॉलम जिसका डेटा हमें खींचकर लाना है
+                            master_return_col = st.selectbox(
+                                "3. मुख्य DB का वो कॉलम चुनें जिसका डेटा लाना है (Return Array):",
+                                options=list(master_db_lookup.columns),
+                                key="xl_return_col"
+                            )
+                            
+                        target_fill_col = st.selectbox(
+                            "🎯 इस फ़ाइल के किस कॉलम में डेटा भरना (Overwrite) चाहते हैं?",
+                            options=list(file_subset.columns),
+                            key="xl_target_fill"
+                        )
+                        
+                        if st.button("⚡ Run XLOOKUP & Map Data", type="secondary", use_container_width=True):
+                            try:
+                                # मैचिंग के लिए डुप्लीकेट्स हटाकर डिक्शनरी मैप तैयार करना
+                                lookup_map = master_db_lookup.dropna(subset=[master_lookup_key]).drop_duplicates(subset=[master_lookup_key])
+                                lookup_dict = dict(zip(lookup_map[master_lookup_key].astype(str).str.strip(), lookup_map[master_return_col]))
+                                
+                                # लुकअप वैल्यूज को स्ट्रिंग में बदलना और स्पेस साफ करना
+                                match_keys = file_subset[current_lookup_key].astype(str).str.strip()
+                                
+                                # डेटा मैप करना (अगर मैच न मिले तो पुराना डेटा ही रहेगा)
+                                mapped_values = match_keys.map(lookup_dict)
+                                
+                                # केवल वही डेटा ओवरराइट करना जहां मैच मिला हो
+                                updated_rows_count = mapped_values.notna().sum()
+                                file_subset[target_fill_col] = mapped_values.fillna(file_subset[target_fill_col])
+                                
+                                # स्टेजिंग डेटाबेस को अपडेट करना ताकि बदलाव सेव हो जाएं
+                                stage_db.loc[stage_db["Uploaded File Name"] == selected_file_to_process, target_fill_col] = file_subset[target_fill_col]
+                                save_stage_data(stage_db)
+                                
+                                st.success(f"🎉 XLOOKUP सफल! कुल `{updated_rows_count}` छात्र रिकॉर्ड्स में डेटा सफलता-पूर्वक अपडेट कर दिया गया है। नीचे ग्रिड में जांचें।")
+                                # स्क्रीन रिफ्रेश करना ताकि नया डेटा ग्रिड में दिखे
+                                st.rerun()
+                            except Exception as xl_err:
+                                st.error(f"लुकअप मैपिंग के दौरान तकनीकी त्रुटि: {xl_err}")
+                st.markdown("---")
+                # ======================================================================
+
                 # Render subset on layout grid sheet
                 display_cols = ["Admission Year", "Admission Session", "Application Number", "Student Name", "Father Name", "Branch", "Target Panel Visibility"]
-                render_subset = file_subset[[c for c in display_cols if c in file_subset.columns]].copy()
+                # सुनिश्चित करें कि ग्रिड में वे सभी कॉलम दिखें जो आपने लुकअप के लिए चुने हैं
+                extended_display_cols = list(set(display_cols + [target_fill_col if 'target_fill_col' in locals() else "Target Panel Visibility"]))
+                render_subset = file_subset[[c for c in extended_display_cols if c in file_subset.columns]].copy()
                 st.dataframe(render_subset, use_container_width=True)
                 
                 st.markdown("#### ⚙️ Conditional Routing Approval Parameters Matrix")
