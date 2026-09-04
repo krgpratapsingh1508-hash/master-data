@@ -1193,8 +1193,7 @@ if not foil_filter_df.empty:
         foil_filter_df["OPEN-ELECTIVE SUB"] = foil_filter_df["MDC Subjects"]
     if "PW/Ap/CE Subjects" in foil_filter_df.columns:
         foil_filter_df["PROJECT WORK"] = foil_filter_df["PW/Ap/CE Subjects"]
-
-                    foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes)
+        foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes)
                     
                     for essential_col in requested_columns:
                         if essential_col not in foil_filter_df.columns: 
