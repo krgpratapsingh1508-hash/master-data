@@ -1353,62 +1353,62 @@ else:
                                     """
                                 mark_entry_html += "</tbody></table></div>"
                                 st.markdown(mark_entry_html, unsafe_allow_html=True)
-
-                        # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER ---
-                        elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
-                            multi_paper_html = f"""
-                            <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
-                                    GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
-                                    Examination: {chosen_option.upper()}
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px;">
-                                    CCE List (Internal Evaluation)
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-top: 5px; margin-bottom: 10px; letter-spacing: 2px;">FOIL</div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed;">
-                                    <thead>
-                                        <tr style="font-weight: bold;">
-                                            <th style="border: 1px solid #000; padding: 6px; width: 6%;">S. No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 14%;">Roll No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Father Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">CCE Live</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-2</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-3</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-4</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                            """
                             
-                            # Complete loop rendering the individual rows correctly for Format 3
-                            for idx, row in enumerate(records_list):
-                                s_name = str(row.get("Student Name", "")).upper()
-                                f_name = str(row.get("Father Name", "")).upper()
-                                cce_live = str(row.get("Total Marks", "")).strip()
-                                
-                                multi_paper_html += f"""
-                                        <tr>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">{row.get("Roll No.", "")}</td>
-                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{s_name}</td>
-                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{f_name}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
-                                        </tr>
+                            # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER ---
+                            elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
+                                multi_paper_html = f"""
+                                <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                    <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
+                                        GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)
+                                    </div>
+                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
+                                        Examination: {chosen_option.upper()}
+                                    </div>
+                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px;">
+                                        CCE List (Internal Evaluation)
+                                    </div>
+                                    <div style="text-align: center; font-weight: bold; font-size: 14px; margin-top: 5px; margin-bottom: 10px; letter-spacing: 2px;">FOIL</div>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed;">
+                                        <thead>
+                                            <tr style="font-weight: bold;">
+                                                <th style="border: 1px solid #000; padding: 6px; width: 6%;">S. No.</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 14%;">Roll No.</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Name</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Father Name</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 9%;">CCE Live</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-2</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-3</th>
+                                                <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-4</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
                                 """
                                 
-                            multi_paper_html += """
-                                    </tbody>
-                                </table>
-                            </div>
-                            """
-                            st.markdown(multi_paper_html, unsafe_allow_html=True)
+                                # Complete loop rendering the individual rows correctly for Format 3
+                                for idx, row in enumerate(records_list):
+                                    s_name = str(row.get("Student Name", "")).upper()
+                                    f_name = str(row.get("Father Name", "")).upper()
+                                    cce_live = str(row.get("Total Marks", "")).strip()
+                                    
+                                    multi_paper_html += f"""
+                                            <tr>
+                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">{row.get("Roll No.", "")}</td>
+                                                <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{s_name}</td>
+                                                <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{f_name}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                            </tr>
+                                    """
+                                    
+                                multi_paper_html += """
+                                        </tbody>
+                                    </table>
+                                </div>
+                                """
+                                st.markdown(multi_paper_html, unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
         # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
