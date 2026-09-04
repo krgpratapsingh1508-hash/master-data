@@ -237,9 +237,13 @@ if not live_db.empty and "Admission Year" in live_db.columns:
         if not valid_years.empty:
             highest_admission_year = int(valid_years.max())
             
-            # प्रत्येक रो के लिए लाइव एडमिशन ईयर के आधार पर करंट ईयर कैलकुलेट करें
-            def calculate_current_academic_year(row_admission_year):
+            # प्रत्येक रो के लिए लाइव एडमिशन ईयर और स्टेटस के आधार पर करंट ईयर कैलकुलेट करें
+            def calculate_current_academic_year(row):
                 try:
+                    # एडमिशन ईयर और स्टेटस को रो से निकालें
+                    row_admission_year = row.get("Admission Year", "")
+                    student_status = str(row.get("Status", "")).strip().upper()
+                    
                     adm_yr = int(float(row_admission_year))
                     year_diff = highest_admission_year - adm_yr
                     
@@ -255,13 +259,25 @@ if not live_db.empty and "Admission Year" in live_db.columns:
                         return "5th Year"
                     elif year_diff == 5:
                         return "6th Year"
+                    elif year_diff == 6:
+                        # 6 साल का अंतर होने पर स्टेटस चेक करें
+                        if student_status == "EX-STUDENT":
+                            return "EX-STUDENT"
+                        else:
+                            return "Passout"
+                    elif year_diff > 6:
+                        # 6 साल से भी ज़्यादा पुराने रिकॉर्ड्स के लिए सेफ्टी नेट
+                        if student_status == "EX-STUDENT":
+                            return "EX-STUDENT"
+                        else:
+                            return "Passout"
                     else:
-                        return f"{year_diff + 1}th Year" # पुराना बैकअप रिकॉर्ड होने पर सेफ्टी नेट
+                        return "1st Year"
                 except:
-                    return "1st Year" # डिफॉल्ट फॉलबैक
+                    return "1st Year"
             
-            # लाइव डेटाबेस के दोनों संभावित वेरिएबल्स (Current Year और Year) को ऑटो-अपडेट करें
-            live_db["Current Year"] = live_db["Admission Year"].apply(calculate_current_academic_year)
+            # .apply(..., axis=1) का उपयोग करके पूरी रो को फ़ंक्शन में पास करें
+            live_db["Current Year"] = live_db.apply(calculate_current_academic_year, axis=1)
             if "Year" in live_db.columns:
                 live_db["Year"] = live_db["Current Year"]
                 
