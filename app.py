@@ -1155,11 +1155,45 @@ else:
                             p7_authorized_db[col_mark] = ""
                     
                     foil_filter_df = p7_authorized_db.copy()
-                    column_mapping_fixes = {
-                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                        "Email Id": "Email ID", "Year": "Current Year"
-                    }
+                    # ✅ नया मैकेनिज्म: आपके फ़ॉर्मेट के कॉलम्स को लाइव डेटाबेस के कॉलम से जोड़ना
+column_mapping_fixes = {
+    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+    "Email Id": "Email ID", "Year": "Current Year"
+}
+
+# लाइव डेटाबेस के डेटा को आपके दिए गए फ़ॉर्मेट के नामों में कॉपी करना
+if not foil_filter_df.empty:
+    if "Application Number" in foil_filter_df.columns:
+        foil_filter_df["HIGHER EDU ID"] = foil_filter_df["Application Number"]
+        foil_filter_df["application_no"] = foil_filter_df["Application Number"]
+    if "Student Name" in foil_filter_df.columns:
+        foil_filter_df["FULL NAME"] = foil_filter_df["Student Name"]
+        foil_filter_df["Name"] = foil_filter_df["Student Name"]
+    if "Father Name" in foil_filter_df.columns:
+        foil_filter_df["FATHER NAME"] = foil_filter_df["Father Name"]
+        foil_filter_df["father_name"] = foil_filter_df["Father Name"]
+    if "Mother Name" in foil_filter_df.columns:
+        foil_filter_df["MOTHER NAME"] = foil_filter_df["Mother Name"]
+    if "Date of Birth" in foil_filter_df.columns:
+        foil_filter_df["DATE OF BIRTH"] = foil_filter_df["Date of Birth"]
+        foil_filter_df["dob"] = foil_filter_df["Date of Birth"]
+    if "Category" in foil_filter_df.columns:
+        foil_filter_df["CATEGORY"] = foil_filter_df["Category"]
+        foil_filter_df["category"] = foil_filter_df["Category"]
+    if "Degree" in foil_filter_df.columns:
+        foil_filter_df["Drgree"] = foil_filter_df["Degree"]
+    if "Branch" in foil_filter_df.columns:
+        foil_filter_df["MAJOR SUB"] = foil_filter_df["Branch"]
+    if "Minor Subjects" in foil_filter_df.columns:
+        foil_filter_df["MINOR SUB"] = foil_filter_df["Minor Subjects"]
+    if "Vocational Subjects" in foil_filter_df.columns:
+        foil_filter_df["VOCATIONAL SUB"] = foil_filter_df["Vocational Subjects"]
+    if "MDC Subjects" in foil_filter_df.columns:
+        foil_filter_df["OPEN-ELECTIVE SUB"] = foil_filter_df["MDC Subjects"]
+    if "PW/Ap/CE Subjects" in foil_filter_df.columns:
+        foil_filter_df["PROJECT WORK"] = foil_filter_df["PW/Ap/CE Subjects"]
+
                     foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes)
                     
                     for essential_col in requested_columns:
