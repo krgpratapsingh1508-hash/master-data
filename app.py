@@ -1195,34 +1195,34 @@ else:
                             
                             def render_single_foil_block(start_sno, data_subset):
                                 html_chunk = f"""
-                                <div style="width: 49%; border: 1px solid #333; padding: 10px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                <div style="width: 49%; border: 1px solid #333; padding: 12px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                                     <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
                                         <span>Paper Code...................</span>
                                         <span>Bundle No...................</span>
                                     </div>
-                                    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
-                                        <h2 style="margin: 0; font-size: 13px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                        <h2 style="margin: 2px 0 0 0; font-size: 13px; font-weight: bold;">GWALIOR (M.P.)</h2>
+                                    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">
+                                        <h2 style="margin: 0; font-size: 14px; font-weight: bold; color: #111;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                        <h2 style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold; color: #111;">GWALIOR (M.P.)</h2>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 4px; margin-bottom: 6px;">
                                         <span>Examination :- CCE</span>
                                         <span>YEAR / SEM: {chosen_option.upper()}</span>
                                     </div>
-                                    <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                                    <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between;">
                                         <span>Subject: {selected_subject.upper()}</span>
                                         <span>Paper: ...................................</span>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 3px; margin-bottom: 3px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 4px; margin-bottom: 5px;">
                                         <span>Maximum Marks: {max_marks}</span>
                                         <span>Minimum Pass Marks: .................</span>
                                     </div>
-                                    <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; margin-bottom: 10px;">
+                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 8px; letter-spacing: 2px; text-decoration: underline;">FOIL</div>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; margin-bottom: 10px;">
                                         <thead>
-                                            <tr>
-                                                <th style="border: 1px solid #000; padding: 2px; width: 15%;">S. No.</th>
-                                                <th style="border: 1px solid #000; padding: 2px; width: 45%;">Roll No.</th>
-                                                <th style="border: 1px solid #000; padding: 2px; width: 40%;">Marks (In Figures)</th>
+                                            <tr style="background-color: #f5f5f5;">
+                                                <th style="border: 1px solid #000; padding: 4px; width: 15%; font-weight: bold;">S. No.</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 45%; font-weight: bold;">Roll No.</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 40%; font-weight: bold;">Marks (In Figures)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1230,17 +1230,17 @@ else:
                                 for idx, row in enumerate(data_subset):
                                     html_chunk += f"""
                                             <tr>
-                                                <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">{start_sno + idx}</td>
-                                                <td style="border: 1px solid #000; padding: 3px; font-family: monospace;">{row.get("Roll No.", "&nbsp;")}</td>
-                                                <td style="border: 1px solid #000; padding: 3px;">&nbsp;</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{start_sno + idx}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px; letter-spacing: 0.5px;">{row.get("Roll No.", "&nbsp;")}</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
                                             </tr>
                                     """
                                 html_chunk += "</tbody></table></div>"
                                 return html_chunk
 
-                            # दोनों ब्लॉक्स को स्क्रीन पर अगल-बगल (Side-by-Side) रेंडर करें
+                            # दोनों ब्लॉक्स को स्क्रीन पर बिल्कुल अगल-बगल (Side-by-Side Flex HTML Box) व्यवस्थित रेंडर करें
                             st.markdown(f"""
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 2%;">
                                     {render_single_foil_block(1, left_records)}
                                     {render_single_foil_block(32, right_records)}
                                 </div>
