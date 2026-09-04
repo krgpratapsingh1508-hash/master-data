@@ -1066,7 +1066,18 @@ else:
                     if col not in filtered_cce.columns: 
                         filtered_cce[col] = ""
                 
+                # Ensure all 22 columns exist strictly without dynamic duplicates
+                for col in cce_requested_cols:
+                    if col not in filtered_cce.columns: 
+                        filtered_cce[col] = ""
+                
+                # 🎯 अचूक उपाय: केवल वही 22 कॉलम छाँटें और किसी भी प्रकार के डुप्लिकेट कॉलम को पूरी तरह साफ़ करें
                 render_df = filtered_cce[cce_requested_cols].copy()
+                render_df = render_df.loc[:, ~render_df.columns.duplicated()].copy()
+                
+                # S. No. जोड़ने से पहले सुनिश्चित करें कि वह कॉलम पहले से मौजूद न हो
+                if "S. No." in render_df.columns:
+                    render_df = render_df.drop(columns=["S. No."])
                 render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 # Enforce system access rules based on security permissions
