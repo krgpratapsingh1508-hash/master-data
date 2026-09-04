@@ -223,28 +223,60 @@ if "uploader_key_counter" not in st.session_state:
 for k in DEFAULT_PANELS.keys():
     if f"hide_panel_{k}" not in st.session_state: st.session_state[f"hide_panel_{k}"] = False
 
-# मास्टर रिपॉजिटरी लोड करना
+# ==========================================================
+# 🧠 स्टेप 3.5: मास्टर रिपॉजिटरी लोड और ऑटो-ईयर कैलकुलेशन इंजन
+# ==========================================================
+# 1. डेटाबेस से मूल डेटा लोड करें
 live_db = load_live_data()
 
-# ⚙️ स्टेप 2.5: पैनल 1 के लिए डायनेमिक ड्रॉपडाउन लिस्ट स्कीमा बैकअप और लोड इंजन
-if "p1_dropdown_schemas" not in st.session_state:
-    P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
-    DEFAULT_P1_SCHEMAS = {
-        "file_types": [
-            "admission file", "admission fee file", "Unique id file", 
-            "Roll No File", "Enrollment File", "Promotion File", "Result File"
-        ],
-        "academic_years": [str(year) for year in range(2014, 2027)],
-        "academic_sessions": [f"{year}-{str(year+1)[2:]}" for year in range(2014, 2027)]
-    }
-    if os.path.exists(P1_SCHEMA_FILE):
-        try:
-            with open(P1_SCHEMA_FILE, "r", encoding="utf-8") as f:
-                st.session_state.p1_dropdown_schemas = json.load(f)
-        except:
-            st.session_state.p1_dropdown_schemas = DEFAULT_P1_SCHEMAS.copy()
-    else:
-        st.session_state.p1_dropdown_schemas = DEFAULT_P1_SCHEMAS.copy()
+# 2. ऑटोमैटिक बैच प्रोग्रेशन / करंट ईयर कैलकुलेशन इंजन
+if not live_db.empty and "Admission Year" in live_db.columns:
+    try:
+        # एडमिशन ईयर कॉलम से सबसे हाईएस्ट (लेटेस्ट) साल ढूंढें
+        valid_years = pd.to_numeric(live_db["Admission Year"], errors='coerce').dropna()
+        if not valid_years.empty:
+            highest_admission_year = int(valid_years.max())
+            
+            # प्रत्येक रो के लिए लाइव एडमिशन ईयर के आधार पर करंट ईयर कैलकुलेट करें
+            def calculate_current_academic_year(row_admission_year):
+                try:
+                    adm_yr = int(float(row_admission_year))
+                    year_diff = highest_admission_year - adm_yr
+                    
+                    if year_diff == 0:
+                        return "1st Year"
+                    elif year_diff == 1:
+                        return "2nd Year"
+                    elif year_diff == 2:
+                        return "3rd Year"
+                    elif year_diff == 3:
+                        return "4th Year"
+                    elif year_diff == 4:
+                        return "5th Year"
+                    elif year_diff == 5:
+                        return "6th Year"
+                    else:
+                        return f"{year_diff + 1}th Year" # पुराना बैकअप रिकॉर्ड होने पर सेफ्टी नेट
+                except:
+                    return "1st Year" # डिफॉल्ट फॉलबैक
+            
+            # लाइव डेटाबेस के दोनों संभावित वेरिएबल्स (Current Year और Year) को ऑटो-अपडेट करें
+            live_db["Current Year"] = live_db["Admission Year"].apply(calculate_current_academic_year)
+            if "Year" in live_db.columns:
+                live_db["Year"] = live_db["Current Year"]
+                
+            # इसे वापस परमानेंटली सेव करने की ज़रूरत नहीं है क्योंकि यह हर बार रन होने पर रियल-टाइम कैलकुलेट होगा
+    except Exception as auto_yr_err:
+        st.error(f"करंट ईयर ऑटो-कैलकुलेशन इंजन में तकनीकी समस्या: {auto_yr_err}")
+
+# पी12 का नाम हमेशा 'desh Board Editer' दिखाने के लिए कंडीशन
+def get_display_name(internal_col_name):
+    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
+
+def get_panel_title(panel_id):
+    if panel_id == "P12":
+        return "desh Board Editer"
+    return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
 def save_p1_dropdown_schemas():
     P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
