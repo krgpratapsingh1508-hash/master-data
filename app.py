@@ -224,12 +224,12 @@ for k in DEFAULT_PANELS.keys():
     if f"hide_panel_{k}" not in st.session_state: st.session_state[f"hide_panel_{k}"] = False
 
 # ==========================================================
-# 🧠 स्टेप 3.5: मास्टर रिपॉजिटरी लोड और ऑटो-ईयर कैलकुलेशन इंजन
+# 🧠 स्टेप 3.5: मास्टर रिपॉजिटरी लोड और ऑटो-ईयर कैलकुलेशन इंजन (Duration Based)
 # ==========================================================
 # 1. डेटाबेस से मूल डेटा लोड करें
 live_db = load_live_data()
 
-# 2. ऑटोमैटिक बैच प्रोग्रेशन / करंट ईयर कैलकुलेशन इंजन
+# 2. कोर्स Duration के आधार पर लाइव ऑटोमैटिक ईयर कैलकुलेशन इंजन
 if not live_db.empty and "Admission Year" in live_db.columns:
     try:
         # एडमिशन ईयर कॉलम से सबसे हाईएस्ट (लेटेस्ट) साल ढूंढें
@@ -237,36 +237,35 @@ if not live_db.empty and "Admission Year" in live_db.columns:
         if not valid_years.empty:
             highest_admission_year = int(valid_years.max())
             
-            # प्रत्येक रो के लिए लाइव एडमिशन ईयर और स्टेटस के आधार पर करंट ईयर कैलकुलेट करें
+            # प्रत्येक रो के लिए लाइव एडमिशन ईयर और कोर्स Duration के आधार पर कैलकुलेट करें
             def calculate_current_academic_year(row):
                 try:
-                    # एडमिशन ईयर और स्टेटस को रो से निकालें
                     row_admission_year = row.get("Admission Year", "")
                     student_status = str(row.get("Status", "")).strip().upper()
                     
+                    # Duration कॉलम का मान निकालें और स्पेस साफ़ करें
+                    duration_val = str(row.get("Duration", "")).strip()
+                    
+                    # 🚨 नियम: यदि Duration कॉलम खाली है, nan है, तो सीधे अलर्ट दिखाएँ
+                    if not duration_val or duration_val == "" or duration_val.lower() == "nan" or duration_val == "0":
+                        return "plz Fill the Duretion"
+                    
+                    max_duration = int(float(duration_val))
                     adm_yr = int(float(row_admission_year))
                     year_diff = highest_admission_year - adm_yr
                     
-                    if year_diff == 0:
-                        return "1st Year"
-                    elif year_diff == 1:
-                        return "2nd Year"
-                    elif year_diff == 2:
-                        return "3rd Year"
-                    elif year_diff == 3:
-                        return "4th Year"
-                    elif year_diff == 4:
-                        return "5th Year"
-                    elif year_diff == 5:
-                        return "6th Year"
-                    elif year_diff == 6:
-                        # 6 साल का अंतर होने पर स्टेटस चेक करें
-                        if student_status == "EX-STUDENT":
-                            return "EX-STUDENT"
-                        else:
-                            return "Passout"
-                    elif year_diff > 6:
-                        # 6 साल से भी ज़्यादा पुराने रिकॉर्ड्स के लिए सेफ्टी नेट
+                    # यदि अंतर कोर्स की अवधि के अंदर है (जैसे 1st Year से 6th Year तक)
+                    if 0 <= year_diff < max_duration:
+                        if year_diff == 0: return "1st Year"
+                        elif year_diff == 1: return "2nd Year"
+                        elif year_diff == 2: return "3rd Year"
+                        elif year_diff == 3: return "4th Year"
+                        elif year_diff == 4: return "5th Year"
+                        elif year_diff == 5: return "6th Year"
+                        else: return f"{year_diff + 1}th Year"
+                    
+                    # यदि अंतर कोर्स की अवधि के बराबर या उससे ज़्यादा हो चुका है
+                    elif year_diff >= max_duration:
                         if student_status == "EX-STUDENT":
                             return "EX-STUDENT"
                         else:
@@ -274,18 +273,17 @@ if not live_db.empty and "Admission Year" in live_db.columns:
                     else:
                         return "1st Year"
                 except:
-                    return "1st Year"
+                    return "plz Fill the Duretion"
             
-            # .apply(..., axis=1) का उपयोग करके पूरी रो को फ़ंक्शन में पास करें
+            # पूरे डेटाबेस ग्रिड को लाइव अपडेट करें
             live_db["Current Year"] = live_db.apply(calculate_current_academic_year, axis=1)
             if "Year" in live_db.columns:
                 live_db["Year"] = live_db["Current Year"]
                 
-            # इसे वापस परमानेंटली सेव करने की ज़रूरत नहीं है क्योंकि यह हर बार रन होने पर रियल-टाइम कैलकुलेट होगा
     except Exception as auto_yr_err:
         st.error(f"करंट ईयर ऑटो-कैलकुलेशन इंजन में तकनीकी समस्या: {auto_yr_err}")
 
-# पी12 का नाम हमेशा 'desh Board Editer' दिखाने के लिए कंडीशन
+# पी12 और कॉलम मैपिंग के लिए यूटिलिटी फ़ंक्शंस
 def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
@@ -298,15 +296,6 @@ def save_p1_dropdown_schemas():
     P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
     with open(P1_SCHEMA_FILE, "w", encoding="utf-8") as f:
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
-
-def get_display_name(internal_col_name):
-    return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
-
-def get_panel_title(panel_id):
-    # पी12 का नाम हमेशा 'desh Board Editer' दिखाने के लिए कंडीशन
-    if panel_id == "P12":
-        return "desh Board Editer"
-    return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
 # ==========================================================
 # 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
