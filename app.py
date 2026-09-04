@@ -45,7 +45,7 @@ DEFAULT_NOTICE = (
 )
 
 DEFAULT_CREDENTIALS = {
-    "admin": {"password": "damini", "role": "full_admin", "label": "👑 Super Admin (All 15 Panels Control)"},
+    "admin": {"password": "damini1530", "role": "full_admin", "label": "👑 Super Admin (All 15 Panels Control)"},
     "p1_entry": {"password": "entry1123", "role": "p1_role", "label": "📝 P1: Student Data Onboarding Operator"},
     "p2_admission": {"password": "adm2123", "role": "p2_role", "label": "🎓 P2: Admission Control Manager"},
     "p3_unique": {"password": "uniq3123", "role": "p3_role", "label": "🆔 P3: Unique ID Assignment Manager"},
