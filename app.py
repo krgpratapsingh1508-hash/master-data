@@ -1078,7 +1078,7 @@ else:
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
             
             # मास्टर डेटाबेस से P7 के लिए स्वीकृत डेटा फ़िल्टर करें
-            p7_authorized_db = live_db[live_db["Target Panel Visibility"] == "P7"].copy()
+            p7_authorized_db = live_db.copy()
 
             if p7_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन करें।")
