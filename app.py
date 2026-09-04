@@ -413,7 +413,7 @@ else:
                 options=["📁 फ़ाइल बल्क अपलोड (Bulk File Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
             )
             
-            # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम
+            # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम (Modified for Multiple CSV & XLSX Upload)
             if entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
                 st.subheader("📊 Select Target Configurations Before Upload")
                 col_sc1, col_sc2, col_sc3 = st.columns(3)
@@ -440,66 +440,75 @@ else:
                 if (p1_file_type == "-- चुनें --" or p1_admission_year == "-- चुनें --" or p1_admission_session == "-- चुनें --"):
                     st.info("💡 कृपया फ़ाइल अपलोड विंडो खोलने के लिए ऊपर दिए गए तीनों विकल्पों (File Segment, Year और Session) का चयन करें।")
                 else:
-                    st.success(f"✅ कॉन्फ़िगरेशन लॉक: **{p1_file_type.upper()}** | वर्ष: **{p1_admission_year}** | सत्र: **{p1_admission_session}**")
+                    st.success(f"✅ कॉन्फ़िगरेशन锁: **{p1_file_type.upper()}** | वर्ष: **{p1_admission_year}** | सत्र: **{p1_admission_session}**")
                     
-                    # 🆕 अपलोडर को तुरंत खाली करने के लिए डायनेमिक uploader key मैकेनिज्म
                     uploader_unique_key = f"p1_bulk_uploader_widget_run_{st.session_state.get('uploader_key_counter', 0)}"
                     
-                    uploaded_file = st.file_uploader(
-                        f"अपलोड करने के लिए '{p1_file_type}' की फ़ाइल चुनें:", 
+                    # 🆕 यहाँ accept_multiple_files=True किया गया है ताकि CSV और XLSX दोनों एक साथ अपलोड हो सकें
+                    uploaded_files = st.file_uploader(
+                        f"अपलोड करने के लिए '{p1_file_type}' की फ़ाइलें चुनें (अधिकतम 5):", 
                         type=["csv", "xlsx", "xls"],
+                        accept_multiple_files=True,
                         key=uploader_unique_key
                     )
                     
-                    if uploaded_file is not None:
+                    if uploaded_files:
+                        if len(uploaded_files) > 5:
+                            st.warning("⚠️ कृपया एक बार में केवल 1 से 5 फ़ाइलें ही अपलोड करें।")
+                        
                         if st.button("Upload & Send to System Database Now", type="primary", use_container_width=True):
                             try:
-                                if uploaded_file.name.endswith('.csv'):
-                                    uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                                elif uploaded_file.name.endswith('.xlsx'):
-                                    uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
-                                elif uploaded_file.name.endswith('.xls'):
-                                    try:
-                                        uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
-                                    except:
-                                        uploaded_file.seek(0) 
-                                        html_tables = pd.read_html(uploaded_file)
-                                        uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
-                                
-                                if uploaded_df.empty:
-                                    st.error("फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
-                                    st.stop()
-
-                                uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-                                
-                                for col in DEFAULT_COLUMNS:
-                                    if col not in uploaded_df.columns: 
-                                        uploaded_df[col] = ""
-                                
-                                uploaded_df["Admission Year"] = p1_admission_year
-                                uploaded_df["Admission Session"] = p1_admission_session
-                                
-                                # 🆕 Add security tag for conditional visibility routing
-                                uploaded_df["Target Panel Visibility"] = "Pending Approval"
-                                
-                                if "Uploaded File Type" not in uploaded_df.columns:
-                                    uploaded_df["Uploaded File Type"] = p1_file_type
-                                
-                                cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
-                                cleaned_uploaded_df["Uploaded File Name"] = uploaded_file.name
-                                
-                                # 🛑 CRITICAL ROUTING CHANGE: Store safely into isolation staging database instead of live master DB
+                                success_count = 0
                                 current_stage_db = load_stage_data()
-                                updated_stage_df = pd.concat([current_stage_db, cleaned_uploaded_df], ignore_index=True)
-                                save_stage_data(updated_stage_df)
+                                all_new_dfs = [current_stage_db]
                                 
-                                # 🔄 AUTO-CLEAR MECHANISM: Advance state variable to dynamically wipe the file uploader UI widget
-                                st.session_state.uploader_key_counter += 1
+                                # 🔄 लूप चलाकर एक-एक करके सभी फ़ाइलों को रीड (Read) करना
+                                for uploaded_file in uploaded_files:
+                                    if uploaded_file.name.endswith('.csv'):
+                                        uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+                                    elif uploaded_file.name.endswith('.xlsx'):
+                                        uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
+                                    elif uploaded_file.name.endswith('.xls'):
+                                        try:
+                                            uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
+                                        except:
+                                            uploaded_file.seek(0) 
+                                            html_tables = pd.read_html(uploaded_file)
+                                            uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
+                                    
+                                    if uploaded_df.empty:
+                                        st.error(f"❌ फ़ाइल '{uploaded_file.name}' के अंदर कोई मान्य डेटा नहीं मिला।")
+                                        continue
+
+                                    uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+                                    
+                                    for col in DEFAULT_COLUMNS:
+                                        if col not in uploaded_df.columns: 
+                                            uploaded_df[col] = ""
+                                    
+                                    uploaded_df["Admission Year"] = p1_admission_year
+                                    uploaded_df["Admission Session"] = p1_admission_session
+                                    uploaded_df["Target Panel Visibility"] = "Pending Approval"
+                                    
+                                    if "Uploaded File Type" not in uploaded_df.columns:
+                                        uploaded_df["Uploaded File Type"] = p1_file_type
+                                    
+                                    cleaned_uploaded_df = uploaded_df[DEFAULT_COLUMNS].copy()
+                                    cleaned_uploaded_df["Uploaded File Name"] = uploaded_file.name
+                                    
+                                    all_new_dfs.append(cleaned_uploaded_df)
+                                    success_count += 1
                                 
-                                # 📢 Display requested confirmation banner layout
-                                st.success("🎉 file successfully send in merge & approve panel!")
-                                st.balloons()
-                                st.rerun()
+                                # 🛑 सभी फ़ाइलों के डेटा को जोड़कर स्टेजिंग CSV में सुरक्षित करना
+                                if success_count > 0:
+                                    updated_stage_df = pd.concat(all_new_dfs, ignore_index=True)
+                                    save_stage_data(updated_stage_df)
+                                    
+                                    st.session_state.uploader_key_counter += 1
+                                    
+                                    st.success(f"🎉 कुल {success_count} फ़ाइलें (CSV/XLSX) सफलतापूर्वक 'merge & approve panel' में भेज दी गई हैं!")
+                                    st.balloons()
+                                    st.rerun()
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
                                 
