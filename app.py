@@ -2224,35 +2224,34 @@ else:
                 st.rerun()
 
             # ======================================================================
-            # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Admin Only + Auto Lock)
+            # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Fixed Auto Lock)
             # ======================================================================
             st.markdown("---")
             st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
             st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
             
-            # सेशन स्टेट में पासवर्ड इनिशियलाइज़ करना ताकि इसे बाद में क्लियर किया जा सके
-            if "p15_uploader_pass_state" not in st.session_state:
-                st.session_state.p15_uploader_pass_state = ""
+            # ऑटो-रीसेट ट्रिगर काउंटर स्टेट जो विजेट को रीबूट करेगा
+            if "p15_uploader_reset_counter" not in st.session_state:
+                st.session_state.p15_uploader_reset_counter = 0
 
             with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
                 col_up_pass, col_up_file = st.columns(2)
                 
                 with col_up_pass:
+                    # काउंटर को की (Key) के साथ जोड़कर डायनेमिक बनाया गया है ताकि एरर न आए
                     uploader_secure_password = st.text_input(
                         "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
                         type="password", 
-                        value=st.session_state.p15_uploader_pass_state,
-                        key="p15_master_uploader_password_v16"
+                        key=f"p15_master_pass_widget_run_{st.session_state.p15_uploader_reset_counter}"
                     )
                 
                 with col_up_file:
-                    # 🔑 पासवर्ड वेरिफिकेशन लॉजिक
                     is_password_correct = (uploader_secure_password == "admin@upload15")
                     
                     uploaded_master_file = st.file_uploader(
                         "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
                         type=["csv", "xlsx", "xls"],
-                        key="p15_supreme_master_multi_uploader_widget",
+                        key=f"p15_master_file_widget_run_{st.session_state.p15_uploader_reset_counter}",
                         disabled=not is_password_correct
                     )
                 
@@ -2262,11 +2261,11 @@ else:
                     st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
                     
                     if uploaded_master_file is not None:
-                        st.info(f"📁 चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
+                        st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
                         
                         confirm_overwrite_checkbox = st.checkbox(
                             "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
-                            key="p15_master_overwrite_confirm_checkbox_v16"
+                            key=f"p15_master_chk_run_{st.session_state.p15_uploader_reset_counter}"
                         )
                         
                         if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
@@ -2277,11 +2276,11 @@ else:
                                     raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='openpyxl', dtype=str).fillna("")
                                 elif uploaded_master_file.name.endswith('.xls'):
                                     try:
-                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlrd', dtype=str).fillna("")
+                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlsrd', dtype=str).fillna("")
                                     except:
                                         uploaded_master_file.seek(0)
                                         html_tables = pd.read_html(uploaded_master_file)
-                                        raw_uploaded_df = html_tables.astype(str).fillna("") if html_tables else pd.DataFrame()
+                                        raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
                                 
                                 if raw_uploaded_df.empty:
                                     st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
@@ -2298,14 +2297,10 @@ else:
                                     finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
                                     save_live_data(finalized_uploaded_master)
                                     
-                                    # 🆕 ==========================================
-                                    # 🔒 ऑटो-लॉक मैकेनिज्म: अपलोड सक्सेस होने पर सब रीसेट करें
-                                    # ==========================================
-                                    st.session_state.p15_uploader_pass_state = ""
-                                    if "p15_master_uploader_password_v16" in st.session_state:
-                                        st.session_state["p15_master_uploader_password_v16"] = ""
+                                    # 🔒 सुरक्षित रीसेट मैकेनिज्म: काउंटर बदलते ही विजेट फ्रेश रीबूट हो जाएगा और पुराना डेटा मिट जाएगा
+                                    st.session_state.p15_uploader_reset_counter += 1
                                     
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को दोबारा सुरक्षित लॉक कर दिया गया है।")
+                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को सुरक्षित लॉक कर दिया गया है।")
                                     st.balloons()
                                     st.rerun()
                                     
