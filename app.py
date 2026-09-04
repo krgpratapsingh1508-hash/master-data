@@ -2241,7 +2241,7 @@ else:
                     )
                 
                 with col_up_file:
-                    is_password_correct = (uploader_secure_password == st.session_state.credentials["admin"]["password"])
+                    is_password_correct = (uploader_secure_password == "admin@upload15")
                     
                     uploaded_master_file = st.file_uploader(
                         "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
