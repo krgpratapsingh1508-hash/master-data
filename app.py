@@ -1113,7 +1113,7 @@ else:
                         key="p7_foil_format_selection"
                     )
                 with col_p7_2:
-                    unique_subjects = sorted(list(set(p7_authorized_db['Branch'].dropna().astype(str).str.strip())))
+                    unique_subjects = sorted(list(set(p7_authorized_db['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in p7_authorized_db.columns else sorted(list(set(p7_authorized_db['Subject'].dropna().astype(str).str.strip())))
                     selected_subject = st.selectbox(
                         "📚 Select Branch Name / Subject:", 
                         options=["All Branches"] + [s for s in unique_subjects if s != ""], 
@@ -1167,7 +1167,10 @@ else:
                             foil_filter_df[essential_col] = ""
                     
                     if selected_subject != "All Branches": 
-                        foil_filter_df = foil_filter_df[foil_filter_df["Branch"].astype(str).str.strip() == selected_subject]
+                        if "Branch" in foil_filter_df.columns:
+                            foil_filter_df = foil_filter_df[foil_filter_df["Branch"].astype(str).str.strip() == selected_subject]
+                        elif "Subject" in foil_filter_df.columns:
+                            foil_filter_df = foil_filter_df[foil_filter_df["Subject"].astype(str).str.strip() == selected_subject]
                     
                     records_list = foil_filter_df.reset_index(drop=True).to_dict(orient="records")
                     total_records = len(records_list)
