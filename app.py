@@ -1159,8 +1159,11 @@ else:
                         st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                if st.session_state.get('cce_foil_generated', False):                
-                st.markdown("---")
+                if st.session_state.get('cce_foil_generated', False):
+                    st.markdown("---")
+                    foil_filter_df = filtered_cce.copy()
+                    
+                    multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
                 
                 # ------------------------------------------------------------------
                 # भाग 2: फॉयल शीट जनरेटर इंजन (University Official Foil Generator)
