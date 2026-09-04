@@ -1011,12 +1011,12 @@ else:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P7: PANEL CCE DESK (22-Cols Master List + CCE Entry + Foil Sheet Generator)
+        # P7: PANEL CCE DESK (Strict 22-Cols Selection + Dynamic Blank Foil)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"📋 {get_panel_title('P7')} (Complete CCE Management & Foil Desk)")
             
-            # Ensure specialized data ledger parameters exist inside database schema fields
+            # सुनिश्चित करें कि मार्क्स वाले कॉलम डेटाबेस स्कीमा में मौजूद हों
             for f in ["CCE Marks Obtained", "CCE Attendance Status"]:
                 if f not in live_db.columns: 
                     live_db[f] = ""
@@ -1027,292 +1027,211 @@ else:
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
                 # ------------------------------------------------------------------
-                # Section 1: 22-Columns Student Registry & Live Assessment Entry Grid
+                # भाग 1: 22-कॉलम छात्र सूची और लाइव असेसमेंट एंट्री ग्रिड
                 # ------------------------------------------------------------------
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("📝 1. CCE Data Entry Desk & 22-Columns Student List")
                 st.markdown("""
                     <div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं। यह डेटा नीचे भाग 2 (Foil Generator) में अपने आप सिंक हो जाएगा।
+                        📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं।
                     </div>
                 """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Comprehensive unique 22 columns tracking data structure matrix
+                # आपके द्वारा मांगे गए सटीक 22 कॉलम का फ़्रेमवर्क
                 cce_requested_cols = [
-                    "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
-                    "CCE Marks Obtained", "CCE Attendance Status", "Admission Year", "Admission Session", 
-                    "Eligibility Name", "Admission Date", "Unique ID", "Application Enrollment No.", 
-                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
-                    "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+                    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
+                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
+                    "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status",
+                    "CCE Marks Obtained", "CCE Attendance Status"
                 ]
 
-                # Normalise input variant headings across runtime frames cleanly
+                # स्पेलिंग्स और विसंगतियों को ठीक करने के लिए ट्रांसलेशन मैप
                 column_mapping_fixes = {
-                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                    "Email Id": "Email ID", "Year": "Current Year",
-                    "Application Number": "Admission Application Number",
-                    "Enrollment No": "Enrollment No."
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", "Unique ID": "Unique ID",
+                    "Date Of Birth": "Date of Birth", "Date of Birth": "Date of Birth",
+                    "Duretion": "Duration", "Duration": "Duration",
+                    "Email Id": "Email ID", "Email ID": "Email ID", 
+                    "Year": "Current Year", "Current Year": "Current Year",
+                    "Application Number": "Admission Application Number", "Admission Application Number": "Admission Application Number",
+                    "Enrollment No": "Enrollment No.", "Enrollment No.": "Enrollment No."
                 }
                 
                 filtered_cce = p7_authorized_db.copy()
                 filtered_cce = filtered_cce.rename(columns=column_mapping_fixes)
 
-                # If old column exists, map it safely to unique target column to avoid conflicts
                 if "Application Number" in filtered_cce.columns and "Admission Application Number" not in filtered_cce.columns:
                     filtered_cce["Admission Application Number"] = filtered_cce["Application Number"]
+                if "Year" in filtered_cce.columns and "Current Year" not in filtered_cce.columns:
+                    filtered_cce["Current Year"] = filtered_cce["Year"]
 
-                # Ensure all 22 columns exist strictly without dynamic duplicates
                 for col in cce_requested_cols:
                     if col not in filtered_cce.columns: 
                         filtered_cce[col] = ""
                 
-                # Ensure all 22 columns exist strictly without dynamic duplicates
-                for col in cce_requested_cols:
-                    if col not in filtered_cce.columns: 
-                        filtered_cce[col] = ""
-                
-                # 🎯 अचूक उपाय: केवल वही 22 कॉलम छाँटें और किसी भी प्रकार के डुप्लिकेट कॉलम को पूरी तरह साफ़ करें
+                # केवल वही 22 कॉलम छाँटें
                 render_df = filtered_cce[cce_requested_cols].copy()
                 render_df = render_df.loc[:, ~render_df.columns.duplicated()].copy()
                 
-                # S. No. जोड़ने से पहले सुनिश्चित करें कि वह कॉलम पहले से मौजूद न हो
-                if "S. No." in render_df.columns:
+                # स्क्रीन डिस्प्ले के अनुसार स्पेलिंग बदलना
+                display_rename_map = {
+                    "Unique ID": "Unique Id",
+                    "Email ID": "Email Id",
+                    "Duration": "Duretion",
+                    "Current Year": "Year"
+                }
+                render_df = render_df.rename(columns=display_rename_map)
+                
+                if "S. No." in render_df.columns: 
                     render_df = render_df.drop(columns=["S. No."])
                 render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
-                # Enforce system access rules based on security permissions
-                if role == "full_admin" or role == "p7_role":
+                # डेटा एंट्री ग्रिड प्रिव्यू (प्रिंट के समय यह छुप जाएगा)
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                if role in ["full_admin", "p7_role"]:
                     disabled_cols = [c for c in render_df.columns if c not in ["CCE Marks Obtained", "CCE Attendance Status"]]
-                    st.info("🔓 **डेटा एंट्री मोड एक्टिव:** आप CCE Marks और Attendance Status कॉलम्स में सीधे बदलाव कर सकते हैं।")
+                    st.info("🔓 **डेटा एंट्री मोड एक्टिव:** आप CCE Marks और Attendance Status बदल सकते हैं।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** आपके पास इस पैनल में बदलाव करने का अधिकार नहीं है।")
-                
-                # Active cell data editor sheet table
+                    st.warning("🔒 **रीड-ओनली मोड:** आपके पास बदलाव का अधिकार नहीं है।")
+                    
                 edited_cce = st.data_editor(
                     render_df, 
                     use_container_width=True, 
                     disabled=disabled_cols, 
                     column_config={
-                        "CCE Marks Obtained": st.column_config.TextColumn("CCE Marks (Max 20)", help="आन्तरिक मूल्यांकन अंक दर्ज करें"),
+                        "CCE Marks Obtained": st.column_config.TextColumn("CCE Marks (Max 20)"),
                         "CCE Attendance Status": st.column_config.SelectboxColumn("Attendance Status", options=["Present", "Absent", "Detained"], required=True)
                     }, 
                     key="cce_live_entry_grid_p7_desk_final", 
                     hide_index=True
                 )
                 
-                # Commit updates to synchronize changes securely to core dataset sheet file
-                if role == "full_admin" or role == "p7_role":
-                    if st.button("💾 Save Grid Changes to Master Database", type="primary", use_container_width=True, key="p7_save_cce_data_btn_final"):
+                if role in ["full_admin", "p7_role"]:
+                    if st.button("💾 Save Grid Changes to Master Database", type="primary", use_container_width=True, key="p7_save_grid_btn"):
                         try:
                             clean_edited = edited_cce.drop(columns=["S. No."], errors="ignore")
                             cce_sync_counter = 0
-                            
                             for _, r_edit in clean_edited.iterrows():
                                 app_num = str(r_edit["Admission Application Number"]).strip()
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
+                                idx_matches = pd.Index([])
+                                if "Application Number" in live_db.columns:
+                                    idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
+                                if idx_matches.empty and "Admission Application Number" in live_db.columns:
+                                    idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
                                     for match_idx in idx_matches:
                                         live_db.at[match_idx, "CCE Marks Obtained"] = str(r_edit["CCE Marks Obtained"]).strip()
                                         live_db.at[match_idx, "CCE Attendance Status"] = str(r_edit["CCE Attendance Status"]).strip()
                                         cce_sync_counter += 1
-                            
                             save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्रों के CCE मार्क्स मुख्य डेटाबेस में सुरक्षित सेव हो गए हैं!")
+                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्रों के CCE मार्क्स सुरक्षित सेव हो गए हैं!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या: {e}")
-
-                st.markdown("---")
-                
-                # ------------------------------------------------------------------
-                # Section 2: University Official Foil Print Layouts
-                # ------------------------------------------------------------------
-                st.subheader("📄 2. Generate University Official Foil Sheets Canvas")
-                
-                def marks_to_words(val_str):
-                    val_clean = str(val_str).strip().upper()
-                    if val_clean in ["A", "ABS", "ABSENT", "2 AB", "2AB"]: return "Absent"
-                    try:
-                        num = int(float(val_str))
-                        words = {
-                            0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
-                            6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
-                            11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
-                            16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen", 20: "twenty"
-                        }
-                        return words.get(num, str(num))
-                    except: return str(val_str)
-
-                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                col_p7_1, col_p7_2 = st.columns(2)
-                with col_p7_1:
-                    foil_format_type = st.selectbox(
-                        "📄 CCE Foil फ़ॉर्मेट चुनें:",
-                        options=[
-                            "Blank Foil (Side-by-Side List)", 
-                            "CCE Mark Entry (Detailed Marks View)", 
-                            "CCE List (Internal Evaluation - Multi Paper)"
-                        ],
-                        key="p7_foil_format_selection_ultimate"
-                    )
-                with col_p7_2:
-                    unique_subjects = sorted(list(set(filtered_cce['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in filtered_cce.columns else sorted(list(set(filtered_cce['Subject'].dropna().astype(str).str.strip())))
-                    selected_subject = st.selectbox("📚 Select Branch Name / Subject Filter:", options=["All Branches"] + [s for s in unique_subjects if s != ""], key="cce_p7_sub_filter_ultimate")
-                
-                col_p7_3, col_p7_4 = st.columns(2)
-                with col_p7_3:
-                    chosen_option = st.selectbox("📆 Select Semester / Year Scope:", options=["1 Semester", "2 Semester", "1 Year", "2 Year", "3 Year", "Fourth Semester", "6th SEMESTER"], key="cce_p7_sem_filter_ultimate")
-                with col_p7_4:
-                    max_marks = st.text_input("Maximum Marks:", value="20", key="cce_p7_max_marks_ultimate")
-
-                btn_col1, btn_col2 = st.columns(2)
-                with btn_col1:
-                    if st.button("🔄 Generate Selected Foil Print Layout", use_container_width=True, type="primary", key="p7_gen_canvas_btn_ultimate"): 
-                        st.session_state.cce_foil_generated = True
-                with btn_col2:
-                    if st.session_state.get('cce_foil_generated', False):
-                        st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-                
-                if st.session_state.get('cce_foil_generated', False):
-                    st.markdown("---")
-                    foil_filter_df = filtered_cce.copy()
-                    
-                    multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
-                
-                # ------------------------------------------------------------------
-                # भाग 2: फॉयल शीट जनरेटर इंजन (University Official Foil Generator)
-                # ------------------------------------------------------------------
-                st.subheader("📄 2. Generate University Official Foil Sheets Canvas")
-                
-                def marks_to_words(val_str):
-                    val_clean = str(val_str).strip().upper()
-                    if val_clean in ["A", "ABS", "ABSENT", "2 AB", "2AB"]: return "Absent"
-                    try:
-                        num = int(float(val_str))
-                        words = {
-                            0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
-                            6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
-                            11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
-                            16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen", 20: "twenty"
-                        }
-                        return words.get(num, str(num))
-                    except: return str(val_str)
 
+                # ----------------------------------------------------------------------
+                # भाग 2: ब्लैंक फ़ॉयल जनरेटर (P7 लिस्ट से सिंक और डायनेमिक फ़िल्टर)
+                # ----------------------------------------------------------------------
+                st.markdown("---")
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                st.subheader("📄 2. Generate University Official Blank Foil Sheets")
+                
                 col_p7_1, col_p7_2 = st.columns(2)
                 with col_p7_1:
-                    foil_format_type = st.selectbox(
-                        "📄 CCE Foil फ़ॉर्मेट चुनें:",
-                        options=[
-                            "Blank Foil (Side-by-Side List)", 
-                            "CCE Mark Entry (Detailed Marks View)", 
-                            "CCE List (Internal Evaluation - Multi Paper)"
-                        ],
-                        key="p7_foil_format_selection_ultimate"
-                    )
+                    # P7 की रेंडर लिस्ट से यूनिक विषयों (Subject) की सूची
+                    unique_subjects = sorted(list(set(render_df['Subject'].dropna().astype(str).str.strip())))
+                    selected_subject = st.selectbox("📚 Select Subject Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
                 with col_p7_2:
-                    unique_subjects = sorted(list(set(filtered_cce['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in filtered_cce.columns else sorted(list(set(filtered_cce['Subject'].dropna().astype(str).str.strip())))
-                    selected_subject = st.selectbox("📚 Select Branch Name / Subject Filter:", options=["All Branches"] + [s for s in unique_subjects if s != ""], key="cce_p7_sub_filter_ultimate")
-                
+                    # P7 की लिस्ट से यूनिक सेमेस्टर/ईयर (Year) की सूची ताकि सेलेक्ट करने पर रोल नंबर चेंज हों
+                    unique_years = sorted(list(set(render_df['Year'].dropna().astype(str).str.strip())))
+                    chosen_option = st.selectbox("📆 Select Semester / Year Scope (Year फ़िल्टर करें):", options=["All Years"] + [y for y in unique_years if y != ""], key="p7_foil_year_filter")
+                    
                 col_p7_3, col_p7_4 = st.columns(2)
                 with col_p7_3:
-                    chosen_option = st.selectbox("📆 Select Semester / Year Scope:", options=["1 Semester", "2 Semester", "1 Year", "2 Year", "3 Year", "Fourth Semester", "6th SEMESTER"], key="cce_p7_sem_filter_ultimate")
-                with col_p7_4:                
-                    max_marks = st.text_input("Maximum Marks:", value="20", key="cce_p7_max_marks_ultimate")
-
-                    btn_col1, btn_col2 = st.columns(2)
-                    with btn_col1:
-                        if st.button("🔄 Generate Selected Foil Print Layout", use_container_width=True, type="primary", key="p7_gen_canvas_btn_ultimate"): 
-                            st.session_state.cce_foil_generated = True
-                    with btn_col2:
-                        if st.session_state.get('cce_foil_generated', False):
-                            st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    max_marks = st.text_input("Maximum Marks:", value="20", key="p7_foil_max_marks")
+                with col_p7_4:
+                    st.write("")
+                    st.write("")
+                    if st.button("🔄 Generate Blank Foil From P7 List", type="primary", use_container_width=True, key="p7_foil_generate_btn"):
+                        st.session_state.cce_foil_generated = True
+                        
+                if st.session_state.cce_foil_generated:
+                    foil_data_df = render_df.copy()
                     
-                    if st.session_state.get('cce_foil_generated', False):
-                        st.markdown("---")
-                        foil_filter_df = filtered_cce.copy()
+                    # 1. विषय फ़िल्टर लागू करें
+                    if selected_subject != "All Subjects":
+                        foil_data_df = foil_data_df[foil_data_df["Subject"].astype(str).str.strip() == selected_subject]
                         
-                        multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
-                        for col_mark in multi_paper_cols:
-                            if col_mark not in foil_filter_df.columns: foil_filter_df[col_mark] = ""
+                    # 2. सेमेस्टर/ईयर फ़िल्टर लागू करें (इसके बदलते ही रोल नंबर बदलेंगे)
+                    if chosen_option != "All Years":
+                        foil_data_df = foil_data_df[foil_data_df["Year"].astype(str).str.strip() == chosen_option]
                         
-                        # Mirror newly updated input values to active foil sheet parameters instantly
-                        if "CCE Marks Obtained" in foil_filter_df.columns:
-                            foil_filter_df["Total Marks"] = foil_filter_df["CCE Marks Obtained"]
-                            foil_filter_df["CCE-I"] = foil_filter_df["CCE Marks Obtained"]
-    
-                        if selected_subject != "All Branches": 
-                            if "Branch" in foil_filter_df.columns:
-                                foil_filter_df = foil_filter_df[foil_filter_df["Branch"].astype(str).str.strip() == selected_subject]
-                            else:
-                                foil_filter_df = foil_filter_df[foil_filter_df["Subject"].astype(str).str.strip() == selected_subject]
+                    records_list = foil_data_df.reset_index(drop=True).to_dict(orient="records")
+
+                    if len(records_list) == 0:
+                        st.warning("🔍 चयनित Subject और Year/Semester फ़िल्टर के आधार पर P7 लिस्ट में कोई डेटा नहीं मिला।")
+                    else:
+                        # साइड-बाय-साइड ब्लॉक में बांटने के लिए रिकॉर्ड का विभाजन (मैक्सिमम 31 रिकॉर्ड प्रति ब्लॉक)
+                        left_records = records_list[:31]
+                        right_records = records_list[31:62]
                         
-                        records_list = foil_filter_df.reset_index(drop=True).to_dict(orient="records")
-    
-                        if len(records_list) == 0:
-                            st.warning("🔍 चयनित फ़िल्टर के आधार पर कोई रिकॉर्ड नहीं मिला।")
-                        else:
-                            # --- Format 1: BLANK FOIL SIDE-BY-SIDE ---
-                            if foil_format_type == "Blank Foil (Side-by-Side List)":
-                                left_records = records_list[:31]
-                                right_records = records_list[31:62]
-                                
-                                def render_single_foil_block(start_sno, data_subset):
-                                    html_chunk = f"""
-                                    <div style="width: 49%; border: 1px solid #333; padding: 10px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
-                                            <span>Paper Code...................</span>
-                                            <span>Bundle No...................</span>
-                                        </div>
-                                        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
-                                            <h2 style="margin: 0; font-size: 13px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                            <h2 style="margin: 2px 0 0 0; font-size: 13px; font-weight: bold;">GWALIOR (M.P.)</h2>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px;">
-                                            <span>Examination :- CCE</span>
-                                            <span>{chosen_option.upper()}</span>
-                                        </div>
-                                        <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-                                            <span>Subject: {selected_subject.upper()}</span>
-                                            <span>Paper: ...................................</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 3px; margin-bottom: 3px;">
-                                            <span>Maximum Marks: {max_marks}</span>
-                                            <span>Minimum Pass Marks: .................</span>
-                                        </div>
-                                        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; margin-bottom: 10px;">
-                                            <thead>
-                                                <tr>
-                                                    <th style="border: 1px solid #000; padding: 2px; width: 15%;">S. No.</th>
-                                                    <th style="border: 1px solid #000; padding: 2px; width: 45%;">Roll No.</th>
-                                                    <th style="border: 1px solid #000; padding: 2px; width: 40%;">Marks (In Figures)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                    """
-                                    for idx, row in enumerate(data_subset):
-                                        html_chunk += f"""
-                                                <tr>
-                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">{start_sno + idx}</td>
-                                                    <td style="border: 1px solid #000; padding: 3px; font-family: monospace;">{row.get("Roll No.", "&nbsp;")}</td>
-                                                    <td style="border: 1px solid #000; padding: 3px;">&nbsp;</td>
-                                                </tr>
-                                        """
-                                    html_chunk += "</tbody></table></div>"
-                                    return html_chunk
-    
-                                st.markdown(f"""
-                                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                                        {render_single_foil_block(1, left_records)}
-                                        {render_single_foil_block(32, right_records)}
-                                    </div>
-                                """, unsafe_allow_html=True)
-    
+                        def render_single_foil_block(start_sno, data_subset):
+                            html_chunk = f"""
+                            <div style="width: 49%; border: 1px solid #333; padding: 10px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
+                                    <span>Paper Code...................</span>
+                                    <span>Bundle No...................</span>
+                                </div>
+                                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
+                                    <h2 style="margin: 0; font-size: 13px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                    <h2 style="margin: 2px 0 0 0; font-size: 13px; font-weight: bold;">GWALIOR (M.P.)</h2>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px;">
+                                    <span>Examination :- CCE</span>
+                                    <span>YEAR / SEM: {chosen_option.upper()}</span>
+                                </div>
+                                <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                                    <span>Subject: {selected_subject.upper()}</span>
+                                    <span>Paper: ...................................</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 3px; margin-bottom: 3px;">
+                                    <span>Maximum Marks: {max_marks}</span>
+                                    <span>Minimum Pass Marks: .................</span>
+                                </div>
+                                <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; margin-bottom: 10px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="border: 1px solid #000; padding: 2px; width: 15%;">S. No.</th>
+                                            <th style="border: 1px solid #000; padding: 2px; width: 45%;">Roll No.</th>
+                                            <th style="border: 1px solid #000; padding: 2px; width: 40%;">Marks (In Figures)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            """
+                            for idx, row in enumerate(data_subset):
+                                html_chunk += f"""
+                                        <tr>
+                                            <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">{start_sno + idx}</td>
+                                            <td style="border: 1px solid #000; padding: 3px; font-family: monospace;">{row.get("Roll No.", "&nbsp;")}</td>
+                                            <td style="border: 1px solid #000; padding: 3px;">&nbsp;</td>
+                                        </tr>
+                                """
+                            html_chunk += "</tbody></table></div>"
+                            return html_chunk
+
+                        # दोनों ब्लॉक्स को स्क्रीन पर अगल-बगल (Side-by-Side) रेंडर करें
+                        st.markdown(f"""
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                {render_single_foil_block(1, left_records)}
+                                {render_single_foil_block(32, right_records)}
+                            </div>
+                        """, unsafe_allow_html=True)
+
                             # --- Format 2: DETAILED MARKS VIEW ---
                             elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
                                 mark_entry_html = f"""
