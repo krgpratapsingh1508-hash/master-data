@@ -1160,7 +1160,7 @@ else:
                         st.session_state.cce_foil_generated = True
                         
                 if st.session_state.cce_foil_generated:
-                    foil_data_df = render_df.copy()
+                foil_data_df = render_df.copy()
                     
                     # 1. विषय फ़िल्टर लागू करें
                     if selected_subject != "All Subjects":
