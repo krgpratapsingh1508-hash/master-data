@@ -2219,90 +2219,104 @@ else:
                 edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
             
             if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                st.session_state.p11_dropdown_schemas["file_types"] = [x.strip() for x in edited_file_types.split("\n") if x.strip()]
-                st.session_state.p11_dropdown_schemas["academic_years"] = [x.strip() for x in edited_years.split("\n") if x.strip()]
-                st.session_state.p11_dropdown_schemas["academic_sessions"] = [x.strip() for x in edited_sessions.split("\n") if x.strip()]
-                save_p1_dropdown_schemas()
-                st.success("🎉 मास्टर ड्रॉपडाउन लिस्ट सफलतापूर्वक अपडेट हो गई है!")
-                st.rerun()
+                new_file_types = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                new_years = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                new_sessions = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                
+                if not new_file_types or not new_years or not new_sessions:
+                    st.error("❌ कोई भी ड्रॉपडाउन सूची पूरी तरह खाली नहीं छोड़ी जा सकती!")
+                else:
+                    updated_schema = {"file_types": new_file_types, "academic_years": new_years, "academic_sessions": new_sessions}
+                    st.session_state.p11_dropdown_schemas = updated_schema
+                    st.session_state.p1_dropdown_schemas = updated_schema
+                    st.success("🎉 मास्टर ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट होकर Panel 1 के साथ सिंक हो गई हैं!")
+                    st.rerun()
 
-            # ======================================================================
-            # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Fixed Auto Lock)
-            # ======================================================================
             st.markdown("---")
-            st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
-            st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
+            st.subheader("📊 Master Database List View & Advanced Operational Controls")
             
-            if "p15_uploader_reset_counter" not in st.session_state:
-                st.session_state.p15_uploader_reset_counter = 0
+            # Action Toggles Column Layout
+            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+            with col_ctrl3:
+                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
+                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
+                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
+                    st.rerun()
 
-            with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
-                col_up_pass, col_up_file = st.columns(2)
+            with col_ctrl1:
+                lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
+                if st.button(lbl_edit, use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_edit_toggle_master_btn_final"):
+                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                    st.rerun()
+
+            with col_ctrl2:
+                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
+                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
+                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                    st.rerun()
+
+            # Column shift parameters handler layer
+            if st.session_state.admin_unhide_move:
+                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
+                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
+                c_left, c_right = st.columns(2)
                 
-                with col_up_pass:
-                    uploader_secure_password = st.text_input(
-                        "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
-                        type="password", 
-                        key=f"p15_master_pass_widget_run_{st.session_state.p15_uploader_reset_counter}"
-                    )
-                
-                with col_up_file:
-                    is_password_correct = (uploader_secure_password == "admin@upload15")
-                    
-                    uploaded_master_file = st.file_uploader(
-                        "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
-                        type=["csv", "xlsx", "xls"],
-                        key=f"p15_master_file_widget_run_{st.session_state.p15_uploader_reset_counter}",
-                        disabled=not is_password_correct
-                    )
-                
-                if uploader_secure_password and not is_password_correct:
-                    st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
-                elif is_password_correct:
-                    st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
-                    
-                    if uploaded_master_file is not None:
-                        st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
+                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
+                    idx = st.session_state.admin_columns_order.index(target_col)
+                    if idx > 0:
+                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
+                        st.rerun()
                         
-                        confirm_overwrite_checkbox = st.checkbox(
-                            "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
-                            key=f"p15_master_chk_run_{st.session_state.p15_uploader_reset_counter}"
-                        )
+                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
+                    idx = st.session_state.admin_columns_order.index(target_col)
+                    if idx < len(st.session_state.admin_columns_order) - 1:
+                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                        st.rerun()
+
+            # फ़ील्ड्स और ऑर्डर्स मैपिंग
+            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+            ordered_db = live_db[render_columns].copy()
+            ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+            ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
+
+            st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
+            
+            if ordered_db_display.empty:
+                st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
+            else:
+                if st.session_state.admin_lock_state:
+                    # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
+                    st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+                else:
+                    # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
+                    st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
+                    
+                    disabled_fields = ["S.No."]
+                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
+                    if not st.session_state.admin_unhide_edit:
+                        disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
                         
-                        if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
-                            try:
-                                if uploaded_master_file.name.endswith('.csv'):
-                                    raw_uploaded_df = pd.read_csv(uploaded_master_file, dtype=str).fillna("")
-                                elif uploaded_master_file.name.endswith('.xlsx'):
-                                    raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='openpyxl', dtype=str).fillna("")
-                                elif uploaded_master_file.name.endswith('.xls'):
-                                    try:
-                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlsrd', dtype=str).fillna("")
-                                    except:
-                                        uploaded_master_file.seek(0)
-                                        html_tables = pd.read_html(uploaded_master_file)
-                                        raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
-                                
-                                if raw_uploaded_df.empty:
-                                    st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
-                                else:
-                                    raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-                                    
-                                    for col in DEFAULT_COLUMNS:
-                                        if col not in raw_uploaded_df.columns:
-                                            raw_uploaded_df[col] = ""
-                                    
-                                    if "Target Panel Visibility" not in raw_uploaded_df.columns or raw_uploaded_df["Target Panel Visibility"].eq("").all():
-                                        raw_uploaded_df["Target Panel Visibility"] = "P2"
-                                    
-                                    finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
-                                    save_live_data(finalized_uploaded_master)
-                                    
-                                    st.session_state.p15_uploader_reset_counter += 1
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है।")
-                                    st.balloons()
-                                    st.rerun()
-                                    
-                            except Exception as upload_err:
-                                st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
+                    edited_master_db = st.data_editor(
+                        ordered_db_display,
+                        use_container_width=True,
+                        disabled=disabled_fields,
+                        hide_index=True,
+                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
+                        key="p15_supreme_master_live_editor_grid"
+                    )
+                    
+                    if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
+                        try:
+                            clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
+                            
+                            # मूल स्कीमा नामों में वापस रिवर्स मैप करना
+                            display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
+                            clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
+                            
+                            # मुख्य डेटाबेस फ़ाइल को सिंक और सुरक्षित सेव करना
+                            save_live_data(clean_edited_master)
+                            st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
 
