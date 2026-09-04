@@ -1196,7 +1196,6 @@ if not foil_filter_df.empty:
     
     # This line has been correctly realigned (4 spaces back)
     foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes) 
-                    
                     for essential_col in requested_columns:
                         if essential_col not in foil_filter_df.columns: 
                             foil_filter_df[essential_col] = ""
