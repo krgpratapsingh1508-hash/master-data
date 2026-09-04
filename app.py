@@ -1410,37 +1410,101 @@ else:
                                 """
                                 st.markdown(multi_paper_html, unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
+                # ----------------------------------------------------------------------
         # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
             st.header(f"📈 {get_panel_title('P8')} (Academic Year Batch Progression Control)")
             
+            # Ensure proper promotion status column fallback exists inside runtime
             if "Promotion Status" not in live_db.columns: 
                 live_db["Promotion Status"] = "Eligible"
                 
             p8_authorized_db = live_db.copy()
             
             if p8_authorized_db.empty: 
-                st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई डेटा उपलब्ध नहीं है।")
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है या कोई स्वीकृत डेटा उपलब्ध नहीं है।")
             else:
                 st.markdown("""
                     <div style="background-color: #f7f9fa; border-left: 5px solid #0288d1; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता. है।
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
                     </div>
                 """, unsafe_allow_html=True)
                 
                 available_years = ["All"] + sorted(list(set(p8_authorized_db["Current Year"].dropna().astype(str).str.strip())))
-                selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p8_promo_year_filter")
+                selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p8_promo_year_filter_new")
                 
                 filtered_promo = p8_authorized_db.copy()
                 if selected_year != "All": 
                     filtered_promo = filtered_promo[filtered_promo["Current Year"].str.strip() == selected_year]
                 
+                # Standardized 22 columns tracking for P8 Workspace
                 promotion_fixed_cols = [
-                    "Admission Year", "Admission Session", "Application Number", "Roll No.", "Enrollment No.", 
-                    "Student Name", "Father Name", "Mother Name", "Category", "Mobile Number", "Subject", "Current Year", "Status"
+                    "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
+                    "Status", "Promotion Status", "Admission Year", "Admission Session", 
+                    "Eligibility Name", "Admission Date", "Unique ID", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Current Year"
                 ]
+                
+                # Fallback mappings to prevent blank columns
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                filtered_promo = filtered_promo.rename(columns=column_mapping_fixes)
+
+                for col in promotion_fixed_cols:
+                    if col not in filtered_promo.columns: 
+                        filtered_promo[col] = ""
+                        
+                render_df = filtered_promo[promotion_fixed_cols].copy()
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
+                
+                st.write(f"📊 ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(render_df)}**")
+                
+                if role == "full_admin":
+                    disabled_cols = [c for c in render_df.columns if c not in ["Status", "Promotion Status"]]
+                    st.info("🔓 **एडमिन मोड:** आपके पास बैच प्रमोशन स्थिति (Status & Promotion Status) बदलने का पूर्ण अधिकार है।")
+                else:
+                    disabled_cols = [c for c in render_df.columns]
+                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में प्रमोशन स्थिति बदलने का अधिकार नहीं है।")
+                
+                edited_promo = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=disabled_cols, 
+                    column_config={
+                        "Status": st.column_config.SelectboxColumn("Academic Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), 
+                        "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)
+                    }, 
+                    key="promotion_live_editor_grid_p8_restored_engine_final", 
+                    hide_index=True
+                )
+                
+                if role == "full_admin":
+                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p8_save_promo_btn_final_new"):
+                        try:
+                            clean_edited = edited_promo.drop(columns=["S. No."], errors="ignore")
+                            promo_sync_counter = 0
+                            
+                            for _, r_edit in clean_edited.iterrows():
+                                app_num = str(r_edit["Admission Application Number"]).strip()
+                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
+                                
+                                if not idx_matches.empty:
+                                    for match_idx in idx_matches:
+                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
+                                        live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
+                                        promo_sync_counter += 1
+                                        
+                            save_live_data(live_db)
+                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} रिकॉर्ड्स का प्रमोशन डेटा मास्टर डेटाबेस में सुरक्षित सिंक हो गया है!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या: {e}")
 
         # ----------------------------------------------------------------------
         # P9: PANEL RESULT MODULE (Examination Register Ledger Desk)
@@ -1464,14 +1528,29 @@ else:
                 """, unsafe_allow_html=True)
                 
                 available_subjects = ["All"] + sorted(list(set(p9_authorized_db["Branch"].dropna().astype(str).str.strip()))) if "Branch" in p9_authorized_db.columns else ["All"]
-                selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter_secure_engine")
+                selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter_secure_engine_new")
                 
                 filtered_res = p9_authorized_db.copy()
                 if selected_sub != "All" and "Branch" in filtered_res.columns: 
                     filtered_res = filtered_res[filtered_res["Branch"].str.strip() == selected_sub]
                 
-                result_fixed_cols = ["Application Number", "Roll No.", "Enrollment No.", "Student Name", "Marks Obtained", "Result Status", "Exam Remarks"]
+                # Standardized 22 columns tracking for P9 Workspace
+                result_fixed_cols = [
+                    "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
+                    "Marks Obtained", "Result Status", "Exam Remarks", "Admission Year", "Admission Session", 
+                    "Eligibility Name", "Admission Date", "Unique ID", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                ]
                 
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                filtered_res = filtered_res.rename(columns=column_mapping_fixes)
+
                 for col in result_fixed_cols:
                     if col not in filtered_res.columns: 
                         filtered_res[col] = ""
@@ -1479,50 +1558,48 @@ else:
                 render_df = filtered_res[result_fixed_cols].copy()
                 render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Result Profiles): **{len(render_df)}**")
+                st.write(f"📊 ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(render_df)}**")
                 
                 if role == "full_admin":
-                    disabled_cols = ["S. No.", "Application Number", "Roll No.", "Enrollment No.", "Student Name"]
-                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास परीक्षा परिणाम पंजी (Tabulation Register) एडमिट और सिंक करने का पूर्ण अधिकार है।")
+                    disabled_cols = [c for c in render_df.columns if c not in ["Marks Obtained", "Result Status", "Exam Remarks"]]
+                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास परीक्षा परिणाम (Marks, Status & Remarks) एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में परीक्षा परिणाम बदलने का अधिकार नहीं है।")
+                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में प्रमोशन स्थिति बदलने का अधिकार नहीं है।")
                 
-                edited_res = st.data_editor(
+                edited_promo = st.data_editor(
                     render_df, 
                     use_container_width=True, 
                     disabled=disabled_cols, 
                     column_config={
-                        "Marks Obtained": st.column_config.TextColumn("Marks Obtained"),
-                        "Result Status": st.column_config.SelectboxColumn("Result Status", options=["Pass", "Fail", "ATKT", "Withheld", "Absent"], required=True),
-                        "Exam Remarks": st.column_config.TextColumn("Exam Remarks")
+                        "Status": st.column_config.SelectboxColumn("Academic Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), 
+                        "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)
                     }, 
-                    key="result_live_editor_grid_p9_secure_engine", 
+                    key="promotion_live_editor_grid_p8_restored_engine_final", 
                     hide_index=True
                 )
                 
                 if role == "full_admin":
-                    if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True, key="p9_save_btn_secure"):
+                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p8_save_promo_btn_final_new"):
                         try:
-                            clean_edited = edited_res.drop(columns=["S. No."], errors="ignore")
-                            result_sync_counter = 0
+                            clean_edited = edited_promo.drop(columns=["S. No."], errors="ignore")
+                            promo_sync_counter = 0
                             
                             for _, r_edit in clean_edited.iterrows():
-                                app_num = str(r_edit["Application Number"]).strip()
+                                app_num = str(r_edit["Admission Application Number"]).strip()
                                 idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
                                     for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Marks Obtained"] = str(r_edit["Marks Obtained"]).strip()
-                                        live_db.at[match_idx, "Result Status"] = str(r_edit["Result Status"]).strip()
-                                        live_db.at[match_idx, "Exam Remarks"] = str(r_edit["Exam Remarks"]).strip()
-                                        result_sync_counter += 1
+                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
+                                        live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
+                                        promo_sync_counter += 1
                                         
                             save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {result_sync_counter} छात्र रिकॉर्ड्स का परीक्षा परिणाम पंजी मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
+                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} रिकॉर्ड्स का प्रमोशन डेटा मास्टर डेटाबेस में सुरक्षित सिंक हो गया है!")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या: {e}")
 
         # ----------------------------------------------------------------------
         # P10: PANEL REGISTER MODULE (University TR / Ledger Archiver Desk)
