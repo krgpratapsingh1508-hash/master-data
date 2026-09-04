@@ -1071,8 +1071,8 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-                # ======================================================================
-        # P7: PANEL FOIL SHEET GENERATOR MODULE (All 3 Formats Fully Integrated)
+        # ======================================================================
+        # P7: PANEL FOIL SHEET GENERATOR MODULE (All 3 Formats Fully Fixed)
         # ======================================================================
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
@@ -1103,7 +1103,6 @@ else:
                 
                 col_p7_1, col_p7_2 = st.columns(2)
                 with col_p7_1:
-                    # तीनों फ़ॉर्मेट का चयन करने के लिए ड्रॉपडाउन मेनू
                     foil_format_type = st.selectbox(
                         "📄 CCE Foil फ़ॉर्मेट चुनें:",
                         options=[
@@ -1143,7 +1142,6 @@ else:
                 if st.session_state.get('cce_foil_generated', False):
                     st.markdown("---")
                     
-                    # आपके द्वारा बताए गए सभी अनिवार्य 22 कॉलम्स की मैपिंग सुनिश्चित करना
                     requested_columns = [
                         "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
                         "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
@@ -1151,15 +1149,12 @@ else:
                         "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
                     ]
                     
-                    # मार्क्स ट्रैकिंग के लिए अतिरिक्त कॉलम्स का बैकअप (यदि मास्टर डेटाबेस में खाली हों)
                     multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
                     for col_mark in multi_paper_cols:
                         if col_mark not in p7_authorized_db.columns:
                             p7_authorized_db[col_mark] = ""
                     
                     foil_filter_df = p7_authorized_db.copy()
-                    
-                    # डेटाबेस विसंगतियों को ठीक करने के लिए कॉलम रिनेमिंग प्रोटोकॉल
                     column_mapping_fixes = {
                         "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
                         "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
@@ -1181,7 +1176,7 @@ else:
                         st.warning("🔍 चयनित मापदंडों के आधार पर मास्टर डेटाबेस में कोई छात्र रिकॉर्ड नहीं मिला।")
                     else:
                         # ----------------------------------------------------------------------
-                        # फ़ॉर्मेट 1: BLANK FOIL (इमेज 1 के अनुसार साइड-बाय-साइड लेआउट)
+                        # फ़ॉर्मेट 1: BLANK FOIL (साइड-बाय-साइड लेआउट)
                         # ----------------------------------------------------------------------
                         if foil_format_type == "Blank Foil (Side-by-Side List)":
                             left_records = records_list[:31]
@@ -1217,15 +1212,37 @@ else:
                                                 <th colspan="2" style="border: 1px solid #000; padding: 2px; width: 40%; font-size: 10px;">1</th>
                                                 <th colspan="2" style="border: 1px solid #000; padding: 2px; width: 60%; font-size: 10px;">2</th>
                                             </tr>
-                                            <tr>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 15%;">Code No.</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 35%;">Roll No.</th>
-                                                <th style="border: 1px solid #000; padding: 2px; width: 20%;">In Figures</th>
-                                                <th style="border: 1px solid #000; padding: 2px; width: 30%;">In Words</th>
-                                            </tr>
                                         </thead>
+                                        <tbody>
+                                """
+                                
+                                for idx, row in enumerate(records_list):
+                                    c1 = str(row.get("CCE-I", "")).strip()
+                                    c2 = str(row.get("CCE-II", "")).strip()
+                                    c3 = str(row.get("CCE-III", "")).strip()
+                                    tot = str(row.get("Total Marks", "")).strip()
+                                    words_val = marks_to_words(tot) if tot else ""
+                                    
+                                    mark_entry_html += f"""
+                                            <tr>
+                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">{c1 if c1 else "&nbsp;"}</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">{c2 if c2 else "&nbsp;"}</td>
+                                                <td style="border: 1px solid #000; padding: 5px;">{c3 if c3 else "&nbsp;"}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{tot if tot else "&nbsp;"}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{words_val}</td>
+                                            </tr>
+                                    """
+                                    
+                                mark_entry_html += """
+                                        </tbody>
+                                    </table>
+                                </div>
+                                """
+                                st.markdown(mark_entry_html, unsafe_allow_html=True)
 
-                                            # ----------------------------------------------------------------------
+                        # ----------------------------------------------------------------------
                         # फ़ॉर्मेट 2: CCE MARK ENTRY (इमेज 2 के अनुसार विस्तृत मार्क्स लेआउट)
                         # ----------------------------------------------------------------------
                         elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
