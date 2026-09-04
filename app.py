@@ -1071,9 +1071,9 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-        # ======================================================================
+                # ----------------------------------------------------------------------
         # P7: PANEL FOIL SHEET GENERATOR MODULE (All 3 Formats Fully Fixed)
-        # ======================================================================
+        # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
             st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
             
@@ -1139,68 +1139,67 @@ else:
                         st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save as PDF (A4 Portrait)</button>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                    if st.session_state.get('cce_foil_generated', False):
-                        st.markdown("---")
+                if st.session_state.get('cce_foil_generated', False):
+                    st.markdown("---")
+                    
+                    requested_columns = [
+                        "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+                        "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
+                        "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
+                        "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                    ]
+                    
+                    multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
+                    for col_mark in multi_paper_cols:
+                        if col_mark not in p7_authorized_db.columns:
+                            p7_authorized_db[col_mark] = ""
+                    
+                    foil_filter_df = p7_authorized_db.copy()
+                    
+                    # ✅ नया मैकेनिज्म: आपके फ़ॉर्मेट के कॉलम्स को लाइव डेटाबेस के कॉलम से जोड़ना
+                    column_mapping_fixes = {
+                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                        "Email Id": "Email ID", "Year": "Current Year"
+                    }
+
+                    # लाइव डेटाबेस के डेटा को आपके दिए गए फ़ॉर्मेट के नामों में कॉपी करना
+                    if not foil_filter_df.empty:
+                        if "Application Number" in foil_filter_df.columns:
+                            foil_filter_df["HIGHER EDU ID"] = foil_filter_df["Application Number"]
+                            foil_filter_df["application_no"] = foil_filter_df["Application Number"]
+                        if "Student Name" in foil_filter_df.columns:
+                            foil_filter_df["FULL NAME"] = foil_filter_df["Student Name"]
+                            foil_filter_df["Name"] = foil_filter_df["Student Name"]
+                        if "Father Name" in foil_filter_df.columns:
+                            foil_filter_df["FATHER NAME"] = foil_filter_df["Father Name"]
+                            foil_filter_df["father_name"] = foil_filter_df["Father Name"]
+                        if "Mother Name" in foil_filter_df.columns:
+                            foil_filter_df["MOTHER NAME"] = foil_filter_df["Mother Name"]
+                        if "Date of Birth" in foil_filter_df.columns:
+                            foil_filter_df["DATE OF BIRTH"] = foil_filter_df["Date of Birth"]
+                            foil_filter_df["dob"] = foil_filter_df["Date of Birth"]
+                        if "Category" in foil_filter_df.columns:
+                            foil_filter_df["CATEGORY"] = foil_filter_df["Category"]
+                            foil_filter_df["category"] = foil_filter_df["Category"]
+                        if "Degree" in foil_filter_df.columns:
+                            foil_filter_df["Drgree"] = foil_filter_df["Degree"]
+                        if "Branch" in foil_filter_df.columns:
+                            foil_filter_df["MAJOR SUB"] = foil_filter_df["Branch"]
+                        if "Minor Subjects" in foil_filter_df.columns:
+                            foil_filter_df["MINOR SUB"] = foil_filter_df["Minor Subjects"]
+                        if "Vocational Subjects" in foil_filter_df.columns:
+                            foil_filter_df["VOCATIONAL SUB"] = foil_filter_df["Vocational Subjects"]
+                        if "MDC Subjects" in foil_filter_df.columns:
+                            foil_filter_df["OPEN-ELECTIVE SUB"] = foil_filter_df["MDC Subjects"]
+                        if "PW/Ap/CE Subjects" in foil_filter_df.columns:
+                            foil_filter_df["PROJECT WORK"] = foil_filter_df["PW/Ap/CE Subjects"]
                         
-                        requested_columns = [
-                            "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-                            "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
-                            "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
-                            "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
-                        ]
-                        
-                        multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
-                        for col_mark in multi_paper_cols:
-                            if col_mark not in p7_authorized_db.columns:
-                                p7_authorized_db[col_mark] = ""
-                        
-                        foil_filter_df = p7_authorized_db.copy()
-                        
-                        # ✅ नया मैकेनिज्म: आपके फ़ॉर्मेट के कॉलम्स को लाइव डेटाबेस के कॉलम से जोड़ना
-                        column_mapping_fixes = {
-                            "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                            "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                            "Email Id": "Email ID", "Year": "Current Year"
-                        }
-    
-                        # लाइव डेटाबेस के डेटा को आपके दिए गए फ़ॉर्मेट के नामों में कॉपी करना
-                        if not foil_filter_df.empty:
-                            if "Application Number" in foil_filter_df.columns:
-                                foil_filter_df["HIGHER EDU ID"] = foil_filter_df["Application Number"]
-                                foil_filter_df["application_no"] = foil_filter_df["Application Number"]
-                            if "Student Name" in foil_filter_df.columns:
-                                foil_filter_df["FULL NAME"] = foil_filter_df["Student Name"]
-                                foil_filter_df["Name"] = foil_filter_df["Student Name"]
-                            if "Father Name" in foil_filter_df.columns:
-                                foil_filter_df["FATHER NAME"] = foil_filter_df["Father Name"]
-                                foil_filter_df["father_name"] = foil_filter_df["Father Name"]
-                            if "Mother Name" in foil_filter_df.columns:
-                                foil_filter_df["MOTHER NAME"] = foil_filter_df["Mother Name"]
-                            if "Date of Birth" in foil_filter_df.columns:
-                                foil_filter_df["DATE OF BIRTH"] = foil_filter_df["Date of Birth"]
-                                foil_filter_df["dob"] = foil_filter_df["Date of Birth"]
-                            if "Category" in foil_filter_df.columns:
-                                foil_filter_df["CATEGORY"] = foil_filter_df["Category"]
-                                foil_filter_df["category"] = foil_filter_df["Category"]
-                            if "Degree" in foil_filter_df.columns:
-                                foil_filter_df["Drgree"] = foil_filter_df["Degree"]
-                            if "Branch" in foil_filter_df.columns:
-                                foil_filter_df["MAJOR SUB"] = foil_filter_df["Branch"]
-                            if "Minor Subjects" in foil_filter_df.columns:
-                                foil_filter_df["MINOR SUB"] = foil_filter_df["Minor Subjects"]
-                            if "Vocational Subjects" in foil_filter_df.columns:
-                                foil_filter_df["VOCATIONAL SUB"] = foil_filter_df["Vocational Subjects"]
-                            if "MDC Subjects" in foil_filter_df.columns:
-                                foil_filter_df["OPEN-ELECTIVE SUB"] = foil_filter_df["MDC Subjects"]
-                            if "PW/Ap/CE Subjects" in foil_filter_df.columns:
-                                foil_filter_df["PROJECT WORK"] = foil_filter_df["PW/Ap/CE Subjects"]
-                            
-                            foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes) 
-    
-                        # 🔹 This loop is now correctly aligned back with the parent block
-                        for essential_col in requested_columns:
-                            if essential_col not in foil_filter_df.columns: 
-                                foil_filter_df[essential_col] = ""
+                        foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes) 
+
+                    for essential_col in requested_columns:
+                        if essential_col not in foil_filter_df.columns: 
+                            foil_filter_df[essential_col] = ""
                     
                     if selected_subject != "All Branches": 
                         if "Branch" in foil_filter_df.columns:
@@ -1214,6 +1213,7 @@ else:
                     if total_records == 0:
                         st.warning("🔍 चयनित मापदंडों के आधार पर मास्टर डेटाबेस में कोई छात्र रिकॉर्ड नहीं मिला।")
                     else:
+
                         # ----------------------------------------------------------------------
                         # फ़ॉर्मेट 1: BLANK FOIL (साइड-बाय-साइड लेआउट)
                         # ----------------------------------------------------------------------
