@@ -2367,15 +2367,135 @@ else:
                     if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                         try:
                             clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
-                            
-                            # मूल स्कीमा नामों में वापस रिवर्स मैप करना
                             display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                             clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
-                            
-                            # मुख्य डेटाबेस फ़ाइल को सिंक और सुरक्षित सेव करना
                             save_live_data(clean_edited_master)
                             st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
+
+                    # ======================================================================
+                    # 🔐 सुपर-एडमिन स्पेशल एक्शन: स्मार्ट Duration-Based ईयर कैलकुलेशन गेटवे
+                    # ======================================================================
+                    st.markdown("---")
+                    st.subheader("⚡ Advanced Super-Admin Core Action: Smart Duration-Based Year Calculation")
+                    st.info("💡 यह इंजन छात्र के कोर्स की अवधि (Duration) के आधार पर उसका करंट ईयर तय करेगा। यदि अवधि नहीं भरी है, तो यह 'plz Fill the Duretion' प्रदर्शित करेगा।")
+                    
+                    col_p15_pass, col_p15_action = st.columns(2)
+                    
+                    with col_p15_pass:
+                        # कोर एक्शन को अनलॉक करने के लिए स्पेशल एडमिन पासवर्ड
+                        admin_special_gate_pass = st.text_input(
+                            "🛡️ एंटर स्पेशल कोर एक्शन पासवर्ड:", 
+                            type="password", 
+                            key="p15_special_year_pass_gate"
+                        )
+                        
+                    with col_p15_action:
+                        is_special_pass_correct = (admin_special_gate_pass == "admin@runyear")
+                        st.write("") # वर्टिकल अलाइनमेंट के लिए खाली स्पेस
+                        st.write("")
+                        
+                        # पासवर्ड सत्यापित होने पर बटन एक्टिवेट होगा
+                        trigger_calculation_btn = st.button(
+                            "⚙️ RUN SMART DURATION-BASED CALCULATION NOW", 
+                            type="primary", 
+                            use_container_width=True,
+                            disabled=not is_special_pass_correct,
+                            key="p15_trigger_year_btn_action"
+                        )
+
+                    if admin_special_gate_pass and not is_special_pass_correct:
+                        st.error("❌ गलत पासवर्ड! एक्शन ब्लॉक पूरी तरह लॉक है।")
+                    elif is_special_pass_correct:
+                        st.success("🔓 पासवर्ड सत्यापित! स्मार्ट कोर बटन एक्टिवेट कर दिया गया है।")
+                        
+                        if trigger_calculation_btn:
+                            if not live_db.empty and "Admission Year" in live_db.columns:
+                                try:
+                                    # 1. एडमिशन ईयर से सबसे लेटेस्ट वर्ष (Current Session Year) निकालें
+                                    valid_years = pd.to_numeric(live_db["Admission Year"], errors='coerce').dropna()
+                                    if not valid_years.empty:
+                                        highest_admission_year = int(valid_years.max())
+                                        
+                                        # 2. आपके नए स्मार्ट आइडिया के अनुसार काम करने वाला सटीक फ़ंक्शन
+                                        def run_smart_duration_mapping(row):
+                                            try:
+                                                row_admission_year = row.get("Admission Year", "")
+                                                student_status = str(row.get("Status", "")).strip().upper()
+                                                
+                                                # Duration कॉलम से मान निकालें और स्पेस साफ़ करें
+                                                duration_val = str(row.get("Duration", "")).strip()
+                                                
+                                                # यदि Duration कॉलम खाली है या कुछ नहीं लिखा है
+                                                if not duration_val or duration_val == "" or duration_val == "nan":
+                                                    return "plz Fill the Duretion"
+                                                
+                                                max_duration = int(float(duration_val))
+                                                adm_yr = int(float(row_admission_year))
+                                                year_diff = highest_admission_year - adm_yr
+                                                
+                                                # यदि अंतर कोर्स की अवधि के अंदर है (जैसे 1st Year से 6th Year तक)
+                                                if 0 <= year_diff < max_duration:
+                                                    if year_diff == 0: return "1st Year"
+                                                    elif year_diff == 1: return "2nd Year"
+                                                    elif year_diff == 2: return "3rd Year"
+                                                    elif year_diff == 3: return "4th Year"
+                                                    elif year_diff == 4: return "5th Year"
+                                                    elif year_diff == 5: return "6th Year"
+                                                    else: return f"{year_diff + 1}th Year"
+                                                
+                                                # यदि अंतर कोर्स की अवधि के बराबर या उससे ज़्यादा हो चुका है
+                                                elif year_diff >= max_duration:
+                                                    if student_status == "EX-STUDENT":
+                                                        return "EX-STUDENT"
+                                                    else:
+                                                        return "Passout"
+                                                else:
+                                                    return "1st Year"
+                                            except:
+                                                return "plz Fill the Duretion"
+                                        
+                                        # 3. डेटाबेस में लाइव कॉलम अपडेट करें
+                                        live_db["Current Year"] = live_db.apply(run_smart_duration_mapping, axis=1)
+                                        if "Year" in live_db.columns:
+                                            live_db["Year"] = live_db["Current Year"]
+                                        
+                                        # 4. मुख्य डेटाबेस CSV फ़ाइल में परमानेंटली सेव करें
+                                        save_live_data(live_db)
+                                        st.success(f"🎉 शत-प्रतिशत सफलता! कोर्स Duration के नियमों के आधार पर डेटाबेस को लाइव सिंक और सुरक्षित अपडेट कर दिया गया है!")
+                                        st.balloons()
+                                        st.rerun()
+                                    else:
+                                        st.warning("⚠️ डेटाबेस में कोई मान्य 'Admission Year' नहीं मिला।")
+                                except Exception as err:
+                                    st.error(f"डेटा प्रोसेसिंग के दौरान तकनीकी खराबी आई: {err}")
+
+                    # ======================================================================
+                    # 🎓 पासआउट (Passout) छात्रों की सूची और डाउनलोडर
+                    # ======================================================================
+                    if not live_db.empty and "Current Year" in live_db.columns:
+                        passout_students_df = live_db[live_db["Current Year"] == "Passout"].copy()
+                        
+                        if not passout_students_df.empty:
+                            st.markdown("---")
+                            st.subheader("🎓 📋 Passout Students Registry List")
+                            st.write(f"वर्तमान में डेटाबेस में कुल पासआउट छात्रों की संख्या: **{len(passout_students_df)}**")
+                            
+                            view_cols = ["Admission Year", "Application Number", "Student Name", "Father Name", "Subject", "Duration", "Status"]
+                            render_passout_view = passout_students_df[[c for c in view_cols if c in passout_students_df.columns]].copy()
+                            render_passout_view.insert(0, "S.No.", range(1, len(render_passout_view) + 1))
+                            
+                            st.dataframe(render_passout_view, use_container_width=True, hide_index=True)
+                            
+                            st.download_button(
+                                label="📥 Download Passout Students Record Snapshot (CSV)",
+                                data=passout_students_df.to_csv(index=False).encode('utf-8'),
+                                file_name=f"passout_students_ledger_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                                key="p15_download_passout_ledger_btn"
+                            )
+
 
