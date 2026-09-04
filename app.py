@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Permanent Shared Live Database")
 
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
-STAGE_FILE = "merge_stage_database.csv"  # 🆕 P1 से आने वाले डेटा के लिए अस्थाई स्टेजिंग फ़ाइल
+STAGE_FILE = "merge_stage_database.csv"
 CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
@@ -52,10 +52,10 @@ DEFAULT_CREDENTIALS = {
     "p4_roll": {"password": "roll4123", "role": "p4_role", "label": "🔢 P4: Roll Number Allocation Manager"},
     "p5_enrollment": {"password": "enr5123", "role": "p5_role", "label": "📑 P5: University Enrollment Manager"},
     "p6_scholarship": {"password": "sch6123", "role": "p6_role", "label": "💰 P6: Portal & Scholarship Tracker"},
-    "p7_foil": {"password": "foil7123", "role": "p7_role", "label": "🖨️ P7: CCE Foil Sheet Generator"},
-    "p8_cce_record": {"password": "cce8123", "role": "p8_role", "label": "📋 P8: Internal Assessment Ledger Entry"},
-    "p9_promotion": {"password": "pro9123", "role": "p9_role", "label": "📈 P9: Batch Progression Controller"},
-    "p10_result": {"password": "res10123", "role": "p10_role", "label": "📊 P10: Tabulation Register Exam Controller"},
+    "p7_cce": {"password": "cce7123", "role": "p7_role", "label": "🖨️ P7: CCE panel & Foil Sheet Generator"},
+    "p8_promotion": {"password": "pro8123", "role": "p8_role", "label": "📈 P8: Promotion panel Batch progression"},
+    "p9_result": {"password": "res9123", "role": "p9_role", "label": "📊 P9: Result panel Exam Controller"},
+    "p10_register": {"password": "reg10123", "role": "p10_role", "label": "📋 P10: Register panel Permanent Registry"},
     "p11_notice": {"password": "not11123", "role": "p11_role", "label": "📢 P11: System Informer Block"},
     "p12_login_view": {"password": "view12123", "role": "p12_role", "label": "📢 P12: Desk Board Editer"},
     "p13_merge": {"password": "mrg13123", "role": "p13_role", "label": "🔀 P13: Merge & Approve Panel"},
@@ -77,7 +77,8 @@ DEFAULT_COLUMNS = [
     "Category", "Subject Code", "Subject", "Duration", "Mobile Number", "Email ID", "Address", "Status",
     "Current Year", "Application Number", "Student Abc Id", "Gender", "Admission Category", "Degree",
     "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
-    "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility" # 🆕 नया कॉलम ट्रैकिंग के लिए
+    "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility",
+    "CCE Marks Obtained", "CCE Attendance Status", "Promotion Status", "Marks Obtained", "Result Status", "Exam Remarks"
 ]
 
 # ==========================================================
@@ -166,7 +167,6 @@ def load_live_data():
 def save_live_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
 
-# 🆕 स्टेजिंग फ़ाइल मैनेजमेंट फ़ंक्शंस
 def load_stage_data():
     if not os.path.exists(STAGE_FILE) or os.path.getsize(STAGE_FILE) == 0:
         return pd.DataFrame(columns=DEFAULT_COLUMNS + ["Uploaded File Name"])
@@ -194,7 +194,7 @@ if "pre_login_config" not in st.session_state or not isinstance(st.session_state
 if "dynamic_lists" not in st.session_state:
     st.session_state.dynamic_lists = load_dynamic_lists()
 
-if "credentials" not in st.session_state or len(st.session_state.credentials) < 15:
+if "credentials" not in st.session_state or len(st.session_state.credentials) < 14:
     st.session_state.credentials = load_credentials()
 
 if "column_mappings" not in st.session_state: 
@@ -358,7 +358,7 @@ if st.session_state.user_role is None:
                 st.rerun()
 
 # ==========================================================
-# 🧭步 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
+# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
 else:
     role = st.session_state.user_role
@@ -413,7 +413,7 @@ else:
                 options=["📁 फ़ाइल बल्क अपलोड (Bulk File Upload)", "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)"]
             )
             
-            # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम (Modified for Multiple CSV & XLSX Upload)
+            # 📁 बल्क फ़ाइल अपलोड सब-सिस्टम
             if entry_method == "📁 फ़ाइल बल्क अपलोड (Bulk File Upload)":
                 st.subheader("📊 Select Target Configurations Before Upload")
                 col_sc1, col_sc2, col_sc3 = st.columns(3)
@@ -444,7 +444,6 @@ else:
                     
                     uploader_unique_key = f"p1_bulk_uploader_widget_run_{st.session_state.get('uploader_key_counter', 0)}"
                     
-                    # 🆕 यहाँ accept_multiple_files=True किया गया है ताकि CSV और XLSX दोनों एक साथ अपलोड हो सकें
                     uploaded_files = st.file_uploader(
                         f"अपलोड करने के लिए '{p1_file_type}' की फ़ाइलें चुनें (अधिकतम 5):", 
                         type=["csv", "xlsx", "xls"],
@@ -462,7 +461,6 @@ else:
                                 current_stage_db = load_stage_data()
                                 all_new_dfs = [current_stage_db]
                                 
-                                # 🔄 लूप चलाकर एक-एक करके सभी फ़ाइलों को रीड (Read) करना
                                 for uploaded_file in uploaded_files:
                                     if uploaded_file.name.endswith('.csv'):
                                         uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
@@ -499,22 +497,17 @@ else:
                                     all_new_dfs.append(cleaned_uploaded_df)
                                     success_count += 1
                                 
-                                # 🛑 सभी फ़ाइलों के डेटा को जोड़कर स्टेजिंग CSV में सुरक्षित करना
                                 if success_count > 0:
                                     updated_stage_df = pd.concat(all_new_dfs, ignore_index=True)
                                     save_stage_data(updated_stage_df)
-                                    
                                     st.session_state.uploader_key_counter += 1
-                                    
                                     st.success(f"🎉 कुल {success_count} फ़ाइलें (CSV/XLSX) सफलतापूर्वक 'merge & approve panel' में भेज दी गई हैं!")
                                     st.balloons()
                                     st.rerun()
                             except Exception as e: 
                                 st.error(f"फ़ाइल प्रोसेसिंग चक्र में तकनीकी त्रुटि आई: {e}")
                                 
-            # ----------------------------------------------------------------------
-            # ➕ नया छात्र मैनुअल फॉर्म सब-सिस्टम (Manual Entry Routing Layer)
-            # ----------------------------------------------------------------------
+            # ➕ नया छात्र मैनुअल फॉर्म सब-सिस्टम
             elif entry_method == "➕ नया छात्र मैनुअल फॉर्म (Manual Form Entry)":
                 with st.form(key="student_add_form", clear_on_submit=True):
                     col1, col2 = st.columns(2)
@@ -555,8 +548,7 @@ else:
                         new_row = {c: "" for c in DEFAULT_COLUMNS}
                         new_row.update({
                             "Application Number": app_number, "Student Abc Id": abc_id, 
-                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name, 
-                            "Gender": gender, "Date Of Birth": dob, "Category": category, 
+                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name,                             "Gender": gender, "Date Of Birth": dob, "Category": category, 
                             "Admission Category": adm_category, "Degree": degree, "Branch": branch, 
                             "Minor Subjects": minor_sub, "Vocational Subjects": vocational_sub, 
                             "MDC Subjects": mdc_sub, "PW/Ap/CE Subjects": pw_ap_ce_sub, 
@@ -610,106 +602,14 @@ else:
                         st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
                 st.markdown("---")
-                
-                admission_fixed_cols = [
-    "Application Number", "Student Abc Id", "Student Name", "Father Name", 
-    "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", 
-    "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", 
-    "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No", 
-    "Admission & Enrollment Fees", "Scholarship Name", "Payment Date"
-]
-                
-                for target_col in admission_fixed_cols:
-                    if target_col not in admission_display_db.columns:
-                        admission_display_db[target_col] = ""
-                
-                if role == "full_admin":
-                    st.subheader("⚙️ Select Columns for View, Print & Export (Admin Only)")
-                    available_to_select = [c for c in live_db.columns if c in DEFAULT_COLUMNS]
-                    selected_columns_to_show = st.multiselect(
-                        "ग्रिड में प्रदर्शित करने के लिए कॉलम्स चुनें / हटाएँ:",
-                        options=available_to_select,
-                        default=[c for c in admission_fixed_cols if c in available_to_select],
-                        key="p2_admin_multiselect"
-                    )
-                else:
-                    selected_columns_to_show = admission_fixed_cols
-                
-                if not selected_columns_to_show:
-                    st.warning("⚠️ कृपया ग्रिड प्रदर्शित करने के लिए कम से कम एक कॉलम चुनें।")
-                else:
-                    render_df = admission_display_db[selected_columns_to_show].copy()
-                    render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
-                    
-                    st.write(f"📊 ग्रिड में लोड छात्र रिकॉर्ड्स की संख्या: **{len(render_df)}**")
-                    
-                    if role == "full_admin":
-                        disabled_cols = ["S. No.", "Application Number", "Student Name", "Father Name"]
-                        st.info("🔓 **प्रशासक मोड:** आपके पास ग्रिड डेटा को एडिट और सिंक करने की अनुमति है।")
-                    else:
-                        disabled_cols = [c for c in render_df.columns]
-                        st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस ग्रिड में बदलाव करने का अधिकार नहीं है।")
-                    
-                    edited_admission_df = st.data_editor(
-                        render_df, 
-                        use_container_width=True, 
-                        disabled=disabled_cols,
-                        key="admission_live_editor_grid_p2_secure_engine", 
-                        hide_index=True
-                    )
-                    
-                    if role == "full_admin":
-                        if st.button("Save Changes to Live Database", type="primary", use_container_width=True, key="p2_save_secure_btn"):
-                            try:
-                                clean_edited = edited_admission_df.drop(columns=["S. No."], errors="ignore")
-                                for _, row_edit in clean_edited.iterrows():
-                                    target_app_num = str(row_edit["Application Number"]).strip()
-                                    idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == target_app_num].index
-                                    
-                                    if not idx_matches.empty:
-                                        for match_idx in idx_matches:
-                                            for col in clean_edited.columns:
-                                                if col in live_db.columns and col not in ["Application Number", "Student Name", "Father Name"]:
-                                                    live_db.at[match_idx, col] = str(row_edit[col]).strip()
-                                    
-                                save_live_data(live_db)
-                                st.success("🎉 संपूर्ण एडमिशन चेंजेस मास्टर डेटाबेस (Live CSV) में सुरक्षित सिंक हो गए हैं!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या आई: {e}")
-                    
-                    st.markdown("---")
-                    col_exp1, col_exp2 = st.columns(2)
-                    
-                    with col_exp1:
-                        st.markdown("""
-                            <button onclick="window.print()" style="width:100%; height:38px; background-color:#1465de; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
-                                🖨️ Print Current Selected Grid List (A4 Landscape)
-                            </button>
-                        """, unsafe_allow_html=True)
-                        
-                    with col_exp2:
-                        buffer = io.BytesIO()
-                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                            export_clean_df = edited_admission_df.drop(columns=["S. No."], errors="ignore")
-                            export_clean_df.to_excel(writer, index=False, sheet_name='Admission_Report')
-                        
-                        st.download_button(
-                            label="📥 Export Current Selection as Excel (.xlsx)",
-                            data=buffer.getvalue(),
-                            file_name=f"admission_report_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                            key="p2_download_excel_secure_btn"
-                        )
 
         # ----------------------------------------------------------------------
-        # P3: PANEL UNIQUE ID MODULE (Displays Only Content Approved for P3)
+        # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P3":
             st.header(f"🆔 {get_panel_title('P3')} (Student Unique ID Mapping Engine)")
             
-            # 🔍 Isolated Firewall Query Filter Rule: केवल P3 के लिए अप्रूव्ड डेटा ही यहाँ दिखेगा
+            # 🔍 Isolated Firewall Query Filter Rule
             p3_authorized_db = live_db[live_db["Target Panel Visibility"] == "P3"].copy()
             
             if p3_authorized_db.empty: 
@@ -724,40 +624,44 @@ else:
                 # 🔍 Real-time Search Filter Sub-system
                 col_s1, col_s2 = st.columns(2)
                 with col_s1:
-                    search_field = st.selectbox("खोजने का माध्यम चुनें (Search By):", ["Student Name", "Application Number", "Father Name"], key="p3_search_field_secure")
+                    search_field = st.selectbox("खोजने का माध्यम चुनें (Search By):", ["Student Name", "Admission Application Number", "Father Name"], key="p3_search_field_secure")
                 with col_s2:
                     search_query = st.text_input(f"यहाँ {search_field} दर्ज करें:", key="p3_search_query_secure").strip()
                 
-                # सेंट्रल रिपॉजिटरी से फ़िल्टर मैच करना
+                # Match query terms directly across central repositories
                 unique_filter_df = p3_authorized_db.copy()
                 if search_query != "":
                     unique_filter_df = unique_filter_df[
                         unique_filter_df[search_field].astype(str).str.contains(search_query, case=False, na=False)
                     ]
                 
-                # केवल यूनिक आईडी पैनल के लिए निश्चित कॉलम्स की सूची
+                # Standardized 22 columns tracking layout structure for P3 Workspace
                 unique_fixed_cols = [
-    "Admission Year", "Admission Session", "HIGHER EDU ID", "Unique ID", 
-    "FULL NAME", "FATHER NAME", "MOTHER NAME", "DATE OF BIRTH", "CATEGORY", 
-    "Drgree", "MAJOR SUB", "MINOR SUB", "OPEN-ELECTIVE SUB", "VOCATIONAL SUB", "PROJECT WORK"
-]
+                    "Admission Application Number", "Unique ID", "Roll No.", "Enrollment No.", "Student Name", "Father Name", 
+                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", "Mobile Number", "Email ID", 
+                    "Address", "Status", "Current Year", "Payment Date"
+                ]
                 
+                # Dynamic placeholder correction to prevent blank cell mismatch crashes
                 for col in unique_fixed_cols:
                     if col not in unique_filter_df.columns:
                         unique_filter_df[col] = ""
                 
                 render_df = unique_filter_df[unique_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Matching Records): **{len(render_df)}**")
                 
+                # Access guard based on account role privileges
                 if role == "full_admin":
-                    disabled_cols = ["S. No", "Application Number", "Student Name", "Father Name"]
+                    disabled_cols = [c for c in render_df.columns if c != "Unique ID"]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास छात्रों की Unique ID एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
                     st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में Unique ID बदलने का अधिकार नहीं है।")
                 
+                # Live dynamic table editor workspace sheet
                 edited_unique_df = st.data_editor(
                     render_df, 
                     use_container_width=True, 
@@ -766,17 +670,18 @@ else:
                     hide_index=True
                 )
                 
+                # Synchronization loop to commit adjustments to central master dataset
                 if role == "full_admin":
                     if st.button("Save & Sync Unique IDs", type="primary", use_container_width=True, key="p3_save_btn_secure"):
                         try:
-                            clean_edited = edited_unique_df.drop(columns=["S. No"])
+                            clean_edited = edited_unique_df.drop(columns=["S. No."], errors="ignore")
                             sync_counter = 0
                             
                             for _, row_edit in clean_edited.iterrows():
-                                target_app_no = str(row_edit["Application Number"]).strip()
+                                target_app_no = str(row_edit["Admission Application Number"]).strip()
                                 unique_val = str(row_edit["Unique ID"]).strip()
                                 
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == target_app_no].index
+                                idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_no].index
                                 
                                 if not idx_matches.empty:
                                     for match_idx in idx_matches:
@@ -790,7 +695,7 @@ else:
                             st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P4: PANEL ROLL NO MODULE (University Roll Number Allocation - Isolated View)
+        # P4: PANEL ROLL NO MODULE (University Roll Number Allocation Engine)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P4":
             st.header(f"🔢 {get_panel_title('P4')} (University Roll Number Allocation Engine)")
@@ -807,40 +712,56 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
+                # 🔍 Real-time Search Filter Sub-system
                 col_r1, col_r2 = st.columns(2)
                 with col_r1:
-                    roll_search_field = st.selectbox("खोजने का माध्यम चुनें (Filter By):", ["Student Name", "Unique ID", "Application Number"], key="p4_search_field_secure")
+                    roll_search_field = st.selectbox("खोजने का माध्यम चुनें (Filter By):", ["Student Name", "Unique ID", "Admission Application Number"], key="p4_search_field_secure")
                 with col_r2:
                     roll_search_query = st.text_input(f"यहाँ {roll_search_field} प्रविष्टि खोजें:", key="p4_search_query_secure").strip()
                 
+                # Filter records based on active user query input
                 roll_filter_df = p4_authorized_db.copy()
                 if roll_search_query != "":
                     roll_filter_df = roll_filter_df[
                         roll_filter_df[roll_search_field].astype(str).str.contains(roll_search_query, case=False, na=False)
                     ]
                 
+                # Standardized 22 columns layout mapping configuration for P4 Workspace
                 roll_fixed_cols = [
-    "Admission Year", "Admission Session", "HIGHER EDU ID", "Roll No.", 
-    "FULL NAME", "FATHER NAME", "MOTHER NAME", "DATE OF BIRTH", "CATEGORY", 
-    "Drgree", "MAJOR SUB", "MINOR SUB", "OPEN-ELECTIVE SUB", "VOCATIONAL SUB", "PROJECT WORK"
-]
+                    "Admission Application Number", "Roll No.", "Unique ID", "Enrollment No.", "Student Name", "Father Name", 
+                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", "Mobile Number", "Email ID", 
+                    "Address", "Status", "Current Year", "Payment Date"
+                ]
                 
+                # Fallback translation maps to catch old column variations automatically
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                roll_filter_df = roll_filter_df.rename(columns=column_mapping_fixes)
+                
+                # Ensure all target columns exist cleanly to bypass blank key runtime errors
                 for col in roll_fixed_cols:
                     if col not in roll_filter_df.columns:
                         roll_filter_df[col] = ""
                 
                 render_df = roll_filter_df[roll_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल मैचिंग छात्र रिकॉर्ड संख्या (Active Matrix Records): **{len(render_df)}**")
                 
+                # Access guard constraints setup depending on session user role attributes
                 if role == "full_admin":
-                    disabled_cols = ["S. No", "Application Number", "Unique ID", "Student Name"]
+                    disabled_cols = [c for c in render_df.columns if c != "Roll No."]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास विश्वविद्यालय रोल नंबर एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
                     st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में Roll No. बदलने का अधिकार नहीं है।")
                 
+                # Live dynamic spreadsheet data editor canvas interface
                 edited_roll_df = st.data_editor(
                     render_df, 
                     use_container_width=True, 
@@ -849,14 +770,15 @@ else:
                     hide_index=True
                 )
                 
+                # Synchronization engine to sync and save custom adjustments securely to main live database
                 if role == "full_admin":
                     if st.button("Save & Sync Roll Numbers", type="primary", use_container_width=True, key="p4_save_btn_secure"):
                         try:
-                            clean_edited = edited_roll_df.drop(columns=["S. No"])
+                            clean_edited = edited_roll_df.drop(columns=["S. No."], errors="ignore")
                             roll_sync_counter = 0
                             
                             for _, row_edit in clean_edited.iterrows():
-                                target_app_num = str(row_edit["Application Number"]).strip()
+                                target_app_num = str(row_edit["Admission Application Number"]).strip()
                                 roll_number_val = str(row_edit["Roll No."]).strip()
                                 
                                 idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == target_app_num].index
@@ -873,7 +795,7 @@ else:
                             st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P5: PANEL ENROLLMENT MODULE (University Enrollment Manager - Isolated View)
+        # P5: PANEL ENROLLMENT MODULE (University Enrollment Manager)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P5":
             st.header(f"📑 {get_panel_title('P5')} (University Enrollment Manager)")
@@ -890,50 +812,60 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # यूनीक शाखाओं (Branch) की सूची निकालकर फ़िल्टर तैयार करना
-                available_subjects = ["All"] + sorted(list(set(p5_authorized_db["Branch"].dropna().astype(str).str.strip())))
-                selected_subject = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p5_subject_filter_secure_select")
+                # Fallback dictionary to translate legacy/alternate columns to core fields
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                p5_authorized_db = p5_authorized_db.rename(columns=column_mapping_fixes)
+
+                # Branch field tracking check to build fallback subject isolation filters safely
+                branch_key = "Branch" if "Branch" in p5_authorized_db.columns else "Subject"
+                available_subjects = ["All"] + sorted(list(set(p5_authorized_db[branch_key].dropna().astype(str).str.strip())))
+                selected_subject = st.selectbox("Branch (शाखा) / Subject फ़िल्टर चुनें:", options=available_subjects, key="p5_subject_filter_secure_select")
                 
-                # फ़िल्टर के आधार पर डेटा को अलग करना
+                # Filter rows based on branch/subject criteria
                 filtered_enrollment = p5_authorized_db.copy()
                 if selected_subject != "All": 
-                    filtered_enrollment = filtered_enrollment[filtered_enrollment["Branch"].str.strip() == selected_subject]
+                    filtered_enrollment = filtered_enrollment[filtered_enrollment[branch_key].str.strip() == selected_subject]
                 
-                # 🎛️ केवल एनरोलमेंट पैनल के लिए मान्य निश्चित कॉलम्स की सूची (As Per Custom Layout)
+                # Standardized 22 columns layout matrix for P5 workspace configuration
                 enrollment_fixed_cols = [
-    "Admission Year", "Admission Session", "application_no", "enroll_no", 
-    "Name", "gender", "father_name", "dob", "category", "mob_no", "collegename", 
-    "coursename", "branchname", "branchmode", "status", "session", "univ_or_board"
-]
+                    "Admission Application Number", "Enrollment No.", "Roll No.", "Unique ID", "Student Name", "Father Name",
+                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
+                ]
                 
-                # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
+                # Bypassing missing structural field errors with string allocations
                 for col in enrollment_fixed_cols:
                     if col not in filtered_enrollment.columns:
                         filtered_enrollment[col] = ""
                         
-                # रेंडर टेबल तैयार करना और क्रम संख्या (S. No) जोड़ करना
                 render_df = filtered_enrollment[enrollment_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Enrollment Records): **{len(render_df)}**")
                 
-                # 🔐 एडिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
+                # 🔐 Access Restriction Interface (Security Gateway)
                 if role == "full_admin":
-                    # एडमिन के लिए केवल एनरोलमेंट नंबर फ़ील्ड ही एडिट करने योग्य रहेगी
-                    disabled_cols = ["S. No", "Application Number", "Student Name", "Father Name", "Branch"]
+                    # Admins have interactive editing permissions isolated to the Enrollment No field
+                    disabled_cols = [c for c in render_df.columns if c != "Enrollment No."]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास विश्वविद्यालय नामांकन संख्या (Enrollment No) एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
-                    # सामान्य ऑपरेटर के लिए पूरे ग्रिड के सभी कॉलम्स लॉक (Read-Only List View) रहेंगे
+                    # Regular operators receive a comprehensive read-only view of the dataset layout
                     disabled_cols = [c for c in render_df.columns]
                     st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में नामांकन संख्या बदलने का अधिकार नहीं है।")
                 
-                # डेटा एडिटर ग्रिड
+                # Render interactive workspace spreadsheet data editor
                 edited_enrollment_df = st.data_editor(
                     render_df, 
                     use_container_width=True, 
                     disabled=disabled_cols, 
                     column_config={
-                        "Enrollment No": st.column_config.TextColumn(
+                        "Enrollment No.": st.column_config.TextColumn(
                             "University Enrollment No", 
                             help="विश्वविद्यालय द्वारा आवंटित स्थायी नामांकन संख्या दर्ज करें"
                         )
@@ -942,26 +874,25 @@ else:
                     hide_index=True
                 )
                 
-                # डेटाबेस में लाइव सिंक करने का बटन (केवल सुपर एडमिन को विज़िबल)
+                # Commit updates engine to synchronize state with core spreadsheet CSV files
                 if role == "full_admin":
                     if st.button("Save & Sync Enrollment Numbers", type="primary", use_container_width=True, key="p5_save_btn_secure_tracker"):
                         try:
-                            clean_edited = edited_enrollment_df.drop(columns=["S. No"])
+                            clean_edited = edited_enrollment_df.drop(columns=["S. No."], errors="ignore")
                             enroll_sync_counter = 0
                             
-                            # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
                             for _, row_edit in clean_edited.iterrows():
-                                app_num = str(row_edit["Application Number"]).strip()
+                                app_num = str(row_edit["Admission Application Number"]).strip()
                                 
-                                # 'Application Number' के आधार पर इंडेक्स match खोजना
+                                # Locating exact records via Application Number references
                                 idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
                                     for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Enrollment No"] = str(row_edit["Enrollment No"]).strip()
+                                        live_db.at[match_idx, "Enrollment No."] = str(row_edit["Enrollment No."]).strip()
                                         enroll_sync_counter += 1
                             
-                            # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
+                            # Commit modifications to storage file permanently
                             save_live_data(live_db)
                             st.success(f"🎉 सफलता! कुल {enroll_sync_counter} छात्र रिकॉर्ड्स का विश्वविद्यालय नामांकन नंबर मुख्य डेटाबेस (Live CSV) में सिंक और अपडेट हो गया है!")
                             st.rerun()
@@ -970,12 +901,12 @@ else:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
-        # P6: PANEL SCHOLARSHIP MODULE (Portal & Scholarship Tracker - Isolated View)
+        # P6: PANEL SCHOLARSHIP MODULE (Portal & Scholarship Tracker)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P6":
             st.header(f"💰 {get_panel_title('P6')} (Portal & Scholarship Tracker)")
             
-            # Ensure the tracking column fallback layout exists inside master mapping fields
+            # Ensure the tracking fallback status column exists inside the master dataframe array
             if "Scholarship Status" not in live_db.columns: 
                 live_db["Scholarship Status"] = "Not Applied"
                 
@@ -991,44 +922,53 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # यूनीक श्रेणियों (Category) की सूची निकालकर फ़िल्टर तैयार करना
+                # Normalise alternate column structural headers to match baseline fields smoothly
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                p6_authorized_db = p6_authorized_db.rename(columns=column_mapping_fixes)
+
+                # Isolate unique list categories to build search shorting options cleanly
                 available_categories = ["All"] + sorted(list(set(p6_authorized_db["Category"].dropna().astype(str).str.strip())))
                 selected_category = st.selectbox("Category (वर्ग) फ़िल्टर चुनें:", options=available_categories, key="p6_category_filter_secure_select_box")
                 
-                # फ़िल्टर के आधार पर डेटा को अलग करना
+                # Apply row shorting filters based on category criteria selection
                 filtered_scholarship = p6_authorized_db.copy()
                 if selected_category != "All": 
                     filtered_scholarship = filtered_scholarship[filtered_scholarship["Category"].str.strip() == selected_category]
                 
-                # 🎛️ केवल स्कॉलरशिप पैनल के लिए मान्य निश्चित कॉलम्स की सूची (As Per Custom Layout)
+                # Standardized 22 columns layout matrix + 1 interactive cell for operations comfort
                 scholarship_fixed_cols = [
-    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-    "Admission Date", "Unique Id", "Roll No.", "Application Enrollment No.", "Student Name", 
-    "Father Name", "Mother Name", "Date Of Birth", "Category", "Subject", "Duretion", 
-    "Mobile Number", "Email Id", "Address", "Year", "Status"
-]
-                # सुनिश्चित करना कि सभी लक्षित कॉलम्स डेटाफ़्रेम में मौजूद हों
+                    "Admission Application Number", "Scholarship Status", "Scholarship Name", "Unique ID", "Roll No.", "Enrollment No.",
+                    "Student Name", "Father Name", "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", 
+                    "Application Enrollment No.", "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
+                ]
+                
+                # Pre-populate missing structural columns with placeholders to bypass layout crashes
                 for col in scholarship_fixed_cols:
                     if col not in filtered_scholarship.columns:
                         filtered_scholarship[col] = ""
                 
-                # रेंडर टेबल तैयार करना और क्रम संख्या (S. No) जोड़ना
                 render_df = filtered_scholarship[scholarship_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल सक्रिय रिकॉर्ड संख्या (Active Matrix Profiles): **{len(render_df)}**")
                 
-                # 🔐 एडिट और डिसेबल रिस्ट्रिक्शन इंजन (Security Firewall)
-                if role == "full_admin":
-                    # एडमिन के लिए केवल Scholarship Status फ़ील्ड ही एडिट करने योग्य रहेगी
-                    disabled_cols = ["S. No", "Application Number", "Unique ID", "Student Name", "Category", "Scholarship Name"]
+                # 🔐 Access Restriction Interface (Security Gateway)
+                if role == "full_admin" or role == "p6_role":
+                    # Admins and designated operators can interactively modify the Scholarship Status field
+                    disabled_cols = [c for c in render_df.columns if c != "Scholarship Status"]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास छात्रवृत्ति ट्रैकिंग मैट्रिक्स (Scholarship Status) एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
-                    # सामान्य ऑपरेटर के लिए पूरे ग्रिड के सभी कॉलम्स लॉक (Read-Only List View) रहेंगे
+                    # Regular viewers get a protected comprehensive spreadsheet canvas layout
                     disabled_cols = [c for c in render_df.columns]
                     st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में छात्रवृत्ति स्थिति बदलने का अधिकार नहीं है।")
                 
-                # डेटा एडिटर ग्रिड (ड्रॉपडाउन चयन के साथ)
+                # Render interactive workspace spreadsheet data editor with custom selection menus
                 edited_scholarship_df = st.data_editor(
                     render_df, 
                     use_container_width=True, 
@@ -1045,18 +985,17 @@ else:
                     hide_index=True
                 )
                 
-                # डेटाबेस में लाइव सिंक करने का बटन (केवल सुपर एडमिन को विज़िबल)
-                if role == "full_admin":
+                # Commit updates engine to synchronize state modifications with core live datasets
+                if role == "full_admin" or role == "p6_role":
                     if st.button("Save & Sync Scholarship Matrix", type="primary", use_container_width=True, key="p6_save_btn_secure_tracker_engine"):
                         try:
-                            clean_edited = edited_scholarship_df.drop(columns=["S. No"])
+                            clean_edited = edited_scholarship_df.drop(columns=["S. No."], errors="ignore")
                             scholarship_sync_counter = 0
                             
-                            # प्रत्येक एडिट की गई रो को मुख्य डेटाबेस (live_db) से सिंक करना
                             for _, row_edit in clean_edited.iterrows():
-                                app_num = str(row_edit["Application Number"]).strip()
+                                app_num = str(row_edit["Admission Application Number"]).strip()
                                 
-                                # 'Application Number' के आधार पर इंडेक्स match खोजना
+                                # Locating matching data indexes using internal primary Application Key references
                                 idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
@@ -1064,16 +1003,12 @@ else:
                                         live_db.at[match_idx, "Scholarship Status"] = str(row_edit["Scholarship Status"]).strip()
                                         scholarship_sync_counter += 1
                             
-                            # लाइव सी.एस.वी फ़ाइल में डेटा सुरक्षित सेव करना
+                            # Save modifications permanently to the CSV file repository
                             save_live_data(live_db)
                             st.success(f"🎉 सफलता! कुल {scholarship_sync_counter} छात्र रिकॉर्ड्स का छात्रवृत्ति स्टेटस डेटा मुख्य डेटाबेस (Live CSV) में सुरक्षित सिंक हो गया है!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-
-        # ======================================================================
-        # 👑 FIXED CORE WORKSPACE: P7 (CCE), P8 (Promotion), P9 (Result), P10 (Register)
-        # ======================================================================
 
         # ----------------------------------------------------------------------
         # P7: PANEL CCE DESK (22-Cols Master List + CCE Entry + Foil Sheet Generator)
@@ -1081,7 +1016,7 @@ else:
         elif current_panel_id == "P7":
             st.header(f"📋 {get_panel_title('P7')} (Complete CCE Management & Foil Desk)")
             
-            # Ensure CCE dynamic fields exist safely in the database matrix
+            # Ensure specialized data ledger parameters exist inside database schema fields
             for f in ["CCE Marks Obtained", "CCE Attendance Status"]:
                 if f not in live_db.columns: 
                     live_db[f] = ""
@@ -1101,7 +1036,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Precise 22 columns requested by the user + 2 interactive fields placed at front for fast operations
+                # Comprehensive 22 columns tracking data structure matrix for active operations
                 cce_requested_cols = [
                     "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
                     "CCE Marks Obtained", "CCE Attendance Status", "Admission Year", "Admission Session", 
@@ -1110,7 +1045,7 @@ else:
                     "Mobile Number", "Email ID", "Address", "Current Year", "Status"
                 ]
 
-                # Normalise field spellings across datasets dynamically
+                # Normalise input variant headings across runtime frames to prevent cell runtime errors
                 column_mapping_fixes = {
                     "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
@@ -1128,7 +1063,7 @@ else:
                 render_df = filtered_cce[cce_requested_cols].copy()
                 render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
-                # Access guard based on account role privileges
+                # Enforce system access rules based on security permissions
                 if role == "full_admin" or role == "p7_role":
                     disabled_cols = [c for c in render_df.columns if c not in ["CCE Marks Obtained", "CCE Attendance Status"]]
                     st.info("🔓 **डेटा एंट्री मोड एक्टिव:** आप CCE Marks और Attendance Status कॉलम्स में सीधे बदलाव कर सकते हैं।")
@@ -1136,7 +1071,7 @@ else:
                     disabled_cols = [c for c in render_df.columns]
                     st.warning("🔒 **रीड-ओनली मोड:** आपके पास इस पैनल में बदलाव करने का अधिकार नहीं है।")
                 
-                # Live spreadsheet table editor widget
+                # Active cell data editor sheet table
                 edited_cce = st.data_editor(
                     render_df, 
                     use_container_width=True, 
@@ -1149,7 +1084,7 @@ else:
                     hide_index=True
                 )
                 
-                # Synchronization loop to save inputs to central master database
+                # Commit updates to synchronize changes securely to core dataset sheet file
                 if role == "full_admin" or role == "p7_role":
                     if st.button("💾 Save Grid Changes to Master Database", type="primary", use_container_width=True, key="p7_save_cce_data_btn_final"):
                         try:
@@ -1222,6 +1157,59 @@ else:
                 with btn_col2:
                     if st.session_state.get('cce_foil_generated', False):
                         st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                if st.session_state.get('cce_foil_generated', False):                
+                st.markdown("---")
+                
+                # ------------------------------------------------------------------
+                # भाग 2: फॉयल शीट जनरेटर इंजन (University Official Foil Generator)
+                # ------------------------------------------------------------------
+                st.subheader("📄 2. Generate University Official Foil Sheets Canvas")
+                
+                def marks_to_words(val_str):
+                    val_clean = str(val_str).strip().upper()
+                    if val_clean in ["A", "ABS", "ABSENT", "2 AB", "2AB"]: return "Absent"
+                    try:
+                        num = int(float(val_str))
+                        words = {
+                            0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+                            6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+                            11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
+                            16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen", 20: "twenty"
+                        }
+                        return words.get(num, str(num))
+                    except: return str(val_str)
+
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                col_p7_1, col_p7_2 = st.columns(2)
+                with col_p7_1:
+                    foil_format_type = st.selectbox(
+                        "📄 CCE Foil फ़ॉर्मेट चुनें:",
+                        options=[
+                            "Blank Foil (Side-by-Side List)", 
+                            "CCE Mark Entry (Detailed Marks View)", 
+                            "CCE List (Internal Evaluation - Multi Paper)"
+                        ],
+                        key="p7_foil_format_selection_ultimate"
+                    )
+                with col_p7_2:
+                    unique_subjects = sorted(list(set(filtered_cce['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in filtered_cce.columns else sorted(list(set(filtered_cce['Subject'].dropna().astype(str).str.strip())))
+                    selected_subject = st.selectbox("📚 Select Branch Name / Subject Filter:", options=["All Branches"] + [s for s in unique_subjects if s != ""], key="cce_p7_sub_filter_ultimate")
+                
+                col_p7_3, col_p7_4 = st.columns(2)
+                with col_p7_3:
+                    chosen_option = st.selectbox("📆 Select Semester / Year Scope:", options=["1 Semester", "2 Semester", "1 Year", "2 Year", "3 Year", "Fourth Semester", "6th SEMESTER"], key="cce_p7_sem_filter_ultimate")
+                with col_p7_4:                
+                    max_marks = st.text_input("Maximum Marks:", value="20", key="cce_p7_max_marks_ultimate")
+
+                    btn_col1, btn_col2 = st.columns(2)
+                    with btn_col1:
+                        if st.button("🔄 Generate Selected Foil Print Layout", use_container_width=True, type="primary", key="p7_gen_canvas_btn_ultimate"): 
+                            st.session_state.cce_foil_generated = True
+                    with btn_col2:
+                        if st.session_state.get('cce_foil_generated', False):
+                            st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
                     
                     if st.session_state.get('cce_foil_generated', False):
@@ -1232,7 +1220,7 @@ else:
                         for col_mark in multi_paper_cols:
                             if col_mark not in foil_filter_df.columns: foil_filter_df[col_mark] = ""
                         
-                        # ऊपर भरे गए CCE अंकों को फॉयल प्रिंट में ऑटो-मैप करना
+                        # Mirror newly updated input values to active foil sheet parameters instantly
                         if "CCE Marks Obtained" in foil_filter_df.columns:
                             foil_filter_df["Total Marks"] = foil_filter_df["CCE Marks Obtained"]
                             foil_filter_df["CCE-I"] = foil_filter_df["CCE Marks Obtained"]
@@ -1248,7 +1236,7 @@ else:
                         if len(records_list) == 0:
                             st.warning("🔍 चयनित फ़िल्टर के आधार पर कोई रिकॉर्ड नहीं मिला।")
                         else:
-                            # --- फ़ॉर्मेट 1: BLANK FOIL SIDE-BY-SIDE ---
+                            # --- Format 1: BLANK FOIL SIDE-BY-SIDE ---
                             if foil_format_type == "Blank Foil (Side-by-Side List)":
                                 left_records = records_list[:31]
                                 right_records = records_list[31:62]
@@ -1305,7 +1293,7 @@ else:
                                     </div>
                                 """, unsafe_allow_html=True)
     
-                            # --- फ़ॉर्मेट 2: CCE MARK ENTRY (Detailed Marks View) ---
+                            # --- Format 2: DETAILED MARKS VIEW ---
                             elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
                                 mark_entry_html = f"""
                                 <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
@@ -1353,8 +1341,8 @@ else:
                                     """
                                 mark_entry_html += "</tbody></table></div>"
                                 st.markdown(mark_entry_html, unsafe_allow_html=True)
-                            
-                            # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER ---
+
+                            # --- फ़ॉर्मेट 3: MULTI-PAPER ASSESSMENT LIST ---
                             elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
                                 multi_paper_html = f"""
                                 <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
@@ -1383,13 +1371,10 @@ else:
                                         </thead>
                                         <tbody>
                                 """
-                                
-                                # Complete loop rendering the individual rows correctly for Format 3
                                 for idx, row in enumerate(records_list):
                                     s_name = str(row.get("Student Name", "")).upper()
                                     f_name = str(row.get("Father Name", "")).upper()
                                     cce_live = str(row.get("Total Marks", "")).strip()
-                                    
                                     multi_paper_html += f"""
                                             <tr>
                                                 <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
@@ -1402,15 +1387,10 @@ else:
                                                 <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
                                             </tr>
                                     """
-                                    
-                                multi_paper_html += """
-                                        </tbody>
-                                    </table>
-                                </div>
-                                """
+                                multi_paper_html += "</tbody></table></div>"
                                 st.markdown(multi_paper_html, unsafe_allow_html=True)
 
-                # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
@@ -1446,65 +1426,6 @@ else:
                     "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
                     "Mobile Number", "Email ID", "Address", "Current Year"
                 ]
-                
-                # Fallback mappings to prevent blank columns
-                column_mapping_fixes = {
-                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                    "Email Id": "Email ID", "Year": "Current Year",
-                    "Application Number": "Admission Application Number"
-                }
-                filtered_promo = filtered_promo.rename(columns=column_mapping_fixes)
-
-                for col in promotion_fixed_cols:
-                    if col not in filtered_promo.columns: 
-                        filtered_promo[col] = ""
-                        
-                render_df = filtered_promo[promotion_fixed_cols].copy()
-                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
-                
-                st.write(f"📊 ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(render_df)}**")
-                
-                if role == "full_admin":
-                    disabled_cols = [c for c in render_df.columns if c not in ["Status", "Promotion Status"]]
-                    st.info("🔓 **एडमिन मोड:** आपके पास बैच प्रमोशन स्थिति (Status & Promotion Status) बदलने का पूर्ण अधिकार है।")
-                else:
-                    disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में प्रमोशन स्थिति बदलने का अधिकार नहीं है।")
-                
-                edited_promo = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=disabled_cols, 
-                    column_config={
-                        "Status": st.column_config.SelectboxColumn("Academic Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), 
-                        "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)
-                    }, 
-                    key="promotion_live_editor_grid_p8_restored_engine_final", 
-                    hide_index=True
-                )
-                
-                if role == "full_admin":
-                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p8_save_promo_btn_final_new"):
-                        try:
-                            clean_edited = edited_promo.drop(columns=["S. No."], errors="ignore")
-                            promo_sync_counter = 0
-                            
-                            for _, r_edit in clean_edited.iterrows():
-                                app_num = str(r_edit["Admission Application Number"]).strip()
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
-                                
-                                if not idx_matches.empty:
-                                    for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
-                                        live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
-                                        promo_sync_counter += 1
-                                        
-                            save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} रिकॉर्ड्स का प्रमोशन डेटा मास्टर डेटाबेस में सुरक्षित सिंक हो गया है!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या: {e}")
 
         # ----------------------------------------------------------------------
         # P9: PANEL RESULT MODULE (Examination Register Ledger Desk)
@@ -1558,32 +1479,33 @@ else:
                 render_df = filtered_res[result_fixed_cols].copy()
                 render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
-                st.write(f"📊 ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(render_df)}**")
+                st.write(f"📊 ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Result Profiles): **{len(render_df)}**")
                 
                 if role == "full_admin":
                     disabled_cols = [c for c in render_df.columns if c not in ["Marks Obtained", "Result Status", "Exam Remarks"]]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास परीक्षा परिणाम (Marks, Status & Remarks) एडिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में प्रमोशन स्थिति बदलने का अधिकार नहीं है।")
+                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में परीक्षा परिणाम बदलने का अधिकार नहीं है।")
                 
-                edited_promo = st.data_editor(
+                edited_res = st.data_editor(
                     render_df, 
                     use_container_width=True, 
                     disabled=disabled_cols, 
                     column_config={
-                        "Status": st.column_config.SelectboxColumn("Academic Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), 
-                        "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)
+                        "Marks Obtained": st.column_config.TextColumn("Marks Obtained"),
+                        "Result Status": st.column_config.SelectboxColumn("Result Status", options=["Pass", "Fail", "ATKT", "Withheld", "Absent"], required=True),
+                        "Exam Remarks": st.column_config.TextColumn("Exam Remarks")
                     }, 
-                    key="promotion_live_editor_grid_p8_restored_engine_final", 
+                    key="result_live_editor_grid_p9_secure_engine_new", 
                     hide_index=True
                 )
                 
                 if role == "full_admin":
-                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p8_save_promo_btn_final_new"):
+                    if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True, key="p9_save_btn_secure_new"):
                         try:
-                            clean_edited = edited_promo.drop(columns=["S. No."], errors="ignore")
-                            promo_sync_counter = 0
+                            clean_edited = edited_res.drop(columns=["S. No."], errors="ignore")
+                            result_sync_counter = 0
                             
                             for _, r_edit in clean_edited.iterrows():
                                 app_num = str(r_edit["Admission Application Number"]).strip()
@@ -1591,15 +1513,16 @@ else:
                                 
                                 if not idx_matches.empty:
                                     for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
-                                        live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
-                                        promo_sync_counter += 1
+                                        live_db.at[match_idx, "Marks Obtained"] = str(r_edit["Marks Obtained"]).strip()
+                                        live_db.at[match_idx, "Result Status"] = str(r_edit["Result Status"]).strip()
+                                        live_db.at[match_idx, "Exam Remarks"] = str(r_edit["Exam Remarks"]).strip()
+                                        result_sync_counter += 1
                                         
                             save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} रिकॉर्ड्स का प्रमोशन डेटा मास्टर डेटाबेस में सुरक्षित सिंक हो गया है!")
+                            st.success(f"🎉 सफलता! कुल {result_sync_counter} छात्र रिकॉर्ड्स का परीक्षा परिणाम मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या: {e}")
+                            st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
         # ----------------------------------------------------------------------
         # P10: PANEL REGISTER MODULE (University TR / Ledger Archiver Desk)
@@ -1618,15 +1541,23 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Full 22 core fields displayed in a permanent read-only archive format
+                # Perfect 22 core fields layout mapping for P10
                 archive_view_cols = [
-                    "Admission Year", "Admission Session", "Eligibility Name", "Application Number", 
-                    "Admission Date", "Unique ID", "Roll No.", "Enrollment No.", "Student Name", 
-                    "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
-                    "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+                    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
+                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
+                    "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
                 ]
                 
-                # Dynamic placeholder correction to prevent blank cell mismatch crashes
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                p10_authorized_db = p10_authorized_db.rename(columns=column_mapping_fixes)
+
+                # Ensure all target columns exist cleanly to bypass blank key runtime errors
                 for col in archive_view_cols:
                     if col not in p10_authorized_db.columns: 
                         p10_authorized_db[col] = ""
@@ -1636,7 +1567,7 @@ else:
                 
                 st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ: **{len(render_archive)}**")
                 
-                # Strict read-only dataframe display to protect archived columns
+                # Strict read-only dataframe display to protect long-term archived columns
                 st.dataframe(render_archive, use_container_width=True, hide_index=True)
                 
                 # Fast CSV archival download snapshot trigger
@@ -1646,9 +1577,9 @@ else:
                     file_name=f"permanent_registry_snapshot_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
                     use_container_width=True,
-                    key="p10_download_archive_btn"
+                    key="p10_download_archive_btn_new"
                 )
-                
+
         # ----------------------------------------------------------------------
         # P11: SYSTEM INFORMER BLOCK (Official Campus Notice Board Window)
         # ----------------------------------------------------------------------
@@ -1658,7 +1589,7 @@ else:
             st.markdown("""
                 <div style="background-color: #fffaf0; border-left: 5px solid #ff9800; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
                     ℹ️ <b>आधिकारिक डिजिटल सूचना पटल (Read-Only Matrix):</b> इस पैनल पर वर्तमान सत्र में सक्रिय प्रशासनिक एवं अकादमिक घोषणाएं प्रदर्शित हैं। 
-                    सुरक्षा एवं डेटा अखंडता प्रोटोकॉल के अनुसार, इसमें लाइव संशोधन करने का अधिकार केवल सुपर एडमिन (पैनल 12/15) के पास है।
+                    सुरक्षा एवं डेटा अखंडता प्रोटोकॉल के अनुसार, इसमें लाइव संशोधन करने का अधिकार केवल सुपर एडमिन (पैनल P12) के पास है।
                 </div>
             """, unsafe_allow_html=True)
             
@@ -1780,14 +1711,13 @@ else:
                         <ul style="padding-left: 20px; color: #333;">{formatted_preview}</ul>
                     </div>
                 """, unsafe_allow_html=True)
-
         # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
         elif current_panel_id == "P13":
             st.header(f"🔀 {get_panel_title('P13')} (Live Multi-Column Merge Verification & Routing Room)")
             
-            # स्टेजिंग कतार और मुख्य लाइव डेटाबेस लोड करें
+            # Load the staging verification queue and main central repository
             stage_db = load_stage_data()
             master_db_lookup = load_live_data()
             
@@ -1807,24 +1737,25 @@ else:
                 panel_options_map = {
                     "Panel 2: Admission View": "P2", "Panel 3: Unique ID View": "P3",
                     "Panel 4: Roll No View": "P4", "Panel 5: Enrollment View": "P5",
-                    "Panel 6: Scholarship View": "P6", "Panel 8: CCE Record View": "P8",
-                    "Panel 10: Result View": "P10"
+                    "Panel 6: Scholarship View": "P6", "Panel 7: CCE panel View": "P7",
+                    "Panel 8: Promotion panel View": "P8", "Panel 9: Result panel View": "P9",
+                    "Panel 10: Register panel View": "P10"
                 }
                 
                 selected_main_panel_lbl = st.selectbox(
                     "निरीक्षण और अपडेट करने के लिए मुख्य पैनल (Main File Source) चुनें:",
                     options=list(panel_options_map.keys()),
-                    key="p13_main_panel_dropdown"
+                    key="p13_main_panel_dropdown_v15"
                 )
                 target_main_panel_id = panel_options_map[selected_main_panel_lbl]
                 
-                # मुख्य डेटाबेस से केवल इसी पैनल का स्वीकृत डेटा निकालें
+                # Fetch approved records tied to the selected workspace platform visibility token
                 main_file_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] == target_main_panel_id].copy()
                 
                 st.write(f"📊 **Main File (Approved DB):** `{selected_main_panel_lbl}` | वर्तमान रिकॉर्ड्स संख्या: `{len(main_file_db)}`")
                 if not main_file_db.empty:
                     with st.expander("👁️ मुख्य फ़ाइल (Main File) का पूरा लाइव डेटा देखें", expanded=False):
-                        st.dataframe(main_file_db[[c for c in ["Admission Year", "Application Number", "Student Name", "Father Name", "Branch"] if c in main_file_db.columns]], use_container_width=True)
+                        st.dataframe(main_file_db[[c for c in ["Admission Year", "Application Number", "Student Name", "Father Name", "Subject"] if c in main_file_db.columns]], use_container_width=True)
                 else:
                     st.warning("⚠️ इस चयनित पैनल में वर्तमान में कोई स्वीकृत डेटा उपलब्ध नहीं है।")
 
@@ -1838,7 +1769,7 @@ else:
                 selected_anya_file = st.selectbox(
                     "स्टेजिंग कतार से वह नई फ़ाइल चुनें जिससे डेटा खींचना है (या सीधे अप्रूव करने के लिए छोड़ें):", 
                     options=["-- कोई अन्य फ़ाइल नहीं चुनें --"] + distinct_files,
-                    key="p13_anya_file_select_v3"
+                    key="p13_anya_file_select_v15"
                 )
 
                 # ----------------------------------------------------------------------
@@ -1848,7 +1779,6 @@ else:
                     st.markdown("---")
                     st.subheader("🚀 बिना मर्ज किए सीधे अप्रूव करें (Direct Approval Window)")
                     
-                    # 🛑 फिक्स: पूरी लिस्ट पास करने के बजाय कतार की पहली फ़ाइल का नाम (स्ट्रिंग) निकालें
                     direct_target_file_name = distinct_files[0] if distinct_files else ""
                     
                     if not direct_target_file_name:
@@ -1862,26 +1792,27 @@ else:
                             direct_routing_panel = st.selectbox(
                                 "📌 इस फ़ाइल को किस विशिष्ट वर्किंग पैनल पर विज़िबल करना है?",
                                 options=[
-                                    "P2 : Panal admission / Control Tracker",
-                                    "P3 : Panal unique / ID Engine",
-                                    "P4 : Panal roll / Number Allocation",
-                                    "P5 : Panal enrollment / Permanent Manager",
-                                    "P6 : Panal scholarship / Matrix Tracker",
-                                    "P8 : Panal CCE Record Ledger",
-                                    "P10 : Panal Result Tabulation Register"
+                                    "P2 : Admission panel",
+                                    "P3 : Unique ID panel",
+                                    "P4 : Roll No. panel",
+                                    "P5 : Enrollment panel",
+                                    "P6 : Scholarship panel",
+                                    "P7 : CCE panel",
+                                    "P8 : Promotion panel",
+                                    "P9 : Result panel",
+                                    "P10 : Register panel"
                                 ],
-                                key="p13_direct_panel_routing_dropdown"
+                                key="p13_direct_panel_routing_dropdown_v15"
                             )
                             parsed_direct_panel_id = direct_routing_panel.split(" : ")[0].strip()
                             
                         with col_dir2:
                             st.write("")
                             st.write("")
-                            direct_approve_btn = st.button("🚀 सीधे अप्रूव करें (Direct Approve & Sync)", type="primary", use_container_width=True, key="p13_direct_approve_btn")
+                            direct_approve_btn = st.button("🚀 सीधे अप्रूव करें (Direct Approve & Sync)", type="primary", use_container_width=True, key="p13_direct_approve_btn_v15")
                         
-                        # गलत फाइल हटाने का विकल्प डायरेक्ट विंडो में भी
                         with st.expander("⚠️ डेंजर ज़ोन: इस फ़ाइल को स्टेजिंग से हटाएं (बिना अप्रूव किए)", expanded=False):
-                            confirm_delete_dir = st.checkbox("हाँ, मैं इस फ़ाइल को पूरी तरह कतार से हटाना चाहता हूँ।", key="confirm_delete_dir_key")
+                            confirm_delete_dir = st.checkbox("हाँ, मैं इस फ़ाइल को पूरी तरह कतार से हटाना चाहता हूँ।", key="confirm_delete_dir_key_v15")
                             if st.button("🗑️ इस फ़ाइल को डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete_dir):
                                 updated_stage_db = stage_db[stage_db["Uploaded File Name"] != direct_target_file_name]
                                 save_stage_data(updated_stage_db)
@@ -1890,22 +1821,28 @@ else:
 
                         if direct_approve_btn:
                             try:
-                                # 1. इस फ़ाइल के अंदर 'Target Panel Visibility' का टैग सेट करना
                                 file_subset_direct["Target Panel Visibility"] = parsed_direct_panel_id
                                 
-                                # 2. सुनिश्चित करें कि सभी डिफॉल्ट मास्टर कॉलम्स मौजूद हों
+                                # Remap layout variables to protect 22 column structural norms
+                                column_mapping_fixes = {
+                                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                                    "Email Id": "Email ID", "Year": "Current Year",
+                                    "Application Number": "Admission Application Number"
+                                }
+                                file_subset_direct = file_subset_direct.rename(columns=column_mapping_fixes)
+                                if "Application Number" not in file_subset_direct.columns and "Admission Application Number" in file_subset_direct.columns:
+                                    file_subset_direct["Application Number"] = file_subset_direct["Admission Application Number"]
+
                                 for col in DEFAULT_COLUMNS:
                                     if col not in file_subset_direct.columns:
                                         file_subset_direct[col] = ""
                                         
-                                # 3. यदि मुख्य डेटाबेस में पहले से इस पैनल का कोई डेटा है, तो उसे हटाकर फ्रेश ओवरराइट करना
                                 remaining_master_db_dir = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_direct_panel_id].copy()
                                 
-                                # 4. मास्टर लाइव डेटाबेस में नया डेटा जोड़कर सेव करना
                                 final_direct_master = pd.concat([remaining_master_db_dir, file_subset_direct[DEFAULT_COLUMNS]], ignore_index=True)
                                 save_live_data(final_direct_master)
                                 
-                                # 5. स्टेजिंग कतार (Staging Queue) से इस फ़ाइल को सुरक्षित तरीके से हटा देना
                                 remaining_stage_db_dir = stage_db[stage_db["Uploaded File Name"] != direct_target_file_name]
                                 save_stage_data(remaining_stage_db_dir)
                                 
@@ -1924,7 +1861,7 @@ else:
 
                     with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
                         st.warning(f"क्या आप निश्चित रूप से फ़ाइल '**{selected_anya_file}**' को स्टेजिंग कतार से हटाना चाहते हैं?")
-                        confirm_delete = st.checkbox("हाँ, मैं इस फ़ाइल को डिलीट करना चाहता हूँ।", key="confirm_delete_v3")
+                        confirm_delete = st.checkbox("हाँ, मैं इस फ़ाइल को डिलीट करना चाहता हूँ।", key="confirm_delete_v15")
                         if st.button("🗑️ परमानेंटली डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_delete):
                             updated_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
                             save_stage_data(updated_stage_db)
@@ -1932,7 +1869,7 @@ else:
                             st.rerun()
 
                     st.markdown("---")
-                    st.subheader("🔍 Step 3: Configure Matching & 4-Columns Data Retrieval")
+                    st.subheader("🔍 Step 3: Configure Matching & Columns Data Retrieval")
                     
                     if main_file_db.empty:
                         st.info("💡 अन्य फ़ाइल से मर्ज करने के लिए मुख्य पैनल में कम से कम एक डेटा रिकॉर्ड होना आवश्यक है।")
@@ -1942,24 +1879,24 @@ else:
                             main_match_key = st.selectbox(
                                 "Main File का मैचिंग कॉलम चुनें (जैसे Application Number):",
                                 options=list(main_file_db.columns),
-                                key="xl_main_match_key_v3"
+                                key="xl_main_match_key_v15"
                             )
                         with col_m2:
                             anya_match_key = st.selectbox(
                                 "Anya File का मैचिंग कॉलम चुनें (जैसे Application Number):",
                                 options=list(anya_file_subset.columns),
-                                key="xl_anya_match_key_v3"
+                                key="xl_anya_match_key_v15"
                             )
                             
                         anya_return_cols = st.multiselect(
                             "Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D कॉलम्स):",
                             options=[c for c in anya_file_subset.columns if c not in ["Uploaded File Name", "Target Panel Visibility"]],
-                            default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No."] if c in anya_file_subset.columns],
-                            key="xl_anya_return_cols_v3"
+                            default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No.", "Enrollment No."] if c in anya_file_subset.columns],
+                            key="xl_anya_return_cols_v15"
                         )
 
                         # ----------------------------------------------------------------------
-                        # 👁️ लाइव मर्ज प्रीव्यू इंजन
+                        # 👁️ Live Merge Preview Engine
                         # ----------------------------------------------------------------------
                         if anya_return_cols:
                             try:
@@ -1999,7 +1936,7 @@ else:
                                 st.dataframe(final_preview_df[[c for c in preview_display_cols if c in final_preview_df.columns]], use_container_width=True)
                                 
                                 # ----------------------------------------------------------------------
-                                # 🚀 फाइनल अप्रूवल और रो ओवरराइटिंग सेटिंग्स
+                                # 🚀 Step 4: Finalize & Precision Approve
                                 # ----------------------------------------------------------------------
                                 st.markdown("---")
                                 st.subheader("🚀 Step 4: Finalize & Precision Approve")
@@ -2009,30 +1946,40 @@ else:
                                     target_routing_panel = st.selectbox(
                                         "📌 इस स्वीकृत डेटा को किस वर्किंग पैनल पर विज़िबल रखना है?",
                                         options=[
-                                            "P2 : Panal admission / Control Tracker",
-                                            "P3 : Panal unique / ID Engine",
-                                            "P4 : Panal roll / Number Allocation",
-                                            "P5 : Panal enrollment / Permanent Manager",
-                                            "P6 : Panal scholarship / Matrix Tracker",
-                                            "P8 : Panal CCE Record Ledger",
-                                            "P10 : Panal Result Tabulation Register"
+                                            "P2 : Admission panel",
+                                            "P3 : Unique ID panel",
+                                            "P4 : Roll No. panel",
+                                            "P5 : Enrollment panel",
+                                            "P6 : Scholarship panel",
+                                            "P7 : CCE panel",
+                                            "P8 : Promotion panel",
+                                            "P9 : Result panel",
+                                            "P10 : Register panel"
                                         ],
-                                        key="p13_target_panel_routing_dropdown_v3"
+                                        key="p13_target_panel_routing_dropdown_v15"
                                     )
                                     parsed_panel_id = target_routing_panel.split(" : ")[0].strip()
                                     
                                 with col_app2:
                                     st.write("")
                                     st.write("")
-                                    approve_action_btn = st.button("🚀 Approve & Update Selected Data Rows", type="primary", use_container_width=True, key="p13_final_approve_btn_v3")
+                                    approve_action_btn = st.button("🚀 Approve & Update Selected Data Rows", type="primary", use_container_width=True, key="p13_final_approve_btn_v15")
                                 
                                 if approve_action_btn:
                                     final_preview_df["Target Panel Visibility"] = parsed_panel_id
                                     
+                                    # Normalize alternate key names to standardized core database headers before final commit
+                                    column_mapping_fixes = {
+                                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                                        "Email Id": "Email ID", "Year": "Current Year",
+                                        "Application Number": "Admission Application Number"
+                                    }
+                                    final_preview_df = final_preview_df.rename(columns=column_mapping_fixes)
+                                    if "Application Number" not in final_preview_df.columns and "Admission Application Number" in final_preview_df.columns:
+                                        final_preview_df["Application Number"] = final_preview_df["Admission Application Number"]
+
                                     remaining_master_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_panel_id].copy()
-                                    
-                                    if main_match_key not in final_preview_df.columns and f"{main_match_key}_from_master" in final_preview_df.columns:
-                                        final_preview_df[main_match_key] = final_preview_df[f"{main_match_key}_from_master"]
                                     
                                     for col in DEFAULT_COLUMNS:
                                         if col not in final_preview_df.columns:
@@ -2059,41 +2006,61 @@ else:
         elif current_panel_id == "P14":
             st.header(f"👁️ {get_panel_title('P14')} (Multi-Panel Inspection Window)")
 
-            # Isolated structural views defined per functional panel assignment 
+            # Standardized 22 core fields mapping per target layout configuration
+            all_22_columns = [
+                "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", 
+                "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Unique ID", 
+                "Application Enrollment No.", "Mother Name", "Date of Birth", "Category", "Subject", 
+                "Duration", "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
+            ]
+
+            # Structural column profiles customized per workspace panel selection
             panel_options_list = {
-                "Panel 2: Admission View": ["Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name", "Gender", "Date Of Birth", "Category", "Admission Category", "Degree", "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects", "Mobile Number", "Email", "Address", "Enrollment No", "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date"],
-                "Panel 3: Unique ID View": ["Application Number", "Student Name", "Father Name", "Unique ID"],
-                "Panel 4: Roll No View": ["Application Number", "Unique ID", "Student Name", "Roll No."],
-                "Panel 5: Enrollment View": ["Application Number", "Student Name", "Branch", "Enrollment No"],
-                "Panel 6: Scholarship View": ["Application Number", "Unique ID", "Student Name", "Category", "Scholarship Name", "Scholarship Status"],
-                "Panel 7: CCE Foil View": ["Roll No.", "Student Name", "Branch", "Status"],
-                "Panel 8: CCE Record View": ["Application Number", "Roll No.", "Student Name", "Branch", "CCE Marks Obtained", "CCE Attendance Status"],
-                "Panel 9: Promotion View": ["Application Number", "Roll No.", "Student Name", "Current Year", "Status", "Promotion Status"],
-                "Panel 10: Result View": ["Application Number", "Roll No.", "Enrollment No", "Student Name", "Branch", "Marks Obtained", "Result Status", "Exam Remarks"],
-                "Panel 12: Dash Board View": ["Admission Year", "Admission Session", "Student Name", "Status"]
+                "Panel 2: Admission View": all_22_columns,
+                "Panel 3: Unique ID View": ["Admission Application Number", "Student Name", "Father Name", "Unique ID"],
+                "Panel 4: Roll No View": ["Admission Application Number", "Unique ID", "Student Name", "Roll No."],
+                "Panel 5: Enrollment View": ["Admission Application Number", "Student Name", "Subject", "Enrollment No."],
+                "Panel 6: Scholarship View": ["Admission Application Number", "Unique ID", "Student Name", "Category", "Scholarship Name", "Scholarship Status"],
+                "Panel 7: CCE panel View": all_22_columns,
+                "Panel 8: Promotion panel View": all_22_columns,
+                "Panel 9: Result panel View": all_22_columns,
+                "Panel 10: Register panel View": all_22_columns
             }
 
             st.subheader("📂 Select Panel Dashboard View")
             selected_panel_view = st.selectbox(
                 "निरीक्षण करने के लिए पैनल सूची चुनें (Select Dashboard to Inspect):",
                 options=list(panel_options_list.keys()),
-                key="p14_panel_selector_dropdown_secure"
+                key="p14_panel_selector_dropdown_secure_v15"
             )
 
-            # Map the clean panel ID string from the user dropdown selection selection
+            # Map selection labels to their exact database target visibility tracking tags
             panel_id_map = {
                 "Panel 2: Admission View": "P2", "Panel 3: Unique ID View": "P3",
                 "Panel 4: Roll No View": "P4", "Panel 5: Enrollment View": "P5",
-                "Panel 6: Scholarship View": "P6", "Panel 7: CCE Foil View": "P7",
-                "Panel 8: CCE Record View": "P8", "Panel 9: Promotion View": "P9",
-                "Panel 10: Result View": "P10", "Panel 12: Dash Board View": "P12"
+                "Panel 6: Scholarship View": "P6", "Panel 7: CCE panel View": "P7",
+                "Panel 8: Promotion panel View": "P8", "Panel 9: Result panel View": "P9",
+                "Panel 10: Register panel View": "P10"
             }
             target_panel_id = panel_id_map[selected_panel_view]
             target_columns = panel_options_list[selected_panel_view]
 
-            # 🔍 Isolated Firewall Query Rule: Filter centralized records matching the target visibility token
+            # 🔍 Isolated Firewall Query Rule: Filter centralized records matching visibility tokens
             view_filtered_db = live_db[live_db["Target Panel Visibility"] == target_panel_id].copy()
 
+            # Normalization translator dictionary to prevent cell mismatches or blank structures
+            column_mapping_fixes = {
+                "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                "Email Id": "Email ID", "Year": "Current Year",
+                "Application Number": "Admission Application Number",
+                "Enrollment No": "Enrollment No."
+            }
+            view_filtered_db = view_filtered_db.rename(columns=column_mapping_fixes)
+            if "Application Number" in view_filtered_db.columns and "Admission Application Number" not in view_filtered_db.columns:
+                view_filtered_db["Admission Application Number"] = view_filtered_db["Application Number"]
+
+            # Populate any structural column keys missing from memory
             for c_col in target_columns:
                 if c_col not in view_filtered_db.columns:
                     view_filtered_db[c_col] = ""
@@ -2102,9 +2069,9 @@ else:
             
             col_search1, col_search2 = st.columns(2)
             with col_search1:
-                search_target_col = st.selectbox("खोजने के लिए फ़ील्ड चुनें:", options=target_columns, key="p14_search_col_target_secure")
+                search_target_col = st.selectbox("खोजने के लिए फ़ील्ड चुनें:", options=target_columns, key="p14_search_col_target_secure_v15")
             with col_search2:
-                search_query_text = st.text_input(f"'{search_target_col}' में प्रविष्टि खोजें:", key="p14_query_val_text_secure").strip()
+                search_query_text = st.text_input(f"'{search_target_col}' में प्रविष्टि खोजें:", key="p14_query_val_text_secure_v15").strip()
 
             if search_query_text != "":
                 view_filtered_db = view_filtered_db[
@@ -2117,7 +2084,7 @@ else:
             
             if not view_filtered_db.empty:
                 display_ready_df = view_filtered_db[final_render_cols].copy()
-                display_ready_df.insert(0, "S. No", range(1, len(display_ready_df) + 1))
+                display_ready_df.insert(0, "S. No.", range(1, len(display_ready_df) + 1))
 
                 st.dataframe(display_ready_df, use_container_width=True, hide_index=True)
                 
@@ -2127,7 +2094,7 @@ else:
                     file_name=f"{selected_panel_view.replace(':', '').replace(' ', '_').lower()}_snapshot.csv",
                     mime="text/csv",
                     use_container_width=True,
-                    key="p14_download_compiled_report_btn_secure"
+                    key="p14_download_compiled_report_btn_secure_v15"
                 )
             else:
                 st.warning("🔍 निर्दिष्ट खोज प्रविष्टि या स्वीकृत पैनल विज़िबिलिटी के आधार पर कोई रिकॉर्ड नहीं मिला।")
@@ -2232,7 +2199,11 @@ else:
                 edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
             
             if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                # ... (आपका पुराना ड्रॉपडाउन सेव करने वाला कोड यहाँ ख़त्म होगा)
+                st.session_state.p11_dropdown_schemas["file_types"] = [x.strip() for x in edited_file_types.split("\n") if x.strip()]
+                st.session_state.p11_dropdown_schemas["academic_years"] = [x.strip() for x in edited_years.split("\n") if x.strip()]
+                st.session_state.p11_dropdown_schemas["academic_sessions"] = [x.strip() for x in edited_sessions.split("\n") if x.strip()]
+                save_p1_dropdown_schemas()
+                st.success("🎉 मास्टर ड्रॉपडाउन लिस्ट सफलतापूर्वक अपडेट हो गई है!")
                 st.rerun()
 
             # ======================================================================
@@ -2242,7 +2213,6 @@ else:
             st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
             st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
             
-            # ऑटो-रीसेट ट्रिगर काउंटर स्टेट जो विजेट को रीबूट करेगा
             if "p15_uploader_reset_counter" not in st.session_state:
                 st.session_state.p15_uploader_reset_counter = 0
 
@@ -2250,7 +2220,6 @@ else:
                 col_up_pass, col_up_file = st.columns(2)
                 
                 with col_up_pass:
-                    # काउंटर को की (Key) के साथ जोड़कर डायनेमिक बनाया गया है ताकि एरर न आए
                     uploader_secure_password = st.text_input(
                         "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
                         type="password", 
@@ -2273,7 +2242,7 @@ else:
                     st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
                     
                     if uploaded_master_file is not None:
-                        st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
+                        st.info(f"📁 चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
                         
                         confirm_overwrite_checkbox = st.checkbox(
                             "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
@@ -2299,6 +2268,15 @@ else:
                                 else:
                                     raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
                                     
+                                    # Translate columns to ensure 22 core fields align
+                                    column_mapping_fixes = {
+                                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                                        "Email Id": "Email ID", "Year": "Current Year",
+                                        "Application Number": "Admission Application Number"
+                                    }
+                                    raw_uploaded_df = raw_uploaded_df.rename(columns=column_mapping_fixes)
+
                                     for col in DEFAULT_COLUMNS:
                                         if col not in raw_uploaded_df.columns:
                                             raw_uploaded_df[col] = ""
@@ -2309,19 +2287,15 @@ else:
                                     finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
                                     save_live_data(finalized_uploaded_master)
                                     
-                                    # 🔒 सुरक्षित रीसेट मैकेनिज्म: काउंटर बदलते ही विजेट फ्रेश रीबूट हो जाएगा और पुराना डेटा मिट जाएगा
                                     st.session_state.p15_uploader_reset_counter += 1
-                                    
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को सुरक्षित लॉक कर दिया गया है।")
+                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है।")
                                     st.balloons()
                                     st.rerun()
                                     
                             except Exception as upload_err:
+                                except Exception as upload_err:
                                 st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
 
-            # ----------------------------------------------------------------------
-            # यहाँ से आपका पुराना कोड वापस शुरू हो जाएगा:
-            # ----------------------------------------------------------------------
             st.markdown("---")
             st.subheader("📊 Master Database List View & Advanced Operational Controls")
             
@@ -2363,7 +2337,15 @@ else:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
                         st.rerun()
 
-            # फ़ील्ड्स और ऑर्डर्स मैपिंग
+            # Normalize data structures before displaying inside the supreme admin grid
+            column_mapping_fixes = {
+                "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                "Email Id": "Email ID", "Year": "Current Year",
+                "Application Number": "Admission Application Number"
+            }
+            live_db = live_db.rename(columns=column_mapping_fixes)
+
             render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
             ordered_db = live_db[render_columns].copy()
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
@@ -2375,35 +2357,33 @@ else:
                 st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
             else:
                 if st.session_state.admin_lock_state:
-                    # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
                     st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
                 else:
-                    # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
                     st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
                     
                     disabled_fields = ["S.No."]
-                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
                     if not st.session_state.admin_unhide_edit:
-                        disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+                        disabled_fields.extend([get_display_name("Admission Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
                         
                     edited_master_db = st.data_editor(
                         ordered_db_display,
                         use_container_width=True,
                         disabled=disabled_fields,
                         hide_index=True,
-                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
+                        num_rows="dynamic",
                         key="p15_supreme_master_live_editor_grid"
                     )
                     
                     if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                         try:
                             clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
-                            
-                            # मूल स्कीमा नामों में वापस रिवर्स मैप करना
                             display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                             clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
                             
-                            # मुख्य डेटाबेस फ़ाइल को सिंक और सुरक्षित सेव करना
+                            # Restore internal alternate keys during database update cycles
+                            if "Admission Application Number" in clean_edited_master.columns:
+                                clean_edited_master["Application Number"] = clean_edited_master["Admission Application Number"]
+                            
                             save_live_data(clean_edited_master)
                             st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
                             st.rerun()
