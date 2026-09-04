@@ -1295,76 +1295,66 @@ else:
                                                     <td style="border: 1px solid #000; padding: 3px;">&nbsp;</td>
                                                 </tr>
                                         """
-                                    html_chunk += "</tbody></table></div>"
-                                    return html_chunk
-    
-                                st.markdown(f"""
-                                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                                        {render_single_foil_block(1, left_records)}
-                                        {render_single_foil_block(32, right_records)}
-                                    </div>
-                                """, unsafe_allow_html=True)
-    
-                            # --- फ़ॉर्मेट 2: CCE MARK ENTRY (विस्तृत मार्क्स व्यू) ---
-                            elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
-                                mark_entry_html = f"""
-                                <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                    <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
-                                        GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
-                                        <span>Examination: {chosen_option.upper()}</span>
-                                    </div>
-                                    <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
-                                        Subject: {selected_subject.upper()}
-                                    </div>
-                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 5px; letter-spacing: 1px;">FOIL</div>
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
-                                        <thead>
-                                            <tr>
-                                                <th style="border: 1px solid #000; padding: 5px; width: 12%;">Code No.</th>
-                                                <th style="border: 1px solid #000; padding: 5px; width: 18%;">Roll No.</th>
-                                                <th colspan="4" style="border: 1px solid #000; padding: 4px;">Marks Obtained</th>
-                                            </tr>
-                                            <tr>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">S. No.</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 18%;">Roll Number</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-I (Live)</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-II</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">Total</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 34%;">In Words</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                """
-                                for idx, row in enumerate(records_list):
-                                    tot = str(row.get("Total Marks", "")).strip()
-                                    c1 = str(row.get("CCE-I", "")).strip()
-                                    c2 = str(row.get("CCE-II", "")).strip()
-                                    c3 = str(row.get("CCE-III", "")).strip()
-                                    tot = str(row.get("Total Marks", "")).strip()
-                                    words_val = marks_to_words(tot) if tot else ""
-                                    
-                                    mark_entry_html += f"""
-                                            <tr>
-                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
-                                                <td style="border: 1px solid #000; padding: 5px;">{c1 if c1 else "&nbsp;"}</td>
-                                                <td style="border: 1px solid #000; padding: 5px;">{c2 if c2 else "&nbsp;"}</td>
-                                                <td style="border: 1px solid #000; padding: 5px;">{c3 if c3 else "&nbsp;"}</td>
-                                                <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{tot if tot else "&nbsp;"}</td>
-                                                <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{words_val}</td>
-                                            </tr>
-                                    """
+                                                                    html_chunk += "</tbody></table></div>"
+                                return html_chunk
 
-                            mark_entry_html += """
-                                    </tbody>
-                                </table>
-                            </div>
+                            st.markdown(f"""
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    {render_single_foil_block(1, left_records)}
+                                    {render_single_foil_block(32, right_records)}
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                        # --- फ़ॉर्मेट 2: CCE MARK ENTRY (Detailed Marks View) ---
+                        elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
+                            mark_entry_html = f"""
+                            <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
+                                    GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
+                                    <span>Examination: {chosen_option.upper()}</span>
+                                </div>
+                                <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
+                                    Subject: {selected_subject.upper()}
+                                </div>
+                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 5px; letter-spacing: 1px;">FOIL</div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
+                                    <thead>
+                                        <tr>
+                                            <th style="border: 1px solid #000; padding: 5px; width: 12%;">Code No.</th>
+                                            <th style="border: 1px solid #000; padding: 5px; width: 18%;">Roll No.</th>
+                                            <th colspan="4" style="border: 1px solid #000; padding: 4px;">Marks Obtained</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">S. No.</th>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 18%;">Roll Number</th>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-I (Live)</th>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-II</th>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">Total</th>
+                                            <th style="border: 1px solid #000; padding: 4px; width: 34%;">In Words</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
                             """
+                            for idx, row in enumerate(records_list):
+                                tot = str(row.get("Total Marks", "")).strip()
+                                c1 = str(row.get("CCE-I", "")).strip()
+                                words_val = marks_to_words(tot) if tot else ""
+                                mark_entry_html += f"""
+                                        <tr>
+                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
+                                            <td style="border: 1px solid #000; padding: 5px;">{c1 if c1 else "&nbsp;"}</td>
+                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{tot if tot else "&nbsp;"}</td>
+                                            <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{words_val}</td>
+                                        </tr>
+                                """
+                            mark_entry_html += "</tbody></table></div>"
                             st.markdown(mark_entry_html, unsafe_allow_html=True)
 
-                        # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER (Complete Expanded View) ---
+                        # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER ---
                         elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
                             multi_paper_html = f"""
                             <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
