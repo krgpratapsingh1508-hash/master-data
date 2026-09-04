@@ -1071,19 +1071,114 @@ else:
                         except Exception as e:
                             st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
-                # ----------------------------------------------------------------------
-        # P7: PANEL FOIL SHEET GENERATOR MODULE (All 3 Formats Fully Fixed)
+        # ======================================================================
+        # 👑 FIXED CORE WORKSPACE: P7 (CCE), P8 (Promotion), P9 (Result), P10 (Register)
+        # ======================================================================
+
+        # ----------------------------------------------------------------------
+        # P7: PANEL CCE DESK (22-Cols Master List + CCE Entry + Foil Sheet Generator)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P7":
-            st.header(f"🖨️ {get_panel_title('P7')} (University CCE Foil Sheet Generator)")
+            st.header(f"📋 {get_panel_title('P7')} (Complete CCE Management & Foil Desk)")
             
-            # मास्टर डेटाबेस से P7 के लिए स्वीकृत डेटा फ़िल्टर करें
+            # Ensure CCE dynamic fields exist safely in the database matrix
+            for f in ["CCE Marks Obtained", "CCE Attendance Status"]:
+                if f not in live_db.columns: 
+                    live_db[f] = ""
+            
             p7_authorized_db = live_db.copy()
 
             if p7_authorized_db.empty: 
-                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन करें।")
+                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # फ़ॉर्मेट 2 के लिए अंकों को शब्दों में बदलने का यूटिलिटी फ़ंक्शन
+                # ------------------------------------------------------------------
+                # Section 1: 22-Columns Student Registry & Live Assessment Entry Grid
+                # ------------------------------------------------------------------
+                st.subheader("📝 1. CCE Data Entry Desk & 22-Columns Student List")
+                st.markdown("""
+                    <div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं। यह डेटा नीचे भाग 2 (Foil Generator) में अपने आप सिंक हो जाएगा।
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Precise 22 columns requested by the user + 2 interactive fields placed at front for fast operations
+                cce_requested_cols = [
+                    "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
+                    "CCE Marks Obtained", "CCE Attendance Status", "Admission Year", "Admission Session", 
+                    "Eligibility Name", "Admission Date", "Unique ID", "Application Enrollment No.", 
+                    "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                ]
+
+                # Normalise field spellings across datasets dynamically
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                
+                filtered_cce = p7_authorized_db.copy()
+                filtered_cce = filtered_cce.rename(columns=column_mapping_fixes)
+
+                for col in cce_requested_cols:
+                    if col not in filtered_cce.columns: 
+                        filtered_cce[col] = ""
+                
+                render_df = filtered_cce[cce_requested_cols].copy()
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
+                
+                # Access guard based on account role privileges
+                if role == "full_admin" or role == "p7_role":
+                    disabled_cols = [c for c in render_df.columns if c not in ["CCE Marks Obtained", "CCE Attendance Status"]]
+                    st.info("🔓 **डेटा एंट्री मोड एक्टिव:** आप CCE Marks और Attendance Status कॉलम्स में सीधे बदलाव कर सकते हैं।")
+                else:
+                    disabled_cols = [c for c in render_df.columns]
+                    st.warning("🔒 **रीड-ओनली मोड:** आपके पास इस पैनल में बदलाव करने का अधिकार नहीं है।")
+                
+                # Live spreadsheet table editor widget
+                edited_cce = st.data_editor(
+                    render_df, 
+                    use_container_width=True, 
+                    disabled=disabled_cols, 
+                    column_config={
+                        "CCE Marks Obtained": st.column_config.TextColumn("CCE Marks (Max 20)", help="आन्तरिक मूल्यांकन अंक दर्ज करें"),
+                        "CCE Attendance Status": st.column_config.SelectboxColumn("Attendance Status", options=["Present", "Absent", "Detained"], required=True)
+                    }, 
+                    key="cce_live_entry_grid_p7_desk_final", 
+                    hide_index=True
+                )
+                
+                # Synchronization loop to save inputs to central master database
+                if role == "full_admin" or role == "p7_role":
+                    if st.button("💾 Save Grid Changes to Master Database", type="primary", use_container_width=True, key="p7_save_cce_data_btn_final"):
+                        try:
+                            clean_edited = edited_cce.drop(columns=["S. No."], errors="ignore")
+                            cce_sync_counter = 0
+                            
+                            for _, r_edit in clean_edited.iterrows():
+                                app_num = str(r_edit["Admission Application Number"]).strip()
+                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
+                                
+                                if not idx_matches.empty:
+                                    for match_idx in idx_matches:
+                                        live_db.at[match_idx, "CCE Marks Obtained"] = str(r_edit["CCE Marks Obtained"]).strip()
+                                        live_db.at[match_idx, "CCE Attendance Status"] = str(r_edit["CCE Attendance Status"]).strip()
+                                        cce_sync_counter += 1
+                            
+                            save_live_data(live_db)
+                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्रों के CCE मार्क्स मुख्य डेटाबेस में सुरक्षित सेव हो गए हैं!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"डेटाबेस सिंक चक्र में तकनीकी समस्या: {e}")
+
+                st.markdown("---")
+                
+                # ------------------------------------------------------------------
+                # Section 2: University Official Foil Print Layouts
+                # ------------------------------------------------------------------
+                st.subheader("📄 2. Generate University Official Foil Sheets Canvas")
+                
                 def marks_to_words(val_str):
                     val_clean = str(val_str).strip().upper()
                     if val_clean in ["A", "ABS", "ABSENT", "2 AB", "2AB"]: return "Absent"
@@ -1099,8 +1194,6 @@ else:
                     except: return str(val_str)
 
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                st.subheader("⚙️ Foil Sheet Generation Parameters")
-                
                 col_p7_1, col_p7_2 = st.columns(2)
                 with col_p7_1:
                     foil_format_type = st.selectbox(
@@ -1110,152 +1203,142 @@ else:
                             "CCE Mark Entry (Detailed Marks View)", 
                             "CCE List (Internal Evaluation - Multi Paper)"
                         ],
-                        key="p7_foil_format_selection"
+                        key="p7_foil_format_selection_ultimate"
                     )
                 with col_p7_2:
-                    unique_subjects = sorted(list(set(p7_authorized_db['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in p7_authorized_db.columns else sorted(list(set(p7_authorized_db['Subject'].dropna().astype(str).str.strip())))
-                    selected_subject = st.selectbox(
-                        "📚 Select Branch Name / Subject:", 
-                        options=["All Branches"] + [s for s in unique_subjects if s != ""], 
-                        key="cce_p7_sub_secure_engine"
-                    )
+                    unique_subjects = sorted(list(set(filtered_cce['Branch'].dropna().astype(str).str.strip()))) if 'Branch' in filtered_cce.columns else sorted(list(set(filtered_cce['Subject'].dropna().astype(str).str.strip())))
+                    selected_subject = st.selectbox("📚 Select Branch Name / Subject Filter:", options=["All Branches"] + [s for s in unique_subjects if s != ""], key="cce_p7_sub_filter_ultimate")
                 
                 col_p7_3, col_p7_4 = st.columns(2)
                 with col_p7_3:
-                    chosen_option = st.selectbox(
-                        "📆 Select Semester / Year Scope:",
-                        options=["1 Semester", "2 Semester", "1 Year", "2 Year", "3 Year", "Fourth Semester", "6th SEMESTER"],
-                        key="cce_p7_sem_secure_engine"
-                    )
+                    chosen_option = st.selectbox("📆 Select Semester / Year Scope:", options=["1 Semester", "2 Semester", "1 Year", "2 Year", "3 Year", "Fourth Semester", "6th SEMESTER"], key="cce_p7_sem_filter_ultimate")
                 with col_p7_4:
-                    max_marks = st.text_input("Maximum Marks:", value="20")
+                    max_marks = st.text_input("Maximum Marks:", value="20", key="cce_p7_max_marks_ultimate")
 
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
-                    if st.button("🔄 Generate Foil Sheets Canvas Now", use_container_width=True, type="primary", key="p7_generate_canvas_btn_secure"): 
+                    if st.button("🔄 Generate Selected Foil Print Layout", use_container_width=True, type="primary", key="p7_gen_canvas_btn_ultimate"): 
                         st.session_state.cce_foil_generated = True
                 with btn_col2:
                     if st.session_state.get('cce_foil_generated', False):
-                        st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save as PDF (A4 Portrait)</button>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                if st.session_state.get('cce_foil_generated', False):
-                    st.markdown("---")
+                        st.markdown('<button onclick="window.print()" style="width:100%; height:38px; background-color:#28a745; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Direct Print / Save Foil PDF</button>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
-                    requested_columns = [
-                        "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-                        "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
-                        "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
-                        "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
-                    ]
-                    
-                    multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
-                    for col_mark in multi_paper_cols:
-                        if col_mark not in p7_authorized_db.columns:
-                            p7_authorized_db[col_mark] = ""
-                    
-                    foil_filter_df = p7_authorized_db.copy()
-                    
-                    # ✅ नया मैकेनिज्म: आपके फ़ॉर्मेट के कॉलम्स को लाइव डेटाबेस के कॉलम से जोड़ना
-                    column_mapping_fixes = {
-                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                        "Email Id": "Email ID", "Year": "Current Year"
-                    }
-
-                    # लाइव डेटाबेस के डेटा को आपके दिए गए फ़ॉर्मेट के नामों में कॉपी करना
-                    if not foil_filter_df.empty:
-                        if "Application Number" in foil_filter_df.columns:
-                            foil_filter_df["HIGHER EDU ID"] = foil_filter_df["Application Number"]
-                            foil_filter_df["application_no"] = foil_filter_df["Application Number"]
-                        if "Student Name" in foil_filter_df.columns:
-                            foil_filter_df["FULL NAME"] = foil_filter_df["Student Name"]
-                            foil_filter_df["Name"] = foil_filter_df["Student Name"]
-                        if "Father Name" in foil_filter_df.columns:
-                            foil_filter_df["FATHER NAME"] = foil_filter_df["Father Name"]
-                            foil_filter_df["father_name"] = foil_filter_df["Father Name"]
-                        if "Mother Name" in foil_filter_df.columns:
-                            foil_filter_df["MOTHER NAME"] = foil_filter_df["Mother Name"]
-                        if "Date of Birth" in foil_filter_df.columns:
-                            foil_filter_df["DATE OF BIRTH"] = foil_filter_df["Date of Birth"]
-                            foil_filter_df["dob"] = foil_filter_df["Date of Birth"]
-                        if "Category" in foil_filter_df.columns:
-                            foil_filter_df["CATEGORY"] = foil_filter_df["Category"]
-                            foil_filter_df["category"] = foil_filter_df["Category"]
-                        if "Degree" in foil_filter_df.columns:
-                            foil_filter_df["Drgree"] = foil_filter_df["Degree"]
-                        if "Branch" in foil_filter_df.columns:
-                            foil_filter_df["MAJOR SUB"] = foil_filter_df["Branch"]
-                        if "Minor Subjects" in foil_filter_df.columns:
-                            foil_filter_df["MINOR SUB"] = foil_filter_df["Minor Subjects"]
-                        if "Vocational Subjects" in foil_filter_df.columns:
-                            foil_filter_df["VOCATIONAL SUB"] = foil_filter_df["Vocational Subjects"]
-                        if "MDC Subjects" in foil_filter_df.columns:
-                            foil_filter_df["OPEN-ELECTIVE SUB"] = foil_filter_df["MDC Subjects"]
-                        if "PW/Ap/CE Subjects" in foil_filter_df.columns:
-                            foil_filter_df["PROJECT WORK"] = foil_filter_df["PW/Ap/CE Subjects"]
+                    if st.session_state.get('cce_foil_generated', False):
+                        st.markdown("---")
+                        foil_filter_df = filtered_cce.copy()
                         
-                        foil_filter_df = foil_filter_df.rename(columns=column_mapping_fixes) 
-
-                    for essential_col in requested_columns:
-                        if essential_col not in foil_filter_df.columns: 
-                            foil_filter_df[essential_col] = ""
-                    
-                    if selected_subject != "All Branches": 
-                        if "Branch" in foil_filter_df.columns:
-                            foil_filter_df = foil_filter_df[foil_filter_df["Branch"].astype(str).str.strip() == selected_subject]
-                        elif "Subject" in foil_filter_df.columns:
-                            foil_filter_df = foil_filter_df[foil_filter_df["Subject"].astype(str).str.strip() == selected_subject]
-                    
-                    records_list = foil_filter_df.reset_index(drop=True).to_dict(orient="records")
-                    total_records = len(records_list)
-
-                    if total_records == 0:
-                        st.warning("🔍 चयनित मापदंडों के आधार पर मास्टर डेटाबेस में कोई छात्र रिकॉर्ड नहीं मिला।")
-                    else:
-
-                        # ----------------------------------------------------------------------
-                        # फ़ॉर्मेट 1: BLANK FOIL (साइड-बाय-साइड लेआउट)
-                        # ----------------------------------------------------------------------
-                        if foil_format_type == "Blank Foil (Side-by-Side List)":
-                            left_records = records_list[:31]
-                            right_records = records_list[31:62]
-                            
-                            def render_single_foil_block(start_sno, data_subset):
-                                html_chunk = f"""
-                                <div style="width: 49%; border: 1px solid #333; padding: 10px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
-                                        <span>Paper Code...................</span>
-                                        <span>Bundle No...................</span>
+                        multi_paper_cols = ["P-1", "P-2", "P-3", "P-4", "P-5", "P-6", "CCE-I", "CCE-II", "CCE-III", "Total Marks"]
+                        for col_mark in multi_paper_cols:
+                            if col_mark not in foil_filter_df.columns: foil_filter_df[col_mark] = ""
+                        
+                        # ऊपर भरे गए CCE अंकों को फॉयल प्रिंट में ऑटो-मैप करना
+                        if "CCE Marks Obtained" in foil_filter_df.columns:
+                            foil_filter_df["Total Marks"] = foil_filter_df["CCE Marks Obtained"]
+                            foil_filter_df["CCE-I"] = foil_filter_df["CCE Marks Obtained"]
+    
+                        if selected_subject != "All Branches": 
+                            if "Branch" in foil_filter_df.columns:
+                                foil_filter_df = foil_filter_df[foil_filter_df["Branch"].astype(str).str.strip() == selected_subject]
+                            else:
+                                foil_filter_df = foil_filter_df[foil_filter_df["Subject"].astype(str).str.strip() == selected_subject]
+                        
+                        records_list = foil_filter_df.reset_index(drop=True).to_dict(orient="records")
+    
+                        if len(records_list) == 0:
+                            st.warning("🔍 चयनित फ़िल्टर के आधार पर कोई रिकॉर्ड नहीं मिला।")
+                        else:
+                            # --- फ़ॉर्मेट 1: BLANK FOIL SIDE-BY-SIDE ---
+                            if foil_format_type == "Blank Foil (Side-by-Side List)":
+                                left_records = records_list[:31]
+                                right_records = records_list[31:62]
+                                
+                                def render_single_foil_block(start_sno, data_subset):
+                                    html_chunk = f"""
+                                    <div style="width: 49%; border: 1px solid #333; padding: 10px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
+                                            <span>Paper Code...................</span>
+                                            <span>Bundle No...................</span>
+                                        </div>
+                                        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
+                                            <h2 style="margin: 0; font-size: 13px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style="margin: 2px 0 0 0; font-size: 13px; font-weight: bold;">GWALIOR (M.P.)</h2>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px;">
+                                            <span>Examination :- CCE</span>
+                                            <span>{chosen_option.upper()}</span>
+                                        </div>
+                                        <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                                            <span>Subject: {selected_subject.upper()}</span>
+                                            <span>Paper: ...................................</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 3px; margin-bottom: 3px;">
+                                            <span>Maximum Marks: {max_marks}</span>
+                                            <span>Minimum Pass Marks: .................</span>
+                                        </div>
+                                        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; margin-bottom: 10px;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="border: 1px solid #000; padding: 2px; width: 15%;">S. No.</th>
+                                                    <th style="border: 1px solid #000; padding: 2px; width: 45%;">Roll No.</th>
+                                                    <th style="border: 1px solid #000; padding: 2px; width: 40%;">Marks (In Figures)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                    """
+                                    for idx, row in enumerate(data_subset):
+                                        html_chunk += f"""
+                                                <tr>
+                                                    <td style="border: 1px solid #000; padding: 3px; font-weight: bold;">{start_sno + idx}</td>
+                                                    <td style="border: 1px solid #000; padding: 3px; font-family: monospace;">{row.get("Roll No.", "&nbsp;")}</td>
+                                                    <td style="border: 1px solid #000; padding: 3px;">&nbsp;</td>
+                                                </tr>
+                                        """
+                                    html_chunk += "</tbody></table></div>"
+                                    return html_chunk
+    
+                                st.markdown(f"""
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        {render_single_foil_block(1, left_records)}
+                                        {render_single_foil_block(32, right_records)}
                                     </div>
-                                    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
-                                        <h2 style="margin: 0; font-size: 13px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                        <h2 style="margin: 2px 0 0 0; font-size: 13px; font-weight: bold;">GWALIOR (M.P.)</h2>
+                                """, unsafe_allow_html=True)
+    
+                            # --- फ़ॉर्मेट 2: CCE MARK ENTRY (विस्तृत मार्क्स व्यू) ---
+                            elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
+                                mark_entry_html = f"""
+                                <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                                    <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
+                                        GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px;">
-                                        <span>Examination :- CCE</span>
-                                        <span>{chosen_option.upper()}</span>
+                                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
+                                        <span>Examination: {chosen_option.upper()}</span>
                                     </div>
-                                    <div style="font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 3px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-                                        <span>Subject: {selected_subject.upper()}</span>
-                                        <span>Paper: ...................................</span>
+                                    <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
+                                        Subject: {selected_subject.upper()}
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px double #000; padding-bottom: 3px; margin-bottom: 3px;">
-                                        <span>Maximum Marks: {max_marks}</span>
-                                        <span>Minimum Pass Marks: .................</span>
-                                    </div>
-                                    <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;">FOIL</div>
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; margin-bottom: 10px;">
+                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 5px; letter-spacing: 1px;">FOIL</div>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
                                         <thead>
                                             <tr>
-                                                <th colspan="2" style="border: 1px solid #000; padding: 2px; width: 40%; font-size: 10px;">1</th>
-                                                <th colspan="2" style="border: 1px solid #000; padding: 2px; width: 60%; font-size: 10px;">2</th>
+                                                <th style="border: 1px solid #000; padding: 5px; width: 12%;">Code No.</th>
+                                                <th style="border: 1px solid #000; padding: 5px; width: 18%;">Roll No.</th>
+                                                <th colspan="4" style="border: 1px solid #000; padding: 4px;">Marks Obtained</th>
+                                            </tr>
+                                            <tr>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">S. No.</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 18%;">Roll Number</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-I (Live)</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-II</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 12%;">Total</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 34%;">In Words</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                 """
-                                
                                 for idx, row in enumerate(records_list):
+                                    tot = str(row.get("Total Marks", "")).strip()
                                     c1 = str(row.get("CCE-I", "")).strip()
                                     c2 = str(row.get("CCE-II", "")).strip()
                                     c3 = str(row.get("CCE-III", "")).strip()
@@ -1273,72 +1356,7 @@ else:
                                                 <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{words_val}</td>
                                             </tr>
                                     """
-                                    
-                                mark_entry_html += """
-                                        </tbody>
-                                    </table>
-                                </div>
-                                """
-                                st.markdown(mark_entry_html, unsafe_allow_html=True)
 
-                        # ----------------------------------------------------------------------
-                        # फ़ॉर्मेट 2: CCE MARK ENTRY (इमेज 2 के अनुसार विस्तृत मार्क्स लेआउट)
-                        # ----------------------------------------------------------------------
-                        elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
-                            mark_entry_html = f"""
-                            <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
-                                    GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
-                                </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
-                                    <span>Examination: {chosen_option.upper()}</span>
-                                </div>
-                                <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
-                                    Subject: {selected_subject.upper()}
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 5px; letter-spacing: 1px;">FOIL</div>
-                                
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
-                                    <thead>
-                                        <tr>
-                                            <th style="border: 1px solid #000; padding: 5px; width: 12%;">1</th>
-                                            <th colspan="5" style="border: 1px solid #000; padding: 5px; width: 88%;">2</th>
-                                        </tr>
-                                        <tr>
-                                            <th rowspan="2" style="border: 1px solid #000; padding: 5px;">Code No.</th>
-                                            <th rowspan="2" style="border: 1px solid #000; padding: 5px; width: 18%;">Roll No.</th>
-                                            <th colspan="4" style="border: 1px solid #000; padding: 4px;">Marks Obtained</th>
-                                        </tr>
-                                        <tr>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-I</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-II</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE-III</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">Total</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 34%;">In Words</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                            """
-                            
-                            for idx, row in enumerate(records_list):
-                                c1 = str(row.get("CCE-I", "")).strip()
-                                c2 = str(row.get("CCE-II", "")).strip()
-                                c3 = str(row.get("CCE-III", "")).strip()
-                                tot = str(row.get("Total Marks", "")).strip()
-                                words_val = marks_to_words(tot) if tot else ""
-                                
-                                mark_entry_html += f"""
-                                        <tr>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{c1 if c1 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{c2 if c2 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{c3 if c3 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{tot if tot else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{words_val}</td>
-                                        </tr>
-                                """
-                                
                             mark_entry_html += """
                                     </tbody>
                                 </table>
@@ -1346,9 +1364,7 @@ else:
                             """
                             st.markdown(mark_entry_html, unsafe_allow_html=True)
 
-                        # ----------------------------------------------------------------------
-                        # फ़ॉर्मेट 3: CCE LIST INTERNAL EVALUATION (इमेज 3 के अनुसार मल्टी-पेपर लेआउट)
-                        # ----------------------------------------------------------------------
+                        # --- फ़ॉर्मेट 3: CCE LIST MULTI-PAPER (Complete Expanded View) ---
                         elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
                             multi_paper_html = f"""
                             <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
@@ -1361,52 +1377,39 @@ else:
                                 <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px;">
                                     CCE List (Internal Evaluation)
                                 </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-top: 5px; margin-bottom: 10px; letter-spacing: 2px;">
-                                    FOIL
-                                </div>
-                                
+                                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-top: 5px; margin-bottom: 10px; letter-spacing: 2px;">FOIL</div>
                                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed;">
                                     <thead>
                                         <tr style="font-weight: bold;">
                                             <th style="border: 1px solid #000; padding: 6px; width: 6%;">S. No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 12%;">Roll No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Father Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-1</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-2</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-3</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-4</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-5</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 7%;">P-6</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 14%;">Roll No.</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Name</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 20%; text-align: left;">Father Name</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">CCE Live</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-2</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-3</th>
+                                            <th style="border: 1px solid #000; padding: 6px; width: 9%;">P-4</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                             """
                             
+                            # Complete loop rendering the individual rows correctly for Format 3
                             for idx, row in enumerate(records_list):
                                 s_name = str(row.get("Student Name", "")).upper()
                                 f_name = str(row.get("Father Name", "")).upper()
-                                r_num = str(row.get("Roll No.", ""))
-                                
-                                p1 = str(row.get("P-1", "")).strip()
-                                p2 = str(row.get("P-2", "")).strip()
-                                p3 = str(row.get("P-3", "")).strip()
-                                p4 = str(row.get("P-4", "")).strip()
-                                p5 = str(row.get("P-5", "")).strip()
-                                p6 = str(row.get("P-6", "")).strip()
+                                cce_live = str(row.get("Total Marks", "")).strip()
                                 
                                 multi_paper_html += f"""
                                         <tr>
                                             <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 11px;">{r_num}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{s_name}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{f_name}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p1 if p1 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p2 if p2 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p3 if p3 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p4 if p4 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p5 if p5 else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{p6 if p6 else "&nbsp;"}</td>
+                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">{row.get("Roll No.", "")}</td>
+                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{s_name}</td>
+                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{f_name}</td>
+                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
+                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
                                         </tr>
                                 """
                                 
@@ -1418,195 +1421,51 @@ else:
                             st.markdown(multi_paper_html, unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
-        # P8: PANEL CCE RECORD MODULE (Internal Assessment Ledger Entry - Isolated View)
+        # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P8":
-            st.header(f"📋 {get_panel_title('P8')} (Internal Assessment Marks Ledger)")
-            
-            for f in ["CCE Marks Obtained", "CCE Attendance Status"]:
-                if f not in live_db.columns: 
-                    live_db[f] = ""
-            
-            # 🔍 Isolated Firewall Query Filter Rule: Only fetch records explicitly approved for P8
-            p8_authorized_db = live_db[live_db["Target Panel Visibility"] == "P8"].copy()
-            
-            if p8_authorized_db.empty:
-                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन कर अप्रूव करें।")
-            else:
-                st.markdown("""
-                    <div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में आंतरिक मूल्यांकन अंक (CCE Marks) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                available_subjects = ["All"] + sorted(list(set(p8_authorized_db["Branch"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p8_subject_filter_secure_engine")
-                
-                filtered_cce = p8_authorized_db.copy()
-                if selected_sub != "All": 
-                    filtered_cce = filtered_cce[filtered_cce["Branch"].str.strip() == selected_sub]
-                
-                cce_fixed_cols = [
-    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-    "Admission Date", "Unique Id", "Roll No.", "Application Enrollment No.", "Student Name", 
-    "Father Name", "Mother Name", "Date Of Birth", "Category", "Subject", "Duretion", 
-    "Mobile Number", "Email Id", "Address", "Year", "Status"
-]
-                
-                for col in cce_fixed_cols:
-                    if col not in filtered_cce.columns:
-                        filtered_cce[col] = ""
-                
-                render_df = filtered_cce[cce_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
-                
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active CCE Profiles): **{len(render_df)}**")
-                
-                if role == "full_admin":
-                    disabled_cols = ["S. No", "Application Number", "Roll No.", "Student Name", "Branch"]
-                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास सीसीई आंतरिक मूल्यांकन डेटा एडमिट और सिंक करने का पूर्ण अधिकार है।")
-                else:
-                    disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में सीसीई अंक बदलने का अधिकार नहीं है।")
-                
-                edited_cce = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=disabled_cols, 
-                    column_config={
-                        "CCE Marks Obtained": st.column_config.TextColumn("CCE Marks (Max 20)"),
-                        "CCE Attendance Status": st.column_config.SelectboxColumn(
-                            "Attendance Status", 
-                            options=["Present", "Absent", "Detained"],
-                            required=True
-                        )
-                    }, 
-                    key="cce_record_live_editor_grid_p8_secure_engine", 
-                    hide_index=True
-                )
-                
-                if role == "full_admin":
-                    if st.button("Save & Sync CCE Assessment Ledger", type="primary", use_container_width=True, key="p8_save_btn_secure"):
-                        try:
-                            clean_edited = edited_cce.drop(columns=["S. No"])
-                            cce_sync_counter = 0
-                            
-                            for _, r_edit in clean_edited.iterrows():
-                                app_num = str(r_edit["Application Number"]).strip()
-                                
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
-                                
-                                if not idx_matches.empty:
-                                    for match_idx in idx_matches:
-                                        live_db.at[match_idx, "CCE Marks Obtained"] = str(r_edit["CCE Marks Obtained"]).strip()
-                                        live_db.at[match_idx, "CCE Attendance Status"] = str(r_edit["CCE Attendance Status"]).strip()
-                                        cce_sync_counter += 1
-                            
-                            save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {cce_sync_counter} छात्र रिकॉर्ड्स का सीसीई मुख्य डेटाबेस में सिंक हो गया है!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
-
-        # ----------------------------------------------------------------------
-        # P9: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
-        # ----------------------------------------------------------------------
-        elif current_panel_id == "P9":
-            st.header(f"📈 {get_panel_title('P9')} (Academic Year Batch Progression Control)")
+            st.header(f"📈 {get_panel_title('P8')} (Academic Year Batch Progression Control)")
             
             if "Promotion Status" not in live_db.columns: 
                 live_db["Promotion Status"] = "Eligible"
                 
-            # 🔍 Isolated Firewall Query Filter Rule: Only fetch records explicitly approved for P9
-            p9_authorized_db = live_db[live_db["Target Panel Visibility"] == "P9"].copy()
+            p8_authorized_db = live_db.copy()
             
-            if p9_authorized_db.empty: 
-                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन कर अप्रूव करें।")
+            if p8_authorized_db.empty: 
+                st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई डेटा उपलब्ध नहीं है।")
             else:
                 st.markdown("""
                     <div style="background-color: #f7f9fa; border-left: 5px solid #0288d1; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता. है।
                     </div>
                 """, unsafe_allow_html=True)
                 
-                available_years = ["All"] + sorted(list(set(p9_authorized_db["Current Year"].dropna().astype(str).str.strip())))
-                selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p9_year_filter_secure_engine")
+                available_years = ["All"] + sorted(list(set(p8_authorized_db["Current Year"].dropna().astype(str).str.strip())))
+                selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p8_promo_year_filter")
                 
-                filtered_promo = p9_authorized_db.copy()
+                filtered_promo = p8_authorized_db.copy()
                 if selected_year != "All": 
                     filtered_promo = filtered_promo[filtered_promo["Current Year"].str.strip() == selected_year]
                 
                 promotion_fixed_cols = [
-    "Admission Year", "Admission Session", "Applicant ID", "Roll No.", "Enroll No.", 
-    "Student Name", "Father Name", "Mother Name", "Caste", "Mob No.", "Subject", "Year", "Result"
-]
-                
-                for col in promotion_fixed_cols:
-                    if col not in filtered_promo.columns:
-                        filtered_promo[col] = ""
-                        
-                render_df = filtered_promo[promotion_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
-                
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Promotion Profiles): **{len(render_df)}**")
-                
-                if role == "full_admin":
-                    disabled_cols = ["S. No", "Application Number", "Roll No.", "Student Name", "Current Year"]
-                    st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास बैच प्रमोशन प्रोग्रेशन डेटा एडिट और सिंक करने का पूर्ण अधिकार है।")
-                else:
-                    disabled_cols = [c for c in render_df.columns]
-                    st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लिस्ट में प्रमोशन स्थिति बदलने का अधिकार नहीं है।")
-                
-                edited_promo = st.data_editor(
-                    render_df, 
-                    use_container_width=True, 
-                    disabled=disabled_cols, 
-                    column_config={
-                        "Status": st.column_config.SelectboxColumn("Academic Status", options=["Regular", "EX-STUDENT", "Pass", "Pending"], required=True), 
-                        "Promotion Status": st.column_config.SelectboxColumn("Promotion Status", options=["Eligible", "Promoted", "Detained (Year Back)", "Course Completed"], required=True)
-                    }, 
-                    key="promotion_live_editor_grid_p9_secure_engine", 
-                    hide_index=True
-                )
-                
-                if role == "full_admin":
-                    if st.button("Save & Sync Promotion Register", type="primary", use_container_width=True, key="p9_save_btn_secure"):
-                        try:
-                            clean_edited = edited_promo.drop(columns=["S. No"])
-                            promo_sync_counter = 0
-                            
-                            for _, r_edit in clean_edited.iterrows():
-                                app_num = str(r_edit["Application Number"]).strip()
-                                
-                                idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
-                                
-                                if not idx_matches.empty:
-                                    for match_idx in idx_matches:
-                                        live_db.at[match_idx, "Status"] = str(r_edit["Status"]).strip()
-                                        live_db.at[match_idx, "Promotion Status"] = str(r_edit["Promotion Status"]).strip()
-                                        promo_sync_counter += 1
-                                        
-                            save_live_data(live_db)
-                            st.success(f"🎉 सफलता! कुल {promo_sync_counter} छात्र रिकॉर्ड्स का प्रमोशन प्रोग्रेशन डेटा मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                    "Admission Year", "Admission Session", "Application Number", "Roll No.", "Enrollment No.", 
+                    "Student Name", "Father Name", "Mother Name", "Category", "Mobile Number", "Subject", "Current Year", "Status"
+                ]
 
         # ----------------------------------------------------------------------
-        # P10: PANEL RESULT MODULE (Tabulation Register & Exam Controller)
+        # P9: PANEL RESULT MODULE (Examination Register Ledger Desk)
         # ----------------------------------------------------------------------
-        elif current_panel_id == "P10":
-            st.header(f"📊 {get_panel_title('P10')} (Tabulation Register & Exam Controller)")
+        elif current_panel_id == "P9":
+            st.header(f"📊 {get_panel_title('P9')} (Tabulation Register Exam Controller)")
             
             for f in ["Marks Obtained", "Result Status", "Exam Remarks"]:
                 if f not in live_db.columns: 
                     live_db[f] = ""
             
-            # 🔍 Isolated Firewall Query Filter Rule: Only fetch records explicitly approved for P10
-            p10_authorized_db = live_db[live_db["Target Panel Visibility"] == "P10"].copy()
+            p9_authorized_db = live_db.copy()
             
-            if p10_authorized_db.empty: 
-                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन कर अप्रूव करें।")
+            if p9_authorized_db.empty: 
+                st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
                 st.markdown("""
                     <div style="background-color: #f3e5f5; border-left: 5px solid #8e24aa; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
@@ -1614,26 +1473,26 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                available_subjects = ["All"] + sorted(list(set(p10_authorized_db["Branch"].dropna().astype(str).str.strip())))
-                selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p10_subject_filter_secure_engine")
+                available_subjects = ["All"] + sorted(list(set(p9_authorized_db["Branch"].dropna().astype(str).str.strip()))) if "Branch" in p9_authorized_db.columns else ["All"]
+                selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter_secure_engine")
                 
-                filtered_res = p10_authorized_db.copy()
-                if selected_sub != "All": 
+                filtered_res = p9_authorized_db.copy()
+                if selected_sub != "All" and "Branch" in filtered_res.columns: 
                     filtered_res = filtered_res[filtered_res["Branch"].str.strip() == selected_sub]
                 
-                result_fixed_cols = ["Application Number", "Roll No.", "Enrollment No", "Student Name", "Branch", "Marks Obtained", "Result Status", "Exam Remarks"]
+                result_fixed_cols = ["Application Number", "Roll No.", "Enrollment No.", "Student Name", "Marks Obtained", "Result Status", "Exam Remarks"]
                 
                 for col in result_fixed_cols:
-                    if col not in filtered_res.columns:
+                    if col not in filtered_res.columns: 
                         filtered_res[col] = ""
                         
                 render_df = filtered_res[result_fixed_cols].copy()
-                render_df.insert(0, "S. No", range(1, len(render_df) + 1))
+                render_df.insert(0, "S. No.", range(1, len(render_df) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या (Active Result Profiles): **{len(render_df)}**")
                 
                 if role == "full_admin":
-                    disabled_cols = ["S. No", "Application Number", "Roll No.", "Enrollment No", "Student Name", "Branch"]
+                    disabled_cols = ["S. No.", "Application Number", "Roll No.", "Enrollment No.", "Student Name"]
                     st.info("🔓 **एडमिन कंट्रोल मोड:** आपके पास परीक्षा परिणाम पंजी (Tabulation Register) एडमिट और सिंक करने का पूर्ण अधिकार है।")
                 else:
                     disabled_cols = [c for c in render_df.columns]
@@ -1648,19 +1507,18 @@ else:
                         "Result Status": st.column_config.SelectboxColumn("Result Status", options=["Pass", "Fail", "ATKT", "Withheld", "Absent"], required=True),
                         "Exam Remarks": st.column_config.TextColumn("Exam Remarks")
                     }, 
-                    key="result_live_editor_grid_p10_secure_engine", 
+                    key="result_live_editor_grid_p9_secure_engine", 
                     hide_index=True
                 )
                 
                 if role == "full_admin":
-                    if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True, key="p10_save_btn_secure"):
+                    if st.button("Save & Sync Tabulation Register", type="primary", use_container_width=True, key="p9_save_btn_secure"):
                         try:
-                            clean_edited = edited_res.drop(columns=["S. No"])
+                            clean_edited = edited_res.drop(columns=["S. No."], errors="ignore")
                             result_sync_counter = 0
                             
                             for _, r_edit in clean_edited.iterrows():
                                 app_num = str(r_edit["Application Number"]).strip()
-                                
                                 idx_matches = live_db[live_db["Application Number"].astype(str).str.strip() == app_num].index
                                 
                                 if not idx_matches.empty:
@@ -1674,8 +1532,56 @@ else:
                             st.success(f"🎉 सफलता! कुल {result_sync_counter} छात्र रिकॉर्ड्स का परीक्षा परिणाम पंजी मुख्य डेटाबेस में सुरक्षित सिंक हो गया है!")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"डेटा सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
+                            st.error(f"डेटाबेस सिंक्रोनाइज़ेशन चक्र में तकनीकी समस्या आई: {e}")
 
+        # ----------------------------------------------------------------------
+        # P10: PANEL REGISTER MODULE (University TR / Ledger Archiver Desk)
+        # ----------------------------------------------------------------------
+        elif current_panel_id == "P10":
+            st.header(f"📋 {get_panel_title('P10')} (Tabulation Ledger & Permanent Registry)")
+            
+            p10_authorized_db = live_db.copy()
+            
+            if p10_authorized_db.empty:
+                st.warning("⚠️ मास्टर डेटाबेस रिक्त है।")
+            else:
+                st.markdown("""
+                    <div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>स्थायी पंजी डेस्क:</b> यह विश्वविद्यालय का मुख्य रिकॉर्ड लेजर है। यहाँ सभी छात्र प्रोफाइल का सम्पूर्ण विवरण सुरक्षित संग्रहित रहता है। लॉन्ग-टर्म सिक्योरिटी नियमों के कारण यह डेटा केवल रीड-ओनली व्यू में उपलब्ध है।
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Full 22 core fields displayed in a permanent read-only archive format
+                archive_view_cols = [
+                    "Admission Year", "Admission Session", "Eligibility Name", "Application Number", 
+                    "Admission Date", "Unique ID", "Roll No.", "Enrollment No.", "Student Name", 
+                    "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", "Duration", 
+                    "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                ]
+                
+                # Dynamic placeholder correction to prevent blank cell mismatch crashes
+                for col in archive_view_cols:
+                    if col not in p10_authorized_db.columns: 
+                        p10_authorized_db[col] = ""
+                
+                render_archive = p10_authorized_db[archive_view_cols].copy()
+                render_archive.insert(0, "S. No.", range(1, len(render_archive) + 1))
+                
+                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ: **{len(render_archive)}**")
+                
+                # Strict read-only dataframe display to protect archived columns
+                st.dataframe(render_archive, use_container_width=True, hide_index=True)
+                
+                # Fast CSV archival download snapshot trigger
+                st.download_button(
+                    label="📥 Download Complete Permanent Registry Snapshot (CSV)",
+                    data=p10_authorized_db[archive_view_cols].to_csv(index=False).encode('utf-8'),
+                    file_name=f"permanent_registry_snapshot_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="p10_download_archive_btn"
+                )
+                
         # ----------------------------------------------------------------------
         # P11: SYSTEM INFORMER BLOCK (Official Campus Notice Board Window)
         # ----------------------------------------------------------------------
