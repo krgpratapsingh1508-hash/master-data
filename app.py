@@ -2487,4 +2487,91 @@ else:
                                 key="p15_download_passout_ledger_btn"
                             )
 
+                    # ======================================================================
+                    # 📚 न्यू सब-सिस्टम: बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र (P15 Admin Lock-Secured)
+                    # ======================================================================
+                    if not live_db.empty and "Subject" in live_db.columns:
+                        st.markdown("---")
+                        st.subheader("📚 Bulk Subject-Wise Duration Settings (Admin Control)")
+                        
+                        # लॉक स्टेट के आधार पर एडमिन को निर्देश दिखाएं
+                        if st.session_state.admin_lock_state:
+                            st.warning("🔒 **यह ग्रिड अभी लॉक है:** ड्यूरेशन बदलने के लिए ऊपर जाकर पहले '🔓 लिस्ट अनलॉक करें (Editable)' बटन दबाएं।")
+                        else:
+                            st.info("🔓 **अनलॉक मोड सक्रिय:** अब आप किसी भी विषय के सामने उसकी कोर्स अवधि (Duration) बदल सकते हैं।")
+                        
+                        # 1. डेटाबेस से सभी उपलब्ध यूनीक विषयों की लिस्ट निकालें
+                        unique_db_subjects = sorted([s for s in live_db["Subject"].dropna().unique() if str(s).strip() != ""])
+                        
+                        if not unique_db_subjects:
+                            st.warning("⚠️ डेटाबेस में कोई भी विषय (Subject) नहीं मिला।")
+                        else:
+                            # 2. कस्टमाइज़ेशन के लिए एक डेटाफ्रेम मैट्रिक्स तैयार करें
+                            subject_duration_mapping = []
+                            for sub in unique_db_subjects:
+                                existing_sub_rows = live_db[live_db["Subject"] == sub]
+                                existing_duration = "3" # डिफ़ॉल्ट मान
+                                if not existing_sub_rows.empty:
+                                    valid_durations = existing_sub_rows["Duration"].dropna().unique()
+                                    valid_durations = [str(d).strip() for d in valid_durations if str(d).strip() != ""]
+                                    if valid_durations:
+                                        first_val = valid_durations[0].split('.')[0]
+                                        if first_val in ["1", "2", "3", "4", "5", "6"]:
+                                            existing_duration = first_val
+                                
+                                subject_duration_mapping.append({
+                                    "Subject Name": sub,
+                                    "Course Duration (Years)": existing_duration
+                                })
+                            
+                            sub_mapping_df = pd.DataFrame(subject_duration_mapping)
+                            
+                            # 🚨 सुरक्षा गेटवे: यदि मास्टर लिस्ट लॉक है, तो पूरा ग्रिड डिसेबल रहेगा
+                            is_grid_disabled = st.session_state.admin_lock_state
+                            
+                            # 3. एडमिन के लिए एक इंटरैक्टिव कस्टमाइज़ेशन ग्रिड रेंडर करें
+                            edited_sub_mapping_df = st.data_editor(
+                                sub_mapping_df,
+                                use_container_width=True,
+                                disabled=True if is_grid_disabled else ["Subject Name"], # लॉक होने पर पूरी टेबल फ्रीज हो जाएगी
+                                column_config={
+                                    "Course Duration (Years)": st.column_config.SelectboxColumn(
+                                        "Select Duration",
+                                        options=["1", "2", "3", "4", "5", "6"],
+                                        required=True,
+                                        help="इस विषय के लिए कोर्स की कुल अवधि वर्षों में चुनें"
+                                    )
+                                },
+                                key="p15_bulk_subject_duration_editor_grid_locked_v15",
+                                hide_index=True
+                            )
+                            
+                            # 🚨 सुरक्षा गेटवे 2: सेव बटन केवल तभी दिखाई देगा जब लिस्ट अनलॉक होगी
+                            if not st.session_state.admin_lock_state:
+                                if st.button("💾 Apply & Update Bulk Subject Durations", type="primary", use_container_width=True, key="p15_save_bulk_sub_duration_btn"):
+                                    try:
+                                        bulk_update_counter = 0
+                                        
+                                        # ग्रिड की प्रत्येक रो को लूप करें और मास्टर डेटाबेस में बदलें
+                                        for _, edit_row in edited_sub_mapping_df.iterrows():
+                                            target_sub = edit_row["Subject Name"]
+                                            new_duration_to_apply = edit_row["Course Duration (Years)"]
+                                            
+                                            # मास्टर डेटाबेस में इस सब्जेक्ट के सभी इंडेक्स ढूंढें
+                                            sub_match_indices = live_db[live_db["Subject"] == target_sub].index
+                                            
+                                            if not sub_match_indices.empty:
+                                                for idx in sub_match_indices:
+                                                    live_db.at[idx, "Duration"] = str(new_duration_to_apply)
+                                                    bulk_update_counter += 1
+                                                    
+                                        # परिवर्तनों को स्थायी रूप से सेव करें
+                                        save_live_data(live_db)
+                                        st.success(f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार एक साथ अपडेट कर दिया गया है!")
+                                        st.balloons()
+                                        st.rerun()
+                                    except Exception as bulk_err:
+                                        st.error(f"सब्जेक्ट-वाइज ड्यूरेशन सिंक करने में तकनीकी समस्या आई: {bulk_err}")
+
+
 
