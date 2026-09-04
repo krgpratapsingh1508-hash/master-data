@@ -1036,7 +1036,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Comprehensive 22 columns tracking data structure matrix for active operations
+                # Comprehensive unique 22 columns tracking data structure matrix
                 cce_requested_cols = [
                     "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name",
                     "CCE Marks Obtained", "CCE Attendance Status", "Admission Year", "Admission Session", 
@@ -1045,17 +1045,23 @@ else:
                     "Mobile Number", "Email ID", "Address", "Current Year", "Status"
                 ]
 
-                # Normalise input variant headings across runtime frames to prevent cell runtime errors
+                # Normalise input variant headings across runtime frames cleanly
                 column_mapping_fixes = {
                     "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
-                    "Application Number": "Admission Application Number"
+                    "Application Number": "Admission Application Number",
+                    "Enrollment No": "Enrollment No."
                 }
                 
                 filtered_cce = p7_authorized_db.copy()
                 filtered_cce = filtered_cce.rename(columns=column_mapping_fixes)
 
+                # If old column exists, map it safely to unique target column to avoid conflicts
+                if "Application Number" in filtered_cce.columns and "Admission Application Number" not in filtered_cce.columns:
+                    filtered_cce["Admission Application Number"] = filtered_cce["Application Number"]
+
+                # Ensure all 22 columns exist strictly without dynamic duplicates
                 for col in cce_requested_cols:
                     if col not in filtered_cce.columns: 
                         filtered_cce[col] = ""
