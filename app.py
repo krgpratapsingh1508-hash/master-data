@@ -1145,48 +1145,52 @@ else:
                     unique_subjects = sorted(list(set(render_df['Subject'].dropna().astype(str).str.strip())))
                     selected_subject = st.selectbox("📚 Select Subject Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
                 with col_p7_2:
-                    unique_years = sorted(list(set(render_df['Year'].dropna().astype(str).str.strip())))
-                    chosen_option = st.selectbox("📆 Select Semester / Year Scope (Year फ़िल्टर करें):", options=["All Years"] + [y for y in unique_years if y != ""], key="p7_foil_year_filter")
+                    # कस्टम सेमेस्टर और ईयर स्कोप लिस्ट जो आपने मांगी है
+                    custom_year_options = [
+                        "1st Sem.", "2nd Sem.", "3rd Sem.", "4th Sem.", "5th Sem.", "6th Sem.", 
+                        "7th Sem.", "8th Sem.", "9th Sem.", "10th Sem.", "11th Sem.", "12th Sem.",
+                        "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"
+                    ]
+                    chosen_option = st.selectbox("📆 Select Semester / Year Scope (Year फ़िल्टर करें):", options=custom_year_options, key="p7_foil_year_filter")
                     
-                col_p7_3, col_p7_4 = st.columns(2)
-                with col_p7_3:
-                    max_marks = st.text_input("Maximum Marks:", value="20", key="p7_foil_max_marks")
-                with col_p7_4:
-                    foil_format_type = st.selectbox(
-                        "📄 Select Foil Format Type:", 
-                        options=[
-                            "University Official Blank Foil Sheets (Side-by-Side)",
-                            "CCE Mark Entry (Detailed Marks View)",
-                            "CCE List (Internal Evaluation - Multi Paper)"
-                        ],
-                        key="p7_foil_format_type_selector"
-                    )
+                # Maximum Marks का मैन्युअल टेक्स्ट बॉक्स यहाँ से हटा दिया गया है
+                foil_format_type = st.selectbox(
+                    "📄 Select Foil Format Type:", 
+                    options=[
+                        "University Official Blank Foil Sheets (Side-by-Side)",
+                        "CCE Mark Entry (Detailed Marks View)",
+                        "CCE List (Internal Evaluation - Multi Paper)"
+                    ],
+                    key="p7_foil_format_type_selector"
+                )
+                
+                # डिफ़ॉल्ट रूप से 20 मार्क्स सेट किए गए हैं (चूंकि इनपुट बॉक्स हटा दिया गया है)
+                max_marks = "20"
                     
-                st.markdown('</div>', unsafe_allow_html=True)
-
-                # 🔄 बटन क्लिक एक्शन और उसके अंदर का पूरा जनरेशन इंजन
                 if st.button("🔄 Generate Foil Sheet Now", type="primary", use_container_width=True, key="p7_foil_generate_btn"):
+                    st.session_state.cce_foil_generated = True
+                st.markdown('</div>', unsafe_allow_html=True)
+                        
+                if st.session_state.get("cce_foil_generated", False):
                     foil_data_df = render_df.copy()
                     
-                    # 1. विषय फ़िल्टर लागू करें
                     if selected_subject != "All Subjects":
                         foil_data_df = foil_data_df[foil_data_df["Subject"].astype(str).str.strip() == selected_subject]
                         
-                    # 2. सेमेस्टर/ईयर फ़िल्टर लागू करें (इसके बदलते ही रोल नंबर बदलेंगे)
+                    # यहाँ ध्यान रखें: यदि डेटाबेस का 'Year' कॉलम '1' या '2' के रूप में संग्रहीत है, 
+                    # तो यह ड्रॉपडाउन के सटीक स्ट्रिंग मान (जैसे '1st Year') से मिलान करने का प्रयास करेगा।
                     if chosen_option != "All Years":
                         foil_data_df = foil_data_df[foil_data_df["Year"].astype(str).str.strip() == chosen_option]
                         
                     records_list = foil_data_df.reset_index(drop=True).to_dict(orient="records")
 
                     if len(records_list) == 0:
-                        st.warning("🔍 चयनित Subject और Year/Semester फ़िल्टर के आधार पर P7 लिस्ट में कोई डेटा नहीं मिला।")
+                        st.warning(f"🔍 चयनित Subject और '{chosen_option}' फ़िल्टर के आधार पर P7 लिस्ट में कोई डेटा नहीं मिला।")
                     else:
-                        # Helper for Marks conversion to words
                         def marks_to_words(m_str):
                             try:
                                 return "TWENTY ONLY" if "20" in m_str else "ZERO ONLY"
-                            except: 
-                                return ""
+                            except: return ""
 
                         # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil ---
                         if foil_format_type == "University Official Blank Foil Sheets (Side-by-Side)":
@@ -1195,14 +1199,14 @@ else:
                             
                             def render_single_foil_block(start_sno, data_subset):
                                 html_chunk = f"""
-                                <div style="width: 49%; border: 1px solid #333; padding: 12px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <div style="width: 49%; border: 1px solid #333; padding: 12px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box; border-radius: 4px;">
                                     <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; margin-bottom: 5px;">
                                         <span>Paper Code...................</span>
                                         <span>Bundle No...................</span>
                                     </div>
                                     <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">
-                                        <h2 style="margin: 0; font-size: 14px; font-weight: bold; color: #111;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                        <h2 style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold; color: #111;">GWALIOR (M.P.)</h2>
+                                        <h2 style="margin: 0; font-size: 14px; font-weight: bold;">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                        <h2 style="margin: 2px 0 0 0; font-size: 14px; font-weight: bold;">GWALIOR (M.P.)</h2>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px dashed #333; padding-bottom: 4px; margin-bottom: 6px;">
                                         <span>Examination :- CCE</span>
@@ -1216,13 +1220,13 @@ else:
                                         <span>Maximum Marks: {max_marks}</span>
                                         <span>Minimum Pass Marks: .................</span>
                                     </div>
-                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 8px; letter-spacing: 2px; text-decoration: underline;">FOIL</div>
+                                    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 8px; letter-spacing: 2px;">FOIL</div>
                                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; margin-bottom: 10px;">
                                         <thead>
-                                            <tr style="background-color: #f5f5f5;">
-                                                <th style="border: 1px solid #000; padding: 4px; width: 15%; font-weight: bold;">S. No.</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 45%; font-weight: bold;">Roll No.</th>
-                                                <th style="border: 1px solid #000; padding: 4px; width: 40%; font-weight: bold;">Marks (In Figures)</th>
+                                            <tr>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 15%;">S. No.</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 45%;">Roll No.</th>
+                                                <th style="border: 1px solid #000; padding: 4px; width: 40%;">Marks (In Figures)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1231,16 +1235,15 @@ else:
                                     html_chunk += f"""
                                             <tr>
                                                 <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{start_sno + idx}</td>
-                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px; letter-spacing: 0.5px;">{row.get("Roll No.", "&nbsp;")}</td>
+                                                <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "&nbsp;")}</td>
                                                 <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
                                             </tr>
                                     """
                                 html_chunk += "</tbody></table></div>"
                                 return html_chunk
 
-                            # दोनों ब्लॉक्स को स्क्रीन पर बिल्कुल अगल-बगल (Side-by-Side Flex HTML Box) व्यवस्थित रेंडर करें
                             st.markdown(f"""
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 2%;">
+                                <div style="display: flex; justify-content: space-between; width: 100%; gap: 2%;">
                                     {render_single_foil_block(1, left_records)}
                                     {render_single_foil_block(32, right_records)}
                                 </div>
