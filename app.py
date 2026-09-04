@@ -2245,7 +2245,7 @@ else:
                     st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
                     
                     if uploaded_master_file is not None:
-                        st.info(f"📁 चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
+                        st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
                         
                         confirm_overwrite_checkbox = st.checkbox(
                             "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
@@ -2271,15 +2271,6 @@ else:
                                 else:
                                     raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
                                     
-                                    # Translate columns to ensure 22 core fields align
-                                    column_mapping_fixes = {
-                                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                                        "Email Id": "Email ID", "Year": "Current Year",
-                                        "Application Number": "Admission Application Number"
-                                    }
-                                    raw_uploaded_df = raw_uploaded_df.rename(columns=column_mapping_fixes)
-
                                     for col in DEFAULT_COLUMNS:
                                         if col not in raw_uploaded_df.columns:
                                             raw_uploaded_df[col] = ""
@@ -2296,99 +2287,5 @@ else:
                                     st.rerun()
                                     
                             except Exception as upload_err:
-                                except Exception as upload_err:
                                 st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
 
-            st.markdown("---")
-            st.subheader("📊 Master Database List View & Advanced Operational Controls")
-            
-            # Action Toggles Column Layout
-            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-            with col_ctrl3:
-                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
-                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
-                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-                    st.rerun()
-
-            with col_ctrl1:
-                lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
-                if st.button(lbl_edit, use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_edit_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                    st.rerun()
-
-            with col_ctrl2:
-                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
-                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                    st.rerun()
-
-            # Column shift parameters handler layer
-            if st.session_state.admin_unhide_move:
-                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
-                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
-                c_left, c_right = st.columns(2)
-                
-                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx > 0:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                        st.rerun()
-                        
-                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx < len(st.session_state.admin_columns_order) - 1:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-                        st.rerun()
-
-            # Normalize data structures before displaying inside the supreme admin grid
-            column_mapping_fixes = {
-                "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
-                "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                "Email Id": "Email ID", "Year": "Current Year",
-                "Application Number": "Admission Application Number"
-            }
-            live_db = live_db.rename(columns=column_mapping_fixes)
-
-            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-            ordered_db = live_db[render_columns].copy()
-            ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
-            ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
-
-            st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
-            
-            if ordered_db_display.empty:
-                st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
-            else:
-                if st.session_state.admin_lock_state:
-                    st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-                else:
-                    st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
-                    
-                    disabled_fields = ["S.No."]
-                    if not st.session_state.admin_unhide_edit:
-                        disabled_fields.extend([get_display_name("Admission Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
-                        
-                    edited_master_db = st.data_editor(
-                        ordered_db_display,
-                        use_container_width=True,
-                        disabled=disabled_fields,
-                        hide_index=True,
-                        num_rows="dynamic",
-                        key="p15_supreme_master_live_editor_grid"
-                    )
-                    
-                    if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
-                        try:
-                            clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
-                            display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
-                            clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
-                            
-                            # Restore internal alternate keys during database update cycles
-                            if "Admission Application Number" in clean_edited_master.columns:
-                                clean_edited_master["Application Number"] = clean_edited_master["Admission Application Number"]
-                            
-                            save_live_data(clean_edited_master)
-                            st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
