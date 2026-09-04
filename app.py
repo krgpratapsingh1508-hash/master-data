@@ -2224,24 +2224,30 @@ else:
                 st.rerun()
 
             # ======================================================================
-            # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Admin Only)
+            # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Admin Only + Auto Lock)
             # ======================================================================
             st.markdown("---")
             st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
             st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
             
+            # सेशन स्टेट में पासवर्ड इनिशियलाइज़ करना ताकि इसे बाद में क्लियर किया जा सके
+            if "p15_uploader_pass_state" not in st.session_state:
+                st.session_state.p15_uploader_pass_state = ""
+
             with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
                 col_up_pass, col_up_file = st.columns(2)
                 
                 with col_up_pass:
                     uploader_secure_password = st.text_input(
-                        "🛡️ सुपर-एडमिन ऑथेंटिकेशन पासवर्ड दर्ज करें:", 
+                        "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
                         type="password", 
+                        value=st.session_state.p15_uploader_pass_state,
                         key="p15_master_uploader_password_v16"
                     )
                 
                 with col_up_file:
-                    is_password_correct = (uploader_secure_password == "admin@upload15")
+                    # 🔑 पासवर्ड वेरिफिकेशन लॉजिक
+                    is_password_correct = (uploader_secure_password == "admin@upload99")
                     
                     uploaded_master_file = st.file_uploader(
                         "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
@@ -2251,7 +2257,7 @@ else:
                     )
                 
                 if uploader_secure_password and not is_password_correct:
-                    st.error("❌ गलत एडमिन पासवर्ड! फ़ाइल अपलोड block लॉक है।")
+                    st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
                 elif is_password_correct:
                     st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
                     
@@ -2275,7 +2281,7 @@ else:
                                     except:
                                         uploaded_master_file.seek(0)
                                         html_tables = pd.read_html(uploaded_master_file)
-                                        raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
+                                        raw_uploaded_df = html_tables.astype(str).fillna("") if html_tables else pd.DataFrame()
                                 
                                 if raw_uploaded_df.empty:
                                     st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
@@ -2292,7 +2298,14 @@ else:
                                     finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
                                     save_live_data(finalized_uploaded_master)
                                     
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। कुल {len(finalized_uploaded_master)} छात्रों के रिकॉर्ड सिंक हुए।")
+                                    # 🆕 ==========================================
+                                    # 🔒 ऑटो-लॉक मैकेनिज्म: अपलोड सक्सेस होने पर सब रीसेट करें
+                                    # ==========================================
+                                    st.session_state.p15_uploader_pass_state = ""
+                                    if "p15_master_uploader_password_v16" in st.session_state:
+                                        st.session_state["p15_master_uploader_password_v16"] = ""
+                                    
+                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को दोबारा सुरक्षित लॉक कर दिया गया है।")
                                     st.balloons()
                                     st.rerun()
                                     
