@@ -2334,58 +2334,54 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-    # 🟢 नया सिस्टम: कॉलम-टू-पैनल असाइनमेंट इंजन (Target Panel Visibility Controller)
+    # 🟢 नया सब-सिस्टम: डायनेमिक कॉलम मैपिंग कस्टमाइज़र (Column Schema Mapper)
     st.markdown("---")
-    st.subheader("🎯 Quick Panel Assignment Matrix")
-    st.markdown("आप यहाँ से सीधे किसी भी छात्र का रिकॉर्ड चुनकर उसे उसके सही वर्किंग पैनल (जैसे P2, P3, P4 आदि) में असाइन कर सकते हैं:")
-    
-    with st.expander("🔗 छात्रों को उनके संबंधित वर्किंग पैनल में भेजें", expanded=False):
-        if not live_db.empty:
-            # छात्रों की लिस्ट ड्रॉपडाउन के लिए तैयार करें
-            student_options = []
-            for idx, row in live_db.iterrows():
-                app_no = row.get("Application Number", row.get("Admission Application Number", f"Row-{idx}"))
-                s_name = row.get("Student Name", "Unknown")
-                current_vis = row.get("Target Panel Visibility", "None")
-                student_options.append(f"{idx} | {s_name} (App: {app_no}) [Current: {current_vis}]")
+    st.subheader("🗺️ Dynamic Column Mapping Customizer")
+    st.markdown("बाहर से अपलोड होने वाले कॉलम नामों को अपने मास्टर डेटाबेस के सटीक कॉलम नामों के सामने लिंक करें:")
+
+    with st.expander("📝 मास्टर कॉलम मैपिंग स्कीमा (Edit Column Aliases)", expanded=False):
+        # आपके मास्टर डेटाबेस के महत्वपूर्ण कोर कॉलम्स
+        core_db_columns = [
+            "Admission Application Number", "Unique ID", "Roll No.", 
+            "Enrollment No.", "Date of Birth", "Email ID", "Duration", "Current Year"
+        ]
+        
+        # वर्तमान स्कीमा लोड करें
+        if "column_mappings" not in st.session_state:
+            st.session_state.column_mappings = load_column_mappings()
             
-            col_assign1, col_assign2 = st.columns(2)
-            with col_assign1:
-                selected_stud_str = st.selectbox("👤 छात्र का चयन करें:", options=student_options, key="admin_panel_assign_student_select")
-                selected_idx = int(selected_stud_str.split(" | ")[0])
-                
-            with col_assign2:
-                target_panels_list = {
-                    "P2 : Admission panel": "P2",
-                    "P3 : Unique ID panel": "P3",
-                    "P4 : Roll No. panel": "P4",
-                    "P5 : Enrollment panel": "P5",
-                    "P6 : Scholarship panel": "P6",
-                    "P7 : CCE panel": "P7",
-                    "P8 : Promotion panel": "P8",
-                    "P9 : Result panel": "P9",
-                    "P10 : Register panel": "P10"
-                }
-                selected_target_panel_lbl = st.selectbox("🎯 किस पैनल में भेजना (असाइन करना) है?", options=list(target_panels_list.keys()), key="admin_panel_assign_target_select")
-                target_panel_id = target_panels_list[selected_target_panel_lbl]
+        updated_mappings = {}
+        col_map1, col_map2 = st.columns(2)
+        
+        for idx, core_col in enumerate(core_db_columns):
+            current_mapped_value = st.session_state.column_mappings.get(core_col, core_col)
             
-            if st.button("🔗 Confirm & Link Student to Selected Panel", type="primary", use_container_width=True, key="admin_panel_assign_submit_btn"):
-                try:
-                    # लाइव डेटाबेस में सीधे Target Panel Visibility कॉलम की वैल्यू को अपडेट करें
-                    live_db.at[selected_idx, "Target Panel Visibility"] = target_panel_id
-                    save_live_data(live_db)
-                    st.success(f"🎉 शत-प्रतिशत सफलता! छात्र को सफलतापूर्वक `{target_panel_id}` पैनल में मैप (असाइन) कर दिया गया है।")
-                    st.balloons()
-                    st.rerun()
-                except Exception as assign_err:
-                    st.error(f"पैनल मैपिंग के दौरान तकनीकी समस्या आई: {assign_err}")
-        else:
-            st.warning("⚠️ डेटाबेस में कोई छात्र रिकॉर्ड उपलब्ध नहीं है।")
-            
-            st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
-            
-            if ordered_db_display.empty:
-                st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
+            # दो बराबर कॉलमों में बाँटकर इनपुट बॉक्स दिखाएँ
+            if idx % 2 == 0:
+                with col_map1:
+                    updated_mappings[core_col] = st.text_input(
+                        f"Master Column: '{core_col}' ➡️ इसके सामने का नाम:",
+                        value=current_mapped_value,
+                        key=f"p15_map_input_{idx}"
+                    )
+            else:
+                with col_map2:
+                    updated_mappings[core_col] = st.text_input(
+                        f"Master Column: '{core_col}' ➡️ इसके सामने का नाम:",
+                        value=current_mapped_value,
+                        key=f"p15_map_input_{idx}"
+                    )
+                    
+        if st.button("💾 Save Column Mapping Schema Permanently", type="primary", use_container_width=True, key="p15_save_column_maps_btn"):
+            try:
+                # स्कीमा फ़ाइल में सहेजें
+                with open(MAP_FILE, "w", encoding="utf-8") as f:
+                    json.dump(updated_mappings, f, ensure_ascii=False, indent=4)
+                st.session_state.column_mappings = updated_mappings
+                st.success("🎉 शत-प्रतिशत सफलता! आपके द्वारा सेट किए गए कॉलम के सामने वाले नाम (Aliases) स्थायी रूप से सेव हो गए हैं।")
+                st.rerun()
+            except Exception as map_err:
+                st.error(f"स्कीमा सेव करने में त्रुटि: {map_err}")
             else:
                 if st.session_state.admin_lock_state:
                     # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
