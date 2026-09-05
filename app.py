@@ -1636,11 +1636,13 @@ else:
             if p9_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                st.markdown("""
-                    <div style="background-color: #f3e5f5; border-left: 5px solid #8e24aa; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में परीक्षा परिणाम (Exam Result) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
-                    </div>
-                """, unsafe_allow_html=True)
+                # 🟢 Corrected Safe Inline Str Framework Configuration
+                st.markdown(
+                    '<div style="background-color: #f3e5f5; border-left: 5px solid #8e24aa; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
+                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में परीक्षा परिणाम (Exam Result) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
+                    '</div>', 
+                    unsafe_allow_html=True
+                )
                 
                 available_subjects = ["All"] + sorted(list(set(p9_authorized_db["Branch"].dropna().astype(str).str.strip()))) if "Branch" in p9_authorized_db.columns else ["All"]
                 selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter_secure_engine_new")
