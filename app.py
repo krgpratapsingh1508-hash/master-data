@@ -362,22 +362,42 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (फिक्स प्रिंट रूल)
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
+    /* 🖨️ प्रिंट लेते समय क्या दिखेगा और क्या छुपेगा */
     @media print {{
-        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
-        .stButton, .stFileUploader, [data-testid="stDecoration"], 
-        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {{
+        header, 
+        [data-testid="stHeader"], 
+        [data-testid="stSidebar"], 
+        .stButton, 
+        .stFileUploader, 
+        [data-testid="stDecoration"], 
+        [data-testid="stNotification"], 
+        [data-testid="stForm"], 
+        .print-hide, 
+        div.element-container:has(button) {{
             display: none !important;
         }}
-        @page {{ margin: 5mm; size: A4 landscape; }}
-        .main .block-container {{ padding: 0 !important; margin: 0 !important; }}
+        @page {{ 
+            margin: 8mm; 
+            size: A4 landscape; 
+        }}
+        .main .block-container {{ 
+            padding: 0 !important; 
+            margin: 0 !important; 
+        }}
+        /* सुनिश्चित करें कि डेटा ग्रिड प्रिंट में गायब न हो */
+        [data-testid="stDataFrame"] {{
+            display: block !important;
+            opacity: 1 !important;
+        }}
     }}
+    
     .header-container {{ display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }}
     .header-text {{ display: flex; flex-direction: column; }}
     .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #1465de; }}
@@ -394,21 +414,6 @@ st.markdown(f"""
     .notice-title {{ font-weight: bold; color: #333; margin-bottom: 8px; font-size: 18px; }}
     </style>
 """, unsafe_allow_html=True)
-
-# लोगो और हेडर रेंडरिंग
-img_base64 = get_image_base64("logo pratap.png")
-logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
-
-if st.session_state.pre_login_config.get("show_header_text", True):
-    st.markdown(f"""
-        <div class="header-container">
-            {logo_html}
-            <div class="header-text">
-                <h3>{st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")}</h3>
-                <h1>{st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")}</h1>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================================
 # 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (ओरिजनल ड्रॉपडाउन सिस्टम)
@@ -813,17 +818,25 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (Fixed & Terminated Safely)
+                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (100% Working Full Code)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    st.markdown('<div class="print-hide" style="margin-top: 20px;">', unsafe_allow_html=True)
                     st.markdown(
+                        '<div class="print-hide" style="margin-top: 25px; margin-bottom: 25px;">'
                         '<button onclick="window.print()" style="'
-                        'width: 100%; background-color: #1465de; color: white; '
-                        'padding: 12px; border: none; border-radius: 4px; '
-                        'font-weight: bold; cursor: pointer; font-size: 16px; '
-                        'box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
-                        '🖨️ Print Report Sheet</button>'
+                        'width: 100%; '
+                        'background-color: #1465de; '
+                        'color: white; '
+                        'padding: 14px; '
+                        'border: none; '
+                        'border-radius: 6px; '
+                        'font-weight: bold; '
+                        'cursor: pointer; '
+                        'font-size: 16px; '
+                        'box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2); '
+                        'transition: background-color 0.2s ease;">'
+                        '🖨️ Print Admission & Payment Report Sheet'
+                        '</button>'
                         '</div>', 
                         unsafe_allow_html=True
                     )
