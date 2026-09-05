@@ -13,6 +13,7 @@ st.set_page_config(layout="wide", page_title="Permanent Shared Live Database")
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
 STAGE_FILE = "merge_stage_database.csv"
+NOTICE_FILE = "notice_board_schema.json"
 CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
