@@ -1745,12 +1745,12 @@ else:
         # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
-            elif current_panel_id == "P13":
-                st.header(f"🔀 {get_panel_title('P13')} (Live Multi-Column Merge Verification & Routing Room)")
-                
-                # Load the staging verification queue and main central repository
-                stage_db = load_stage_data()
-                master_db_lookup = load_live_data()
+        elif current_panel_id == "P13":
+            st.header(f"🔀 {get_panel_title('P13')} (Live Multi-Column Merge Verification & Routing Room)")
+            
+            # Load the staging verification queue and main central repository
+            stage_db = load_stage_data()
+            master_db_lookup = load_live_data()
                 
                 # 🆕 यहाँ पेस्ट करें (पूरी तरह से सिधाई में होना चाहिए):
                 stage_db = normalize_dataframe_columns(stage_db)
