@@ -1731,11 +1731,13 @@ else:
             if p10_authorized_db.empty:
                 st.warning("⚠️ मास्टर डेटाबेस रिक्त है।")
             else:
-                st.markdown("""
-                    <div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>स्थायी पंजी डेस्क:</b> यह विश्वविद्यालय का मुख्य रिकॉर्ड लेजर है। यहाँ सभी छात्र प्रोफाइल का सम्पूर्ण विवरण सुरक्षित संग्रहित रहता है। लॉन्ग-टर्म सिक्योरिटी नियमों के कारण यह डेटा केवल रीड-ओनली व्यू में उपलब्ध है।
-                    </div>
-                """, unsafe_allow_html=True)
+                # 🟢 Corrected safe inline string format to prevent syntax errors
+                st.markdown(
+                    '<div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
+                    '📌 <b>स्थायी पंजी डेस्क:</b> यह विश्वविद्यालय का मुख्य रिकॉर्ड लेजर है। यहाँ सभी छात्र प्रोफाइल का सम्पूर्ण विवरण सुरक्षित संग्रहित रहता है। लॉन्ग-टर्म सिक्योरिटी नियमों के कारण यह डेटा केवल रीड-ओनली व्यू में उपलब्ध है।'
+                    '</div>', 
+                    unsafe_allow_html=True
+                )
                 
                 # Perfect 22 core fields layout mapping for P10
                 archive_view_cols = [
