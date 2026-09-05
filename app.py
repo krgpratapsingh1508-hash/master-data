@@ -515,7 +515,7 @@ else:
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
+    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
