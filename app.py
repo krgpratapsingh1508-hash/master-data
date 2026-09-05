@@ -2076,7 +2076,10 @@ else:
             if not view_filtered_db.empty:
                 display_ready_df = view_filtered_db[final_render_cols].copy()
                 display_ready_df.insert(0, "S. No.", range(1, len(display_ready_df) + 1))
-
+            
+                # 🟢 एरर फिक्स: डुप्लिकेट कॉलम को डिलीट करने के लिए यह लाइन यहाँ जोड़ें
+                display_ready_df = display_ready_df.loc[:, ~display_ready_df.columns.duplicated()].copy()
+            
                 st.dataframe(display_ready_df, use_container_width=True, hide_index=True)
                 
                 st.download_button(
