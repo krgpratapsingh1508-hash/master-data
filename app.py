@@ -836,7 +836,7 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # ✍️ PRINT HEADER TEXT BOXES (केवल पहले पेज हेतु)
+                # ✍️ PRINT HEADER TEXT BOXES (Strict Single List Model - No Extra Markdown)
                 # ==================================================================
                 st.markdown("---")
                 st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
@@ -844,28 +844,26 @@ else:
                 
                 col_tb1, col_tb2, col_tb3 = st.columns(3)
                 with col_tb1:
-                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज/संस्था का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1")
+                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज/संस्था का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
                 with col_tb2:
-                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट/सूची का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2")
+                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट/सूची का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
                 with col_tb3:
-                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश क्रमांक या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3")
+                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश क्रमांक या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
                 
                 st.markdown("---")
                 
-                # मुख्य डेटा ग्रिड रेंडरिंग
+                # 🌟 केवल यही एक ग्रिड और लिस्ट पूरे स्क्रीन पर रहेगी
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ CLEAN VARIABLE-BASED IFRAME PRINT ENGINE (Strict No Extra Table Fix)
+                # 🖨️ CLEAN VARIABLE-BASED IFRAME ENGINE (Zero Screen Footprint)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 💡 ध्यान दें: यहाँ स्क्रीन पर कोई st.markdown(html_table) नहीं बनाया गया है
-                    # सारा डेटा शुद्ध डिक्शनरी लिस्ट के रूप में जावास्क्रिप्ट को पास किया जा रहा है
+                    # बैकएंड में सुरक्षित तरीके से HTML स्ट्रिंग तैयार करना ताकि नीचे कोई एक्स्ट्रा ऑब्जेक्ट रेंडर न हो
                     columns_list = list(final_p2_render.columns)
                     records_list = final_p2_render.to_dict(orient="records")
                     
-                    # जावास्क्रिप्ट को क्रैश होने से बचाने के लिए कोट्स को साफ करना
                     headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in columns_list])
                     
                     rows_html = ""
@@ -876,7 +874,7 @@ else:
                             rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # प्रिंट होने वाला शुद्ध HTML डॉक्यूमेंट आर्किटेक्चर
+                    # प्रिंटर का शुद्ध लेआउट फ़्रेमवर्क
                     clean_table_html = f"""
                     <html>
                     <head>
@@ -910,9 +908,8 @@ else:
                     
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     
-                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-                    
-                    # कंपोनेंट जो केवल एक सुंदर और साफ बटन रेंडर करता है
+                    # 🟢 महत्वपूर्ण फिक्स: यहाँ हमने पुराने 'st.markdown(html_table)' को पूरी तरह हटा दिया है।
+                    # अब नीचे की तरफ कोई भी अतिरिक्त लिस्ट या टेक्स्ट बनने का रास्ता बंद है।
                     components.html(
                         f"""
                         <html>
