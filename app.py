@@ -194,10 +194,6 @@ if "pre_login_config" not in st.session_state or not isinstance(st.session_state
 if "dynamic_lists" not in st.session_state:
     st.session_state.dynamic_lists = load_dynamic_lists()
 
-# 🟢 दोनों एरर को ठीक करने के लिए बस यह 3 लाइन जोड़ें:
-if "p1_dropdown_schemas" not in st.session_state:
-    st.session_state.p1_dropdown_schemas = load_dynamic_lists()
-
 if "credentials" not in st.session_state or len(st.session_state.credentials) < 14:
     st.session_state.credentials = load_credentials()
 
@@ -2080,12 +2076,9 @@ else:
             if not view_filtered_db.empty:
                 display_ready_df = view_filtered_db[final_render_cols].copy()
                 display_ready_df.insert(0, "S. No.", range(1, len(display_ready_df) + 1))
-            
-                # 🟢 एरर फिक्स: डुप्लिकेट कॉलम को डिलीट करने के लिए यह लाइन यहाँ जोड़ें
-                display_ready_df = display_ready_df.loc[:, ~display_ready_df.columns.duplicated()].copy()
-            
-                st.dataframe(display_ready_df, use_container_width=True, hide_index=True)
 
+                st.dataframe(display_ready_df, use_container_width=True, hide_index=True)
+                
                 st.download_button(
                     label=f"📥 Download Selected Dashboard Report Snapshot (CSV)",
                     data=view_filtered_db[final_render_cols].to_csv(index=False).encode('utf-8'),
@@ -2334,129 +2327,20 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-            # ======================================================================
-            # 🔗 न्यू सब-सिस्टम: क्रॉस-पैनल कॉलम डेटा लिंकर (Precision Router)
-            # ======================================================================
-            st.markdown("---")
-            st.subheader("🔗 Cross-Panel Column Data Routing Matrix")
-            st.markdown("यह कॉन्फ़िगर करें कि मास्टर देशाबेस का कौन सा कॉलम किस पैनल के किस वेरिएबल से डेटा सिंक करेगा:")
-
-            with st.expander("🛠️ सेटअप करें: मास्टर कॉलम ➡️ वर्किंग पैनल कॉलम मैपिंग", expanded=False):
-                ROUTER_SCHEMA_FILE = "cross_panel_column_router.json"
-                
-                if os.path.exists(ROUTER_SCHEMA_FILE):
-                    try:
-                        with open(ROUTER_SCHEMA_FILE, "r", encoding="utf-8") as rf:
-                            current_routes = json.load(rf)
-                    except: current_routes = {}
-                else: current_routes = {}
-
-                target_sync_fields = [
-                    "Unique ID", "Roll No.", "Enrollment No.", 
-                    "Scholarship Status", "CCE Marks Obtained", "Marks Obtained"
-                ]
-                
-                panel_options_list = {
-                    "P3 : Unique ID panel": "P3",
-                    "P4 : Roll No. panel": "P4",
-                    "P5 : Enrollment panel": "P5",
-                    "P6 : Scholarship panel": "P6",
-                    "P7 : CCE panel": "P7",
-                    "P9 : Result panel": "P9"
-                }
-                
-                updated_routes = {}
-                
-                for field in target_sync_fields:
-                    st.markdown(f"**📊 मास्टर डेटाबेस कॉलम: `{field}`**")
-                    c_rt1, c_rt2 = st.columns(2)
-                    saved_field_data = current_routes.get(field, {"panel": "P3", "source_col": field})
-                    
-                    with c_rt1:
-                        selected_p_lbl = st.selectbox(
-                            f"यह डेटा किस वर्किंग पैनल से खींचना है? ({field})",
-                            options=list(panel_options_list.keys()),
-                            index=list(panel_options_list.values()).index(saved_field_data.get("panel", "P3")) if saved_field_data.get("panel", "P3") in panel_options_list.values() else 0,
-                            key=f"router_p_select_{field}"
-                        )
-                        chosen_panel_id = panel_options_list[selected_p_lbl]
-                        
-                    with c_rt2:
-                        chosen_source_col = st.text_input(
-                            f"उस पैनल के किस कॉलम नाम से लिंक करना है? ({field})",
-                            value=saved_field_data.get("source_col", field),
-                            key=f"router_col_input_{field}"
-                        )
-                        
-                    updated_routes[field] = {
-                        "panel": chosen_panel_id,
-                        "source_col": chosen_source_col
-                    }
-                    st.markdown("<div style='border-bottom: 1px dashed #ddd; margin-bottom:10px;'></div>", unsafe_allow_html=True)
-                    
-                if st.button("💾 Apply & Save Column Routing Schema permanently", type="primary", use_container_width=True, key="save_column_router_matrix_btn"):
-                    try:
-                        with open(ROUTER_SCHEMA_FILE, "w", encoding="utf-8") as wf:
-                            json.dump(updated_routes, wf, ensure_ascii=False, indent=4)
-                        st.success("🎉 सफलता! कॉलम-टू-पैनल डेटा सोर्स रूल्स सेव हो गए हैं।")
-                        st.balloons()
-                        st.rerun()
-                    except Exception as json_err:
-                        st.error(f"रूटिंग स्कीमा सहेजने में तकनीकी त्रुटि: {json_err}")
-
-            # ======================================================================
-            # 📊 मास्टर डेटाबेस लिस्ट व्यू (अब वापस लाइव दिखेगी)
-            # ======================================================================
-            st.markdown("---")
-            st.subheader("📊 Master Database List View & Advanced Operational Controls")
-            
-            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-            with col_ctrl3:
-                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
-                # 🟢 नया सुधारा हुआ कोड (इसे पेस्ट करें):
-                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final_fix"):
-                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
-                    st.rerun()
-
-            with col_ctrl1:
-                lbl_edit = "👀 एडमिट TEXT FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट TEXT FUNCTION: hidden"
-                if st.button(lbl_edit, use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_edit_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                    st.rerun()
-
-            with col_ctrl2:
-                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
-                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                    st.rerun()
-
-            if st.session_state.admin_unhide_move:
-                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें:")
-                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
-                c_left, c_right = st.columns(2)
-                
-                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx > 0:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                        st.rerun()
-                        
-                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx < len(st.session_state.admin_columns_order) - 1:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
-                        st.rerun()
-
             st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
             
             if ordered_db_display.empty:
                 st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
             else:
                 if st.session_state.admin_lock_state:
+                    # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
                     st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
                 else:
-                    st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं।")
+                    # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
+                    st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
+                    
                     disabled_fields = ["S.No."]
+                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
                     if not st.session_state.admin_unhide_edit:
                         disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
                         
@@ -2465,7 +2349,7 @@ else:
                         use_container_width=True,
                         disabled=disabled_fields,
                         hide_index=True,
-                        num_rows="dynamic",
+                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
                         key="p15_supreme_master_live_editor_grid"
                     )
                     
@@ -2481,17 +2365,18 @@ else:
                             st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
 
                     # ======================================================================
-                    # 📚 बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र
+                    # 📚 न्यू सब-सिस्टम: बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र (सिर्फ एडमिन लॉक-सिक्योर)
                     # ======================================================================
                     if not live_db.empty and "Subject" in live_db.columns:
                         st.markdown("---")
                         st.subheader("📚 Bulk Subject-Wise Duration Settings (Admin Control)")
                         
+                        # लॉक स्टेट के आधार पर एडमिन को निर्देश दिखाएं
                         if st.session_state.admin_lock_state:
                             st.warning("🔒 **यह ग्रिड अभी लॉक है:** ड्यूरेशन बदलने के लिए ऊपर जाकर पहले '🔓 लिस्ट अनलॉक करें (Editable)' बटन दबाएं।")
                         else:
                             st.info("🔓 **अनलॉक मोड सक्रिय:** अब आप किसी भी विषय के सामने उसकी कोर्स अवधि (Duration) बदल सकते हैं।")
-
+                        
                         # 1. डेटाबेस से सभी उपलब्ध यूनीक विषयों की लिस्ट निकालें
                         unique_db_subjects = sorted([s for s in live_db["Subject"].dropna().unique() if str(s).strip() != ""])
                         
@@ -2502,7 +2387,7 @@ else:
                             subject_duration_mapping = []
                             for sub in unique_db_subjects:
                                 existing_sub_rows = live_db[live_db["Subject"] == sub]
-                                existing_duration = "3"
+                                existing_duration = "3" # डिफ़ॉल्ट मान
                                 if not existing_sub_rows.empty:
                                     valid_durations = existing_sub_rows["Duration"].dropna().unique()
                                     valid_durations = [str(d).strip() for d in valid_durations if str(d).strip() != ""]
@@ -2517,13 +2402,15 @@ else:
                                 })
                             
                             sub_mapping_df = pd.DataFrame(subject_duration_mapping)
+                            
+                            # 🚨 सुरक्षा गेटवे: यदि मास्टर लिस्ट लॉक है, तो पूरा ग्रिड डिसेबल रहेगा
                             is_grid_disabled = st.session_state.admin_lock_state
                             
                             # 3. एडमिन के लिए एक इंटरैक्टिव कस्टमाइज़ेशन ग्रिड रेंडर करें
                             edited_sub_mapping_df = st.data_editor(
                                 sub_mapping_df,
                                 use_container_width=True,
-                                disabled=True if is_grid_disabled else ["Subject Name"],
+                                disabled=True if is_grid_disabled else ["Subject Name"], # लॉक होने पर पूरी टेबल फ्रीज हो जाएगी
                                 column_config={
                                     "Course Duration (Years)": st.column_config.SelectboxColumn(
                                         "Select Duration",
@@ -2536,21 +2423,28 @@ else:
                                 hide_index=True
                             )
                             
-                            # 4. डेटाबेस में बदलाव को सेव करने का एक्शन हैंडलर
+                            # 🚨 सुरक्षा गेटवे 2: सेव बटन केवल तभी दिखाई देगा जब लिस्ट अनलॉक होगी
                             if not st.session_state.admin_lock_state:
                                 if st.button("💾 Apply & Update Bulk Subject Durations", type="primary", use_container_width=True, key="p15_save_bulk_sub_duration_btn"):
                                     try:
                                         bulk_update_counter = 0
+                                        
+                                        # ग्रिड की प्रत्येक रो को लूप करें और मास्टर डेटाबेस में बदलें
                                         for _, edit_row in edited_sub_mapping_df.iterrows():
                                             target_sub = edit_row["Subject Name"]
                                             new_duration_to_apply = edit_row["Course Duration (Years)"]
+                                            
+                                            # मास्टर डेटाबेस में इस सब्जेक्ट के सभी इंडेक्स ढूंढें
                                             sub_match_indices = live_db[live_db["Subject"] == target_sub].index
+                                            
                                             if not sub_match_indices.empty:
                                                 for idx in sub_match_indices:
                                                     live_db.at[idx, "Duration"] = str(new_duration_to_apply)
                                                     bulk_update_counter += 1
+                                                    
+                                        # परिवर्तनों को स्थायी रूप से सेव करें
                                         save_live_data(live_db)
-                                        st.success(f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार अपडेट हो गया है!")
+                                        st.success(f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार एक साथ अपडेट कर दिया गया है!")
                                         st.balloons()
                                         st.rerun()
                                     except Exception as bulk_err:
