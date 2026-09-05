@@ -548,8 +548,31 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    # 🚨 ध्यान दें: नीचे दी गई लाइनों के आगे की स्पेसिंग (4 Spaces) इसके बिल्कुल बराबर होनी चाहिए:
     allowed_panels = []
+    if role == "full_admin":
+        allowed_panels = list(DEFAULT_PANELS.keys()) 
+    elif role == "p1_role": allowed_panels = ["P1"]
+    elif role == "p2_role": allowed_panels = ["P2"]
+    elif role == "p3_role": allowed_panels = ["P3"]
+    elif role == "p4_role": allowed_panels = ["P4"]
+    elif role == "p5_role": allowed_panels = ["P5"]
+    elif role == "p6_role": allowed_panels = ["P6"]
+    elif role == "p7_role": allowed_panels = ["P7"]
+    elif role == "p8_role": allowed_panels = ["P8"]
+    elif role == "p9_role": allowed_panels = ["P9"]
+    elif role == "p10_role": allowed_panels = ["P10"]
+    elif role == "p11_role": allowed_panels = ["P11"]
+    elif role == "p12_role": allowed_panels = ["P12"]
+    elif role == "p13_role": allowed_panels = ["P13"]
+    elif role == "p14_role": allowed_panels = ["P14"]
+
+    active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
+    
+    if not active_tabs_names:
+        st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
+    else:
+        selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
+        current_panel_id = selected_tab_ui.split(" : ")[0]
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
