@@ -2251,59 +2251,6 @@ else:
                         st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
                         st.rerun()
 
-                    if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
-                        st.session_state.panel_names = temp_panel_mappings
-                        save_panel_names(temp_panel_mappings)
-                        st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
-                        st.rerun()
-
-            # --- पुराने st.markdown("---") की जगह यहाँ से नया कोड शुरू होगा ---
-            # ======================================================================
-            # 🏗️ न्यू सब-सिस्टम: डायनेमिक कॉलम बिल्डर और डिलीटर (Dynamic Column Manager)
-            # ======================================================================
-            st.markdown("---")
-            st.subheader("🏗️ Master Database Column Manager (Add / Delete Columns)")
-            st.markdown("यहाँ से आप मुख्य डेटाबेस में नया कॉलम जोड़ सकते हैं या किसी भी गैर-जरूरी कॉलम को हमेशा के लिए डिलीट कर सकते हैं:")
-            
-            col_manage1, col_manage2 = st.columns(2)
-            
-            with col_manage1:
-                st.markdown("##### ➕ नया कॉलम जोड़ें (Add New Column)")
-                new_col_input = st.text_input("नए कॉलम का नाम दर्ज करें (जैसे Student Rank):", key="p15_new_column_text_input").strip()
-                if st.button("🚀 डेटाबेस में कॉलम जोड़ें", type="primary", use_container_width=True):
-                    if new_col_input == "":
-                        st.error("❌ कॉलम का नाम खाली नहीं हो सकता!")
-                    elif new_col_input in st.session_state.admin_columns_order:
-                        st.warning(f"⚠️ `{new_col_input}` नाम का कॉलम पहले से डेटाबेस में मौजूद है!")
-                    else:
-                        st.session_state.admin_columns_order.append(new_col_input)
-                        live_db[new_col_input] = ""
-                        save_live_data(live_db)
-                        st.success(f"🎉 सफलता! नया कॉलम `{new_col_input}` डेटाबेस संरचना में लाइव जोड़ दिया गया है।")
-                        st.balloons()
-                        st.rerun()
-                        
-            with col_manage2:
-                st.markdown("##### 🗑️ कॉलम डिलीट करें (Delete Existing Column)")
-                col_to_delete = st.selectbox(
-                    "डिलीट करने के लिए कॉलम चुनें:", 
-                    options=["-- चुनें --"] + [c for c in st.session_state.admin_columns_order],
-                    key="p15_delete_column_select_box"
-                )
-                confirm_col_del = st.checkbox("canfirm column delete? (हाँ, मैं प्रमाणित करता हूँ कि मैं इस कॉलम और इसके डेटा को डिलीट करना चाहता हूँ।)", key="p15_confirm_col_del_chk")
-                
-                if st.button("🗑️ परमानेंटली कॉलम डिलीट करें", type="primary", use_container_width=True, disabled=not confirm_col_del):
-                    if col_to_delete == "-- चुनें --":
-                        st.error("❌ कृपया डिलीट करने के लिए एक वैध कॉलम चुनें!")
-                    else:
-                        st.session_state.admin_columns_order.remove(col_to_delete)
-                        if col_to_delete in live_db.columns:
-                            live_db = live_db.drop(columns=[col_to_delete])
-                        save_live_data(live_db)
-                        st.error(f"💥 कॉलम `{col_to_delete}` और उसका पूरा डेटा मास्टर फ़ाइल से डिलीट कर दिया गया है!")
-                        st.rerun()
-            # --- नया कोड यहाँ ख़त्म हुआ ---
-
             st.markdown("---")
             st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
             vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
