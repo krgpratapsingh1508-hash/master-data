@@ -2279,7 +2279,7 @@ else:
                         if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
                             st.rerun()
-                            
+
             # Visibility Panel Controllers Layer for P8 - P15
             with vis_tabs[1]:
                 c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
@@ -2465,7 +2465,64 @@ else:
                     # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
                     if not st.session_state.admin_unhide_edit:
                         disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+
+                    disabled_fields = ["S.No."]
+                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
+                    if not st.session_state.admin_unhide_edit:
+                        disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+                    
+                    # 🛡️ 🆕 यहाँ यह नया स्कीमा एडिटर (कॉलम और रो जोड़ने/हटाने का फ़ंक्शन) पेस्ट हो रहा है:
+                    if role == "full_admin" and not st.session_state.admin_lock_state:
+                        st.markdown("---")
+                        st.markdown("#### 🛠️ Super-Admin Schema Editor (Add/Delete Columns & Rows)")
+                        tab_col_ctrl, tab_row_ctrl = st.tabs(["📊 Dynamic Column Panel Engine", "➕ Manual Row Injector"])
                         
+                        with tab_col_ctrl:
+                            col_add_side, col_del_side = st.columns(2)
+                            with col_add_side:
+                                st.markdown("##### ➕ नया कॉलम जोड़ें (Add Column)")
+                                new_col_input = st.text_input("नया कॉलम का सटीक नाम दर्ज करें:", key="p15_new_col_input_name").strip()
+                                if st.button("🚀 Create Column Globally", type="primary", use_container_width=True):
+                                    if new_col_input and new_col_input not in live_db.columns:
+                                        live_db[new_col_input] = ""
+                                        if new_col_input not in DEFAULT_COLUMNS: DEFAULT_COLUMNS.append(new_col_input)
+                                        if new_col_input not in st.session_state.admin_columns_order: st.session_state.admin_columns_order.append(new_col_input)
+                                        save_live_data(live_db)
+                                        st.success(f"🎉 कॉलम `{new_col_input}` संरचना में जुड़ गया है।")
+                                        st.rerun()
+                                        
+                            with col_del_side:
+                                st.markdown("##### 🗑️ कॉलम हटाएं (Delete Column)")
+                                col_to_delete = st.selectbox("हटाने के लिए कॉलम चुनें:", options=[c for c in live_db.columns if c != "Target Panel Visibility"], key="p15_col_to_delete_select")
+                                confirm_col_del = st.checkbox("हाँ, मैं इस कॉलम का पूरा डेटा नष्ट करना चाहता हूँ।", key="p15_confirm_col_del_chk")
+                                if st.button("🗑️ ERASE COLUMN PERMANENT PERMANENTLY", type="primary", use_container_width=True, disabled=not confirm_col_del):
+                                    if col_to_delete in live_db.columns: live_db = live_db.drop(columns=[col_to_delete])
+                                    if col_to_delete in DEFAULT_COLUMNS: DEFAULT_COLUMNS.remove(col_to_delete)
+                                    if col_to_delete in st.session_state.admin_columns_order: st.session_state.admin_columns_order.remove(col_to_delete)
+                                    save_live_data(live_db)
+                                    st.error(f"💥 कॉलम `{col_to_delete}` हटा दिया गया है!")
+                                    st.rerun()
+
+                        with tab_row_ctrl:
+                            st.markdown("##### ➕ डेटाबेस में सिंगल रो इंजेक्ट करें (Add Row)")
+                            if st.button("➕ Inject Blank Data Row at the End", use_container_width=True):
+                                blank_row = {c: "" for c in live_db.columns}
+                                blank_row["Target Panel Visibility"] = "P2"
+                                live_db = pd.concat([live_db, pd.DataFrame([blank_row])], ignore_index=True)
+                                save_live_data(live_db)
+                                st.success("🎉 एक खाली रो डेटाबेस के अंत में जोड़ दी गई है!")
+                                st.rerun()
+                    
+                    st.markdown("---")
+                    edited_master_db = st.data_editor(
+                        ordered_db_display,
+                        use_container_width=True,
+                        disabled=disabled_fields,
+                        hide_index=True,
+                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
+                        key="p15_supreme_master_live_editor_grid"
+                    )
+
                     edited_master_db = st.data_editor(
                         ordered_db_display,
                         use_container_width=True,
