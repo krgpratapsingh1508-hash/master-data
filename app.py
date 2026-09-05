@@ -1623,7 +1623,7 @@ else:
                 )
 
         # ----------------------------------------------------------------------
-        # P11: ADVANCED PANEL-WISE COLUMN TWIN MAPPING SYSTEM
+        # P11: ADVANCED PANEL-WISE COLUMN TWIN MAPPING SYSTEM (Fixed Core Sync)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
             st.header(f"📢 {get_panel_title('P11')} (Advanced Panel Column Linker)")
@@ -1634,6 +1634,7 @@ else:
                     <br>1. बाईं तरफ से मुख्य डेटाबेस का कॉलम चुनें।
                     <br>2. वह वर्किंग पैनल चुनें जिसका डेटा सिंक करना है।
                     <br>3. दाईं तरफ केवल उसी पैनल के कॉलम नाम दिखाई देंगे, उन्हें चुनकर 'Activate Sync' दबाएं।
+                    <br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। जाहा Left Column है, वहां Right Column का डेटा एक्सचेंज हो जाएगा, और जहा Right है वहां Left का डेटा आ जाएगा।
                 </div>
             """, unsafe_allow_html=True)
             
@@ -1659,13 +1660,12 @@ else:
             
             current_twins = load_twin_mappings()
             
-            # फॉर्म के बाहर सिलेक्टर्स रखेंगे ताकि एक के बाद दूसरा डायनेमिकली काम कर सके
             st.subheader("➕ लिंक करें नए जुड़वाँ कॉलम्स (Link New Twin Columns)")
             
             col_p11_1, col_p11_mid, col_p11_2 = st.columns(3)
             
             with col_p11_1:
-                # 1. LEFT SIDE: डेटाबेस का मुख्य कॉलम
+                # 1. LEFT SIDE: डेटाबेस का मुख्य कॉलम (जो पहले से DEFAULT_COLUMNS में तय है)
                 src_selection = st.selectbox(
                     "⬅️ 1. मुख्य डेटाबेस का कॉलम चुनें (Database Column):", 
                     options=DEFAULT_COLUMNS, 
@@ -1689,14 +1689,16 @@ else:
                     key="p11_tgt_sel_adv"
                 )
             
-            # फाइनल सबमिशन के लिए एक छोटा बटन ब्लॉक
+            # फाइनल सबमिशन बटन
             if st.button("🔗 इस कॉलम मैपिंग को लागू करें (Activate Sync)", type="primary", use_container_width=True):
                 if src_selection == tgt_selection:
                     st.error("❌ आप एक ही कॉलम को खुद से लिंक नहीं कर सकते! कृपया अलग कॉलम नाम चुनें।")
                 else:
+                    # सुरक्षित एंट्री: बिना नया कॉलम बनाए डेटाबेस मैपिंग स्कीमा में सेव करें
                     current_twins[src_selection] = tgt_selection
                     save_twin_mappings(current_twins)
-                    st.success(f"🎉 सफलता! अब सिस्टम `{chosen_panel_target.split(':')[0]}` के कॉलम `{tgt_selection}` का डेटा मुख्य डेटाबेस के `{src_selection}` में ही प्रोसेस करेगा।")
+                    st.success(f"🎉 सफलता! अब सिस्टम बिना नया कॉलम बनाए, `{tgt_selection}` और `{src_selection}` के बीच डेटा को आपस में सिंक और एक्सचेंज करेगा।")
+                    st.balloons()
                     st.rerun()
             
             # भाग 2: वर्तमान में सक्रिय मैपिंग की लिस्ट और डिलीट करने का विकल्प
