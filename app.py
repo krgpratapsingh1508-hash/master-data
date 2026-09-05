@@ -4,7 +4,6 @@ import os
 import base64
 import json
 import io
-import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
 # ==========================================================
 # ⚙️ स्टेप 1: पेज का लेआउट सेट करें और डिफ़ॉल्ट थीम्स बनाएं
@@ -363,59 +362,22 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट स्क्रीन हाइड फिक्स)
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
-    /* 📋 स्क्रीन पर इस कंटेनर को पूरी तरह गायब रखें (ताकि नीचे कोई लिस्ट न दिखे) */
-    .print-only-container {{
-        display: none !important;
-    }}
-    
     @media print {{
-        /* 1. स्क्रीन की बाकी सारी चीजें (हेडर, फॉर्म, बटन्स और ऐप की ओरिजिनल ग्रिड) छुपाएं */
         header, [data-testid="stHeader"], [data-testid="stSidebar"], 
-        [data-testid="stDecoration"], [data-testid="stNotification"], 
-        [data-testid="stForm"], .header-container, .notice-board,
-        .print-hide, iframe, div.element-container, div[data-testid="stDataFrame"] {{
+        .stButton, .stFileUploader, [data-testid="stDecoration"], 
+        [data-testid="stNotification"], [data-testid="stForm"], .print-hide {{
             display: none !important;
         }}
-        
-        /* 2. प्रिंट लेते समय इस कंटेनर और इसके अंदर की टेबल को एक्टिव करें */
-        .print-only-container {{
-            display: block !important;
-        }}
-        .print-only-container table {{
-            display: table !important;
-            width: 100% !important;
-            border-collapse: collapse !important;
-            font-family: Arial, sans-serif !important;
-            font-size: 11px !important;
-            color: #000 !important;
-        }}
-        .print-only-container th {{
-            background-color: #f2f2f2 !important;
-            border: 1px solid #111 !important;
-            padding: 6px !important;
-            font-weight: bold !important;
-            text-align: center !important;
-        }}
-        .print-only-container td {{
-            border: 1px solid #111 !important;
-            padding: 5px !important;
-            text-align: left !important;
-        }}
-        
-        @page {{ 
-            margin: 8mm; 
-            size: A4 landscape; 
-        }}
+        @page {{ margin: 5mm; size: A4 landscape; }}
+        .main .block-container {{ padding: 0 !important; margin: 0 !important; }}
     }}
-    
-    /* स्क्रीन डिस्प्ले के लिए सामान्य CSS */
     .header-container {{ display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }}
     .header-text {{ display: flex; flex-direction: column; }}
     .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #1465de; }}
@@ -433,37 +395,27 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# लोगो और हेडर रेंडरिंग
+img_base64 = get_image_base64("logo pratap.png")
+logo_html = f'<img src="{img_base64}" width="90" style="border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"/>' if img_base64 else ""
+
+if st.session_state.pre_login_config.get("show_header_text", True):
+    st.markdown(f"""
+        <div class="header-container">
+            {logo_html}
+            <div class="header-text">
+                <h3>{st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")}</h3>
+                <h1>{st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")}</h1>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # ==========================================================
-# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Mantra, Logo & Title Restored)
+# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (ओरिजनल ड्रॉपडाउन सिस्टम)
 # ==========================================================
 if st.session_state.user_role is None:
-    # 🖼️ हेडर कॉन्फ़िगरेशन वेरिएबल्स लोड करें
-    show_header = st.session_state.pre_login_config.get("show_header_text", True)
-    mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
-    sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
-    
-    # 🎭 यदि हेडर दिखाना चालू है तो मंत्र, लोगो और टाइटल रेंडर करें
-    if show_header:
-        st.markdown(f"<h3 style='text-align: center; color: #1465de; margin-bottom: 0;'>{mantra}</h3>", unsafe_allow_html=True)
-        
-        # लोगो इमेज को Base64 में बदलें ताकि पाथ की समस्या न आए
-        img_base64 = get_image_base64(logo_file_path)
-        
-        col_h1, col_h2 = st.columns(2)  # दो कॉलम का लेआउट
-        with col_h1:
-            if img_base64:
-                st.markdown(f"<img src='{img_base64}' style='max-height: 80px; display: block; margin: auto;'>", unsafe_allow_html=True)
-            else:
-                # यदि लोगो इमेज फ़ाइल नहीं मिलती है तो एक डिफ़ॉल्ट आइकन दिखाएं
-                st.markdown("<h1 style='text-align: center; margin: 0;'>🏛️</h1>", unsafe_allow_html=True)
-        with col_h2:
-            st.markdown(f"<h1 style='margin: 0; padding-top: 10px; color: #333; font-size: 28px;'>{sys_title}</h1>", unsafe_allow_html=True)
-        
-        st.markdown("---")
-
-    # 📢 कॉलेज सूचना पटल (Official Notice Board)
     formatted_notice = "".join([f"<p>{line.strip()}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
+    
     st.markdown(f"""
         <div class="notice-board">
             <div class="notice-title">📢 कॉलेज सूचना पटल (Official Notice Board)</div>
@@ -513,28 +465,6 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
-    # 🏛️ हर पैनल के ऊपर मंत्र, लोगो और टाइटल दिखाएं
-    show_header = st.session_state.pre_login_config.get("show_header_text", True)
-    mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
-    sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
-    
-    if show_header:
-        st.markdown(f"<div class='print-hide'><h3 style='text-align: center; color: #1465de; margin-bottom: 0;'>{mantra}</h3></div>", unsafe_allow_html=True)
-        
-        img_base64 = get_image_base64(logo_file_path)
-        col_h1, col_h2 = st.columns(2)
-        with col_h1:
-            if img_base64:
-                st.markdown(f"<div class='print-hide'><img src='{img_base64}' style='max-height: 60px; display: block; margin: auto;'></div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<div class='print-hide'><h1 style='text-align: center; margin: 0;'>🏛️</h1></div>", unsafe_allow_html=True)
-        with col_h2:
-            st.markdown(f"<div class='print-hide'><h2 style='margin: 0; padding-top: 5px; color: #333; font-size: 22px;'>{sys_title}</h2></div>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='print-hide'><hr style='margin-top: 10px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
-
-    # 🚪 सक्रिय सत्र और लॉगआउट ब्लॉक
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_top1, col_top2 = st.columns(2)
     with col_top1:
@@ -765,7 +695,7 @@ else:
                     p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
 
                 # ==================================================================
-                # 🎛️ Advanced Matrix Filters System
+                # 🎛️ 4 SCROLL DYNAMIC CONTROL MATRIX (DEPENDENT VALUES FIXED)
                 # ==================================================================
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("🔍 Advanced Matrix Filters System")
@@ -773,22 +703,27 @@ else:
                 col_p2_1, col_p2_2, col_p2_3, col_p2_4 = st.columns(4)
                 
                 with col_p2_1:
+                    # 1st Scroll: Admission Year Selector
                     year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
-                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
+                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v17")
                 
+                # पहले फ़िल्टर के आधार पर सब्जेक्ट की लिस्ट को छोटा करें
                 temp_db_for_sub = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Admission Year"] == p2_filter_year]
 
                 with col_p2_2:
+                    # 2nd Scroll: Subject Selector (अब यह चुने गए साल के अनुसार ही सब्जेक्ट दिखाएगा)
                     subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
-                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
+                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v17")
                 
                 with col_p2_3:
+                    # 3rd Scroll: Select Database Column Name Dynamically
                     ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
+                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v17")
                 
+                # 🎯 फिक्स: चौथे स्क्रॉल के लिए डेटाबेस को पहले, दूसरे और तीसरे स्क्रॉल के आधार पर पहले ही फ़िल्टर करें
                 dependent_db = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
@@ -796,85 +731,44 @@ else:
                     dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
 
                 with col_p2_4:
+                    # 4th Scroll: Pull Unique Values (अब इसमें सिर्फ वही नाम दिखेंगे जो ऊपर के साल और सब्जेक्ट में उपलब्ध हैं)
                     raw_vals = dependent_db[p2_selected_col].unique()
                     val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
-                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
-                
-                # Payment Date Range Filter
-                st.markdown("---")
-                st.subheader("📆 Filter Records By Payment Date Range")
-                use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
-                
-                start_date = pd.to_datetime("2024-01-01")
-                end_date = pd.to_datetime("2026-12-31")
-                
-                if use_date_filter:
-                    col_dt1, col_dt2 = st.columns(2)
-                    with col_dt1:
-                        start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
-                    with col_dt2:
-                        end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
+                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v17")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
                 # ==================================================================
-                # ⚡ Filters Execution Engine
+                # ⚡ FINAL FILTERS EXECUTION
                 # ==================================================================
                 admission_display_db = p2_authorized_db.copy()
                 
+                # 1. Apply Year Filter
                 if p2_filter_year != "All Years":
                     admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
                 
+                # 2. Apply Subject Filter
                 if p2_filter_subject != "All Subjects":
                     admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
                 
+                # 3 & 4. Apply Dynamic Column Value Filter
                 if p2_selected_val != "All Values":
                     admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
 
-                if use_date_filter:
-                    try:
-                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], dayfirst=True, errors="coerce")
-                        admission_display_db = admission_display_db[
-                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
-                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
-                        ]
-                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"], errors="ignore")
-                    except Exception as date_err:
-                        st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
-
                 # ==================================================================
-                # ✍️ Print Header Text Boxes Customizer
+                # 📊 DATA GRID OVERVIEW & MASTER RENDER
                 # ==================================================================
                 st.markdown("---")
-                st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
-                st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
                 
-                col_tb1, col_tb2, col_tb3 = st.columns(3)
-                with col_tb1:
-                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
-                with col_tb2:
-                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
-                with col_tb3:
-                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
-                
-                st.markdown("---")
-                
-                # ==================================================================
-                # 📊 Data Grid Overview (केवल यही एक लिस्ट स्क्रीन पर दिखेगी)
-                # ==================================================================
                 render_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
-                    "Admission & Enrollment Fees", "Payment Date", "Status"
+                    "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
                 
-                # सुनिश्चित करें कि सभी कॉलम मौजूद हों
                 for col in render_cols:
                     if col not in admission_display_db.columns:
-                        if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
-                            admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
-                        else:
-                            admission_display_db[col] = ""
+                        admission_display_db[col] = ""
                         
                 final_p2_render = admission_display_db[render_cols].copy()
                 final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
@@ -884,105 +778,28 @@ else:
                     final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
-                
-                # 🌟 स्क्रीन पर दिखने वाली एकमात्र मुख्य ग्रिड तालिका
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ Clean Variable-Based Iframe Print Engine (No Screen Leak)
+                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 1. पूरे डेटा को बिना किसी स्क्रीन ऑब्जेक्ट के सीधे बैकएंड वेरिएबल में प्रोसेस करना
-                    columns_list = list(final_p2_render.columns)
-                    records_list = final_p2_render.to_dict(orient="records")
-                    
-                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in columns_list])
-                    
-                    rows_html = ""
-                    for row in records_list:
-                        rows_html += "<tr>"
-                        for col in columns_list:
-                            val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
-                            rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
-                        rows_html += "</tr>"
-                    
-                    # 2. प्रिंट होने वाला शुद्ध HTML डॉक्यूमेंट लेआउट
-                    clean_table_html = f"""
-                    <html>
-                    <head>
-                        <style>
-                            @page {{ size: A4 landscape; margin: 8mm; }}
-                            body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
-                            .custom-print-header {{
-                                width: 100%; border: 2px solid #1465de; background-color: #f4f8ff;
-                                padding: 15px; margin-bottom: 20px; border-radius: 6px;
-                                box-sizing: border-box; text-align: center;
-                            }}
-                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #1465de; margin-bottom: 5px; }}
-                            .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
-                            .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
-                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
-                        </style>
-                    </head>
-                    <body>
-                        <div class="custom-print-header">
-                            <div class="h-line-1">{custom_header_1}</div>
-                            <div class="h-line-2">{custom_header_2}</div>
-                            <div class="h-line-3">{custom_header_3}</div>
-                        </div>
-                        <table>
-                            <thead><tr>{headers_html}</tr></thead>
-                            <tbody>{rows_html}</tbody>
-                        </table>
-                    </body>
-                    </html>
-                    """
-                    
-                    safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
-                    
-                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-                    
-                    # 3. प्रिंट बटन कंपोनेंट (यह केवल एक बटन रेंडर करेगा, नीचे कोई एक्स्ट्रा लिस्ट नहीं बनाएगा)
-                    components.html(
-                        f"""
-                        <html>
-                        <body>
-                            <script>
-                            function printAdmissionList() {{
-                                var iframe = window.parent.document.createElement('iframe');
-                                iframe.style.position = 'fixed';
-                                iframe.style.right = '0';
-                                iframe.style.bottom = '0';
-                                iframe.style.width = '0';
-                                iframe.style.height = '0';
-                                iframe.style.border = '0';
-                                window.parent.document.body.appendChild(iframe);
-                                
-                                var doc = iframe.contentWindow.document;
-                                doc.open();
-                                doc.write(`{safe_html_string}`);
-                                doc.close();
-                                
-                                iframe.contentWindow.focus();
-                                iframe.contentWindow.print();
-                                
-                                setTimeout(function() {{
-                                    window.parent.document.body.removeChild(iframe);
-                                }}, 1000);
-                            }}
-                            </script>
-                            <button onclick="printAdmissionList()" style="
-                                width: 100%; background-color: #1465de; color: white; 
-                                padding: 14px; border: none; border-radius: 6px; 
-                                font-weight: bold; cursor: pointer; font-size: 16px;
-                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2); width: 100%;">
-                                🖨️ Click Here to Print Admission & Payment Report Sheet
-                            </button>
-                        </body>
-                        </html>
-                        """,
-                        height=60
-                    )
+                    st.markdown('<div class="print-hide" style="margin-top: 20px;">', unsafe_allow_html=True)
+                    st.markdown("""
+                        <button onclick="window.print()" style="
+                            width: 100%; 
+                            background-color: #1465de; 
+                            color: white; 
+                            padding: 12px; 
+                            border: none; 
+                            border-radius: 4px; 
+                            font-weight: bold; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">🖨️ Click Here to Print Clean Filtered List (PDF/Paper)</button>
+                    """, unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
@@ -996,13 +813,11 @@ else:
             if p3_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया P13 पैनल से डेटा अप्रूव करें।")
             else:
-                # 🟢 सही किया गया कोड (यह बिना किसी एरर के हिंदी और इमोजी को रेंडर करेगा)
-                st.markdown(
-                    '<div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विशिष्ट पहचान पत्र संख्या (Unique ID) से संबंधित डेटा प्रदर्शित है। सुरक्षा और पारदर्शिता के लिए केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विशिष्ट पहचान पत्र संख्या (Unique ID) से संबंधित डेटा प्रदर्शित है। सुरक्षा और पारदर्शिता के लिए केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # 🔍 Real-time Search Filter Sub-system
                 col_s1, col_s2 = st.columns(2)
@@ -1089,13 +904,11 @@ else:
             if p4_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया P13 पैनल से डेटा अप्रूव करें।")
             else:
-                # 🟢 सही किया गया कोड (यह सुरक्षित सिंगल-लाइन स्ट्रिंग फॉर्मेट में है)
-                st.markdown(
-                    '<div style="background-color: #f7f9fa; border-left: 5px solid #28a745; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय रोल नंबर (Roll No.) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f7f9fa; border-left: 5px solid #28a745; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय रोल नंबर (Roll No.) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # 🔍 Real-time Search Filter Sub-system
                 col_r1, col_r2 = st.columns(2)
@@ -1191,13 +1004,11 @@ else:
             if p5_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन कर अप्रूव करें।")
             else:
-                # 🟢 सही किया गया कोड
-                st.markdown(
-                    '<div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय नामांकन (Enrollment No) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विश्वविद्यालय नामांकन (Enrollment No) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # Fallback dictionary to translate legacy/alternate columns to core fields
                 column_mapping_fixes = {
@@ -1303,13 +1114,11 @@ else:
             if p6_authorized_db.empty:
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया पहले P13 (Merge Panel) से डेटा को इस पैनल पर असाइन कर अप्रूव करें।")
             else:
-                # 🟢 सही किया गया कोड
-                st.markdown(
-                    '<div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में छात्रवृत्ति प्रोग्रेस (Scholarship Status) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में छात्रवृत्ति प्रोग्रेस (Scholarship Status) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # Normalise alternate column structural headers to match baseline fields smoothly
                 column_mapping_fixes = {
@@ -1420,14 +1229,11 @@ else:
                 # ------------------------------------------------------------------
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("📝 1. CCE Data Entry Desk & 22-Columns Student List")
-                
-                # 🟢 Corrected Safe String Layout Structure
-                st.markdown(
-                    '<div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं।
+                    </div>
+                """, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # आपके द्वारा मांगे गए सटीक 22 कॉलम का फ़्रेमवर्क
@@ -1751,13 +1557,11 @@ else:
             if p8_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या कोई स्वीकृत डेटा उपलब्ध नहीं है।")
             else:
-                # 🟢 Corrected inline-concatenated string mapping fix to bypass compilation parser limits
-                st.markdown(
-                    '<div style="background-color: #f7f9fa; border-left: 5px solid #0288d1; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f7f9fa; border-left: 5px solid #0288d1; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में बैच प्रमोशन (Batch Progression) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 available_years = ["All"] + sorted(list(set(p8_authorized_db["Current Year"].dropna().astype(str).str.strip())))
                 selected_year = st.selectbox("Current Year (वर्तमान वर्ष) फ़िल्टर चुनें:", options=available_years, key="p8_promo_year_filter_new")
@@ -1790,13 +1594,11 @@ else:
             if p9_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # 🟢 Corrected Safe Inline Str Framework Configuration
-                st.markdown(
-                    '<div style="background-color: #f3e5f5; border-left: 5px solid #8e24aa; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में परीक्षा परिणाम (Exam Result) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f3e5f5; border-left: 5px solid #8e24aa; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में परीक्षा परिणाम (Exam Result) से संबंधित डेटा प्रदर्शित है। सुरक्षा नियमों के अनुसार केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 available_subjects = ["All"] + sorted(list(set(p9_authorized_db["Branch"].dropna().astype(str).str.strip()))) if "Branch" in p9_authorized_db.columns else ["All"]
                 selected_sub = st.selectbox("Branch (शाखा) फ़िल्टर चुनें:", options=available_subjects, key="p9_subject_filter_secure_engine_new")
@@ -1885,13 +1687,11 @@ else:
             if p10_authorized_db.empty:
                 st.warning("⚠️ मास्टर डेटाबेस रिक्त है।")
             else:
-                # 🟢 Corrected safe inline string format to prevent syntax errors
-                st.markdown(
-                    '<div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
-                    '📌 <b>स्थायी पंजी डेस्क:</b> यह विश्वविद्यालय का मुख्य रिकॉर्ड लेजर है। यहाँ सभी छात्र प्रोफाइल का सम्पूर्ण विवरण सुरक्षित संग्रहित रहता है। लॉन्ग-टर्म सिक्योरिटी नियमों के कारण यह डेटा केवल रीड-ओनली व्यू में उपलब्ध है।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #fff9e6; border-left: 5px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        📌 <b>स्थायी पंजी डेस्क:</b> यह विश्वविद्यालय का मुख्य रिकॉर्ड लेजर है। यहाँ सभी छात्र प्रोफाइल का सम्पूर्ण विवरण सुरक्षित संग्रहित रहता है। लॉन्ग-टर्म सिक्योरिटी नियमों के कारण यह डेटा केवल रीड-ओनली व्यू में उपलब्ध है।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # Perfect 22 core fields layout mapping for P10
                 archive_view_cols = [
@@ -1938,16 +1738,14 @@ else:
         elif current_panel_id == "P11":
             st.header(f"📢 {get_panel_title('P11')} (Advanced Panel Column Linker)")
             
-            # 🟢 Corrected Safe Single-Quote Concatenation Format
-            st.markdown(
-                '<div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
-                '🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी एक वर्किंग पैनल (P1 से P15) के कॉलम को किसी दूसरे पैनल के कॉलम के साथ आपस में जोड़ सकते हैं।'
-                '<br>1. बाईं तरफ (Source) वह पैनल और कॉलम चुनें जहां से डेटा सिंक करना शुरू करना है।'
-                '<br>2. दाईं तरफ (Target) वह पैनल और कॉलम चुनें जिसके साथ डेटा लिंक और एक्सचेंज करना है।'
-                '<br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। दोनों पैनल्स के चुने गए कॉलम्स के बीच बैकएंड डेटा लाइव एक्सचेंज और सिंक हो जाएगा।'
-                '</div>', 
-                unsafe_allow_html=True
-            )
+            st.markdown("""
+                <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी एक वर्किंग पैनल (P1 से P15) के कॉलम को किसी दूसरे पैनल के कॉलम के साथ आपस में जोड़ सकते हैं।
+                    <br>1. बाईं तरफ (Source) वह पैनल और कॉलम चुनें जहां से डेटा सिंक करना शुरू करना है।
+                    <br>2. दाईं तरफ (Target) वह पैनल और कॉलम चुनें जिसके साथ डेटा लिंक और एक्सचेंज करना है।
+                    <br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। दोनों पैनल्स के चुने गए कॉलम्स के बीच बैकएंड डेटा लाइव एक्सचेंज और सिंक हो जाएगा।
+                </div>
+            """, unsafe_allow_html=True)
             
             # मुख्य डेटाबेस के सभी 22+ प्रमाणित कॉलम्स
             all_22_columns = [
@@ -2052,13 +1850,11 @@ else:
         elif current_panel_id == "P12":
             st.header(f"🛠️ {get_panel_title('P12')} (Dash Board Editer & Notice Configuration)")
             
-            # 🟢 Corrected Safe Inline Str Framework Configuration
-            st.markdown(
-                '<div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
-                '📌 <b>प्रशासक निर्देश (Dash Board Control Room):</b> इस एकीकृत कंट्रोल रूम से आप होम स्क्रीन पर दिखने वाले <b>आधिकारिक डिजिटल सूचना पटल (Notice Board)</b> और <b>लैंडिंग स्क्रीन की थीम</b> दोनों को लाइव बदल सकते हैं।'
-                '</div>', 
-                unsafe_allow_html=True
-            )
+            st.markdown("""
+                <div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    📌 <b>प्रशासक निर्देश (Dash Board Control Room):</b> इस एकीकृत कंट्रोल रूम से आप होम स्क्रीन पर दिखने वाले <b>आधिकारिक डिजिटल सूचना पटल (Notice Board)</b> और <b>लैंडिंग स्क्रीन की थीम</b> दोनों को लाइव बदल सकते हैं।
+                </div>
+            """, unsafe_allow_html=True)
             
             if "pre_login_config" not in st.session_state or not isinstance(st.session_state.pre_login_config, dict):
                 st.session_state.pre_login_config = load_pre_login_config()
@@ -2144,7 +1940,6 @@ else:
                         <ul style="padding-left: 20px; color: #333;">{formatted_preview}</ul>
                     </div>
                 """, unsafe_allow_html=True)
-                
         # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
@@ -2158,13 +1953,11 @@ else:
             if stage_db.empty:
                 st.success("🟢 शानदार! स्टेजिंग कतार पूर्णतः खाली है। पैनल 1 से भेजी गयी सभी फाइलें प्रोसेस की जा चुकी हैं।")
             else:
-                # 🟢 Corrected Safe Inline String Setup
-                st.markdown(
-                    '<div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
-                    '🎯 <b>कन्फर्मेशन मर्ज गाइड:</b> पहले वह पैनल (Main File) चुनें जिसका डेटा बदलना है, फिर स्टेजिंग से नई फ़ाइल (Anya File) चुनकर लाइव मैचिंग चेक करें। यदि मर्ज नहीं करना है तो सीधे अप्रूव करें।'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
+                st.markdown("""
+                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                        🎯 <b>कन्फर्मेशन मर्ज गाइड:</b> पहले वह पैनल (Main File) चुनें जिसका डेटा बदलना है, फिर स्टेजिंग से नई फ़ाइल (Anya File) चुनकर लाइव मैचिंग चेक करें। यदि मर्ज नहीं करना है तो सीधे अप्रूव करें।
+                    </div>
+                """, unsafe_allow_html=True)
                 
                 # ----------------------------------------------------------------------
                 # 👑 स्टेप 1: MAIN FILE (पैनल से डेटा का चयन और लाइव प्रीव्यू)
