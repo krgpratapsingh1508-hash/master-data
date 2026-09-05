@@ -363,40 +363,55 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट ग्रिड प्रिंट हेतु)
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट स्क्रीन हाइड फिक्स)
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
+    /* 📋 स्क्रीन पर इस कंटेनर को पूरी तरह गायब रखें (ताकि नीचे कोई लिस्ट न दिखे) */
+    .print-only-container {{
+        display: none !important;
+    }}
+    
     @media print {{
-        /* 1. स्क्रीन के फालतू हिस्से (हेडर, सूचना पटल, फॉर्म, बटन्स) छुपाएं */
+        /* 1. स्क्रीन की बाकी सारी चीजें (हेडर, फॉर्म, बटन्स और ऐप की ओरिजिनल ग्रिड) छुपाएं */
         header, [data-testid="stHeader"], [data-testid="stSidebar"], 
         [data-testid="stDecoration"], [data-testid="stNotification"], 
         [data-testid="stForm"], .header-container, .notice-board,
-        .print-hide, iframe, div.element-container:has(button) {{
+        .print-hide, iframe, div.element-container, div[data-testid="stDataFrame"] {{
             display: none !important;
         }}
         
-        /* 2. स्क्रीन पर दिख रहे ओरिजिनल डेटा ग्रिड को ही प्रिंट में साफ दिखाएं */
-        div[data-testid="stDataFrame"], 
-        div[data-testid="stDataFrame"] > div,
-        .stDataFrame {{
+        /* 2. प्रिंट लेते समय इस कंटेनर और इसके अंदर की टेबल को एक्टिव करें */
+        .print-only-container {{
             display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+        }}
+        .print-only-container table {{
+            display: table !important;
             width: 100% !important;
-            height: auto !important;
+            border-collapse: collapse !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 11px !important;
+            color: #000 !important;
+        }}
+        .print-only-container th {{
+            background-color: #f2f2f2 !important;
+            border: 1px solid #111 !important;
+            padding: 6px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }}
+        .print-only-container td {{
+            border: 1px solid #111 !important;
+            padding: 5px !important;
+            text-align: left !important;
         }}
         
         @page {{ 
             margin: 8mm; 
             size: A4 landscape; 
-        }}
-        .main .block-container {{ 
-            padding: 0 !important; 
-            margin: 0 !important; 
         }}
     }}
     
@@ -821,12 +836,15 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (No Extra Table View Fix)
+                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (Guaranteed Strict Hide Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                    # टेबल को एक 'print-only-container' div के अंदर रैप किया गया है जो स्क्रीन पर ब्लॉक है
+                    raw_html_table = final_p2_render.to_html(index=False)
+                    full_print_payload = f'<div class="print-only-container">{raw_html_table}</div>'
+                    st.markdown(full_print_payload, unsafe_allow_html=True)
                     
-                    # यह कंपोनेंट सिर्फ एक साफ बटन बनाएगा और स्क्रीन पर दिख रहे ग्रिड को ही प्रिंट करेगा
+                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     components.html(
                         """
                         <html>
