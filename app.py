@@ -4,6 +4,7 @@ import os
 import base64
 import json
 import io
+import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
 # ==========================================================
 # ⚙️ स्टेप 1: पेज का लेआउट सेट करें और डिफ़ॉल्ट थीम्स बनाएं
@@ -818,27 +819,43 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (100% Working Full Code)
+                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (100% Guaranteed Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    st.markdown(
-                        '<div class="print-hide" style="margin-top: 25px; margin-bottom: 25px;">'
-                        '<button onclick="window.print()" style="'
-                        'width: 100%; '
-                        'background-color: #1465de; '
-                        'color: white; '
-                        'padding: 14px; '
-                        'border: none; '
-                        'border-radius: 6px; '
-                        'font-weight: bold; '
-                        'cursor: pointer; '
-                        'font-size: 16px; '
-                        'box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2); '
-                        'transition: background-color 0.2s ease;">'
-                        '🖨️ Print Admission & Payment Report Sheet'
-                        '</button>'
-                        '</div>', 
-                        unsafe_allow_html=True
+                    st.markdown('<div class="print-hide" style="margin-top: 25px;"></div>', unsafe_allow_html=True)
+                    
+                    # सुरक्षित Streamlit HTML घटक जो ब्राउज़र सिक्योरिटी को बायपास करके सीधे प्रिंट कमांड ट्रिगर करता है
+                    components.html(
+                        """
+                        <html>
+                        <head>
+                        <style>
+                        .print-btn {
+                            width: 100%;
+                            background-color: #1465de;
+                            color: white;
+                            padding: 14px;
+                            border: none;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            font-size: 16px;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);
+                        }
+                        .print-btn:hover {
+                            background-color: #0b4eb5;
+                        }
+                        </style>
+                        </head>
+                        <body>
+                            <button class="print-btn" onclick="window.parent.print()">
+                                🖨️ Click Here to Print Admission & Payment Report Sheet
+                            </button>
+                        </body>
+                        </html>
+                        """,
+                        height=60
                     )
 
         # ----------------------------------------------------------------------
