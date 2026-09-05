@@ -695,7 +695,7 @@ else:
                     p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
 
                 # ==================================================================
-                # 🎛️ 4 SCROLL DYNAMIC CONTROL MATRIX (DEPENDENT VALUES FIXED)
+                # 🎛️ भाग 1: 4 SCROLL DYNAMIC CONTROL MATRIX
                 # ==================================================================
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("🔍 Advanced Matrix Filters System")
@@ -705,25 +705,25 @@ else:
                 with col_p2_1:
                     # 1st Scroll: Admission Year Selector
                     year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
-                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v17")
+                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
                 
-                # पहले फ़िल्टर के आधार पर सब्जेक्ट की लिस्ट को छोटा करें
+                # पहले फ़िल्टर के आधार पर सब्जेक्ट लिस्ट डिपेंडेंट करें
                 temp_db_for_sub = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Admission Year"] == p2_filter_year]
 
                 with col_p2_2:
-                    # 2nd Scroll: Subject Selector (अब यह चुने गए साल के अनुसार ही सब्जेक्ट दिखाएगा)
+                    # 2nd Scroll: Subject Selector
                     subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
-                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v17")
+                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
                 
                 with col_p2_3:
                     # 3rd Scroll: Select Database Column Name Dynamically
                     ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v17")
+                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
                 
-                # 🎯 फिक्स: चौथे स्क्रॉल के लिए डेटाबेस को पहले, दूसरे और तीसरे स्क्रॉल के आधार पर पहले ही फ़िल्टर करें
+                # चौथे स्क्रॉल के लिए डिपेंडेंट डेटाबेस सेट करें
                 dependent_db = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
@@ -731,29 +731,61 @@ else:
                     dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
 
                 with col_p2_4:
-                    # 4th Scroll: Pull Unique Values (अब इसमें सिर्फ वही नाम दिखेंगे जो ऊपर के साल और सब्जेक्ट में उपलब्ध हैं)
+                    # 4th Scroll: Pull Unique Values 
                     raw_vals = dependent_db[p2_selected_col].unique()
                     val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
-                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v17")
+                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
+                
+                # ==================================================================
+                # 📅 📅 NEW: PAYMENT DATE RANGE FILTER (4 स्क्रॉल के ठीक नीचे)
+                # ==================================================================
+                st.markdown("---")
+                st.subheader("📆 Filter Records By Payment Date Range")
+                use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
+                
+                # डिफॉल्ट तारीख सेटिंग्स
+                start_date = pd.to_datetime("2024-01-01")
+                end_date = pd.to_datetime("2026-12-31")
+                
+                if use_date_filter:
+                    col_dt1, col_dt2 = st.columns(2)
+                    with col_dt1:
+                        start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
+                    with col_dt2:
+                        end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
                 # ==================================================================
-                # ⚡ FINAL FILTERS EXECUTION
+                # ⚡ FILTERS EXECUTION ENGINE
                 # ==================================================================
                 admission_display_db = p2_authorized_db.copy()
                 
-                # 1. Apply Year Filter
+                # 1. 4 स्क्रॉल फ़िल्टर लागू करें
                 if p2_filter_year != "All Years":
                     admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
                 
-                # 2. Apply Subject Filter
                 if p2_filter_subject != "All Subjects":
                     admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
                 
-                # 3 & 4. Apply Dynamic Column Value Filter
                 if p2_selected_val != "All Values":
                     admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
+
+                # 2. तारीख सीमा (Date Range) फ़िल्टर लागू करें
+                if use_date_filter:
+                    try:
+                        # विभिन्न तारीख फॉर्मेट्स (DD-MM-YYYY / YYYY-MM-DD) को सेफली पार्स करने के लिए
+                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], dayfirst=True, errors="coerce")
+                        
+                        # तय सीमा के बीच का डेटा फ़िल्टर करें
+                        admission_display_db = admission_display_db[
+                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
+                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
+                        ]
+                        # टेम्पररी कॉलम को हटा दें
+                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"], errors="ignore")
+                    except Exception as date_err:
+                        st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
                 # ==================================================================
                 # 📊 DATA GRID OVERVIEW & MASTER RENDER
@@ -797,9 +829,6 @@ else:
                             cursor: pointer;
                             font-size: 16px;
                             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        ">🖨️ Click Here to Print Clean Filtered List (PDF/Paper)</button>
-                    """, unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
