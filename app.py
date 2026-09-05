@@ -16,7 +16,7 @@ STAGE_FILE = "merge_stage_database.csv"
 CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
-NOTICE_FILE = "notice_board_schema.json"
+TWIN_MAP_FILE = "twin_column_mapping_schema.json"
 PRE_LOGIN_CONFIG_FILE = "pre_login_view_config.json"
 DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 
@@ -151,6 +151,21 @@ def save_notice_board(text):
     with open(NOTICE_FILE, "w", encoding="utf-8") as f:
         json.dump({"notice_text": text}, f, ensure_ascii=False, indent=4)
 
+# 🆕 P11 डायनेमिक कॉलम मैपिंग लोडर फंक्शन
+def load_twin_mappings():
+    if os.path.exists(TWIN_MAP_FILE):
+        try:
+            with open(TWIN_MAP_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+# 🆕 P11 डायनेमिक कॉलम मैपिंग सेवर फंक्शन
+def save_twin_mappings(mapping_dict):
+    with open(TWIN_MAP_FILE, "w", encoding="utf-8") as f:
+        json.dump(mapping_dict, f, ensure_ascii=False, indent=4)
+
 def load_live_data():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
@@ -160,12 +175,48 @@ def load_live_data():
         df = pd.read_csv(DB_FILE, dtype=str)
         for col in DEFAULT_COLUMNS:
             if col not in df.columns: df[col] = ""
-        return df.fillna("").reset_index(drop=True)
+        df = df.fillna("").reset_index(drop=True)
+        
+        # 🔄 P11 डायनेमिक लोड-टाइम सिंक इंजन (Twin Sync)
+        twin_maps = load_twin_mappings()
+        for source_col, target_col in twin_maps.items():
+            if source_col in df.columns and target_col in df.columns:
+                # दोनों तरफ से डेटा अलाइन करें ताकि किसी भी पैनल को खाली डेटा न दिखे
+                mask1 = (df[source_col].astype(str).str.strip() != "") & (df[target_col].astype(str).str.strip() == "")
+                df.loc[mask1, target_col] = df.loc[mask1, source_col]
+                
+                mask2 = (df[target_col].astype(str).str.strip() != "") & (df[source_col].astype(str).str.strip() == "")
+                df.loc[mask2, source_col] = df.loc[mask2, target_col]
+        return df
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS)
 
 def save_live_data(df_to_save):
-    df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
+    if df_to_save.empty:
+        df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
+        return
+
+    df_temp = df_to_save.copy()
+    
+    # 🔄 P11 डायनेमिक सेव-टाइम सिंक इंजन (Twin Sync)
+    twin_maps = load_twin_mappings()
+    for source_col, target_col in twin_maps.items():
+        if source_col in df_temp.columns and target_col in df_temp.columns:
+            for idx, row in df_temp.iterrows():
+                src_val = str(row.get(source_col, "")).strip()
+                tgt_val = str(row.get(target_col, "")).strip()
+                
+                if src_val != "" and tgt_val == "":
+                    df_temp.at[idx, target_col] = src_val
+                elif tgt_val != "" and src_val == "":
+                    df_temp.at[idx, source_col] = tgt_val
+                elif src_val != tgt_val and src_val != "":
+                    # यदि दोनों कॉलम में अलग डेटा है, तो प्राथमिक रूप से सोर्स कॉलम का डेटा सिंक करें
+                    df_temp.at[idx, target_col] = src_val
+
+    # 🛑 नो न्यू कॉलम पॉलिसी: केवल ओरिजिनल DEFAULT_COLUMNS ही सीएसवी फ़ाइल में सेव होंगे
+    final_cols_to_save = [col for col in DEFAULT_COLUMNS if col in df_temp.columns]
+    df_temp[final_cols_to_save].fillna("").astype(str).to_csv(DB_FILE, index=False)
 
 def load_stage_data():
     if not os.path.exists(STAGE_FILE) or os.path.getsize(STAGE_FILE) == 0:
@@ -1572,39 +1623,60 @@ else:
                 )
 
         # ----------------------------------------------------------------------
-        # P11: SYSTEM INFORMER BLOCK (Official Campus Notice Board Window)
+        # P11: DYNAMIC COLUMN TWIN MAPPING SYSTEM (CUSTOM ENGINE)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
-            st.header(f"📢 {get_panel_title('P11')} (Institutional Announcements Desk)")
+            st.header(f"📢 {get_panel_title('P11')} (Dynamic Column Twin Mapping Engine)")
             
             st.markdown("""
-                <div style="background-color: #fffaf0; border-left: 5px solid #ff9800; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                    ℹ️ <b>आधिकारिक डिजिटल सूचना पटल (Read-Only Matrix):</b> इस पैनल पर वर्तमान सत्र में सक्रिय प्रशासनिक एवं अकादमिक घोषणाएं प्रदर्शित हैं। 
-                    सुरक्षा एवं डेटा अखंडता प्रोटोकॉल के अनुसार, इसमें लाइव संशोधन करने का अधिकार केवल सुपर एडमिन (पैनल P12) के पास है।
+                <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    💡 <b>कंट्रोल निर्देश:</b> यहाँ से आप डेटाबेस को बता सकते हैं कि कौन से दो कॉलम्स आपस में जुड़वाँ (Twin) हैं। जब भी किसी एक पैनल में डेटा बदला जाएगा, वह बिना नया कॉलम बनाए दूसरे में ऑटोमैटिक सिंक हो जाएगा।
                 </div>
             """, unsafe_allow_html=True)
             
-            # Formatted list parser system to display line-by-line active guidelines cleanly
-            if st.session_state.notice_text.strip() == "":
-                st.info("💡 वर्तमान में सूचना पटल पर कोई नया नोटिस या घोषणा उपलब्ध नहीं है।")
-            else:
-                st.markdown("### 📋 Current Active Announcements Board")
+            current_twins = load_twin_mappings()
+            
+            # भाग 1: नया जुड़वाँ कनेक्शन (Twin Connection) जोड़ना
+            st.subheader("➕ लिंक करें नए जुड़वाँ कॉलम्स (Link New Twin Columns)")
+            with st.form(key="p11_add_twin_map_form"):
+                col_p11_1, col_p11_2 = st.columns(2)
+                with col_p11_1:
+                    src_selection = st.selectbox("पहला मुख्य कॉलम चुनें (जैसे Admission Application Number या Admission Date):", options=DEFAULT_COLUMNS, key="p11_src_sel")
+                with col_p11_2:
+                    tgt_selection = st.selectbox("इसके बराबर का दूसरा कॉलम चुनें (जैसे Application Number या Payment Date):", options=DEFAULT_COLUMNS, key="p11_tgt_sel")
                 
-                # Split raw multiline notice configurations into clean scannable list item fragments
-                formatted_preview = "".join([
-                    f"<li style='margin-bottom:12px; font-size:15px; color:#222; line-height:1.6;'>{line.strip()}</li>" 
-                    for line in st.session_state.notice_text.split('\n') if line.strip()
-                ])
+                submit_twin = st.form_submit_button("🔗 इस कॉलम मैपिंग को लागू करें (Activate Sync)", type="primary", use_container_width=True)
                 
-                st.markdown(f"""
-                    <div style="background-color: #ffffff; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom:20px;">
-                        <ul style="padding-left: 20px; margin: 0;">{formatted_preview}</ul>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-            # Quick Action Framework Layer
+                if submit_twin:
+                    if src_selection == tgt_selection:
+                        st.error("❌ आप एक ही कॉलम को खुद से लिंक नहीं कर सकते!")
+                    else:
+                        current_twins[src_selection] = tgt_selection
+                        save_twin_mappings(current_twins)
+                        st.success(f"🎉 सफलता! अब सिस्टम `{src_selection}` और `{tgt_selection}` को एक ही समझेगा।")
+                        st.rerun()
+            
+            # भाग 2: वर्तमान में सक्रिय मैपिंग की लिस्ट और डिलीट करने का विकल्प
             st.markdown("---")
-            st.caption("🔒 Security Status: Encrypted Session | Access Control Level: Read-Only Operator Mode")
+            st.subheader("📋 वर्तमान सक्रिय जुड़वाँ कॉलम्स की सूची (Active Mappings)")
+            
+            if not current_twins:
+                st.info("💡 वर्तमान में कोई डायनेमिक मैपिंग सेट नहीं है। डेटाबेस अपने डिफ़ॉल्ट रूप में काम कर रहा है।")
+            else:
+                # ग्रिड व्यू में दिखाने के लिए डेटाफ्रेम बनाएं
+                active_maps_list = [{"S.No.": i+1, "Column A": k, "Column B (Twin)": v} for i, (k, v) in enumerate(current_twins.items())]
+                st.dataframe(pd.DataFrame(active_maps_list), use_container_width=True, hide_index=True)
+                
+                # किसी मैपिंग को हटाने का इंजन
+                st.markdown("##### 🗑️ मैपिंग हटाएं (Remove Link)")
+                mapping_to_delete = st.selectbox("हटाने के लिए मैपिंग चुनें:", options=list(current_twins.keys()), format_func=lambda x: f"{x} ↔ {current_twins[x]}")
+                
+                if st.button("🗑️ सिंक कनेक्शन तोड़ें (Delete Mapping)", type="secondary", use_container_width=True):
+                    if mapping_to_delete in current_twins:
+                        del current_twins[mapping_to_delete]
+                        save_twin_mappings(current_twins)
+                        st.error("💥 मैपिंग सफलतापूर्वक हटा दी गई है!")
+                        st.rerun()
 
         # ----------------------------------------------------------------------
         # P12: DASH BOARD EDITER MODULE (Pre-Login & Notice Customizer Combined)
