@@ -434,18 +434,19 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Mantra, Logo & Title Restored Like Image)
+# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Mantra, Logo & Title Restored)
 # ==========================================================
 if st.session_state.user_role is None:
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
+    
+    # 🎯 यहाँ आपकी फ़ाइल का सटीक नाम अपडेट कर दिया गया है
+    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
-        # 🎨 इमेज जैसा हॉरिजॉन्टल (Side-by-Side) लेआउट बनाने के लिए HTML ग्रिड
         header_html = f"""
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
@@ -515,6 +516,8 @@ else:
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
+    
+    # 🎯 यहाँ भी फ़ाइल का नाम 'logo pratap.png' सेट कर दिया गया है
     logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
     
     if show_header:
