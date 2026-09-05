@@ -248,6 +248,16 @@ if "pre_login_config" not in st.session_state or not isinstance(st.session_state
 if "dynamic_lists" not in st.session_state:
     st.session_state.dynamic_lists = load_dynamic_lists()
 
+if "p1_dropdown_schemas" not in st.session_state:
+    st.session_state.p1_dropdown_schemas = {
+        "file_types": [
+            "admission file", "admission fee file", "unique id file", 
+            "roll no file", "enrollment file", "promotion file", "result file"
+        ],
+        "academic_years": [str(year) for year in range(2014, 2027)],
+        "academic_sessions": [f"{year}-{str(year+1)[2:]}" for year in range(2014, 2027)]
+    }
+
 if "credentials" not in st.session_state or len(st.session_state.credentials) < 14:
     st.session_state.credentials = load_credentials()
 
@@ -2287,31 +2297,22 @@ else:
             st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
             st.markdown("पैनल 1 (Data Onboarding) में दिखने वाली तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
             
-            if "p11_dropdown_schemas" not in st.session_state:
-                if "p14_dropdown_schemas" in st.session_state:
-                    st.session_state.p11_dropdown_schemas = st.session_state.p14_dropdown_schemas
-                else:
-                    st.session_state.p11_dropdown_schemas = {
-                        "file_types": ["Admission List", "Unique ID List", "Roll No. List", "Enrollment List", "Promotion List", "Result List"],
-                        "academic_years": ["2024", "2025", "2026", "2027"],
-                        "academic_sessions": ["2024-25", "2025-26", "2026-27", "2027-28"]
-                    }
-            
-            st.session_state.p1_dropdown_schemas = st.session_state.p11_dropdown_schemas
-            
             col_drop1, col_drop2, col_drop3 = st.columns(3)
             with col_drop1:
                 st.markdown("##### 📁 1. File Segments / Types")
-                edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
+                edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
             with col_drop2:
                 st.markdown("##### 📆 2. Academic Years")
-                edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
+                edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
             with col_drop3:
                 st.markdown("##### ⏳ 3. Academic Sessions")
-                edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p11_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
+                edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
             
             if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                # ... (आपका पुराना ड्रॉपडाउन सेव करने वाला कोड यहाँ ख़त्म होगा)
+                st.session_state.p1_dropdown_schemas["file_types"] = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                st.session_state.p1_dropdown_schemas["academic_years"] = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                st.session_state.p1_dropdown_schemas["academic_sessions"] = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                st.success("🎉 ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट हो गईं!")
                 st.rerun()
 
             # ======================================================================
