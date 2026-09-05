@@ -836,24 +836,24 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ NEW SYSTEM: DIRECT POPUP PRINT ENGINE (White Page & Extra List Fix)
+                # 🖨️ ADVANCED IFRAME PRINT ENGINE (100% Fixed Admission List Print)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 1. डेटाफ़्रेम को साफ HTML रो और कॉलम में बदलें
-                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2;'>{col}</th>" for col in final_p2_render.columns])
+                    # 1. डेटाफ़्रेम के कॉलम्स को HTML हेडर में बदलें
+                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in final_p2_render.columns])
                     
+                    # 2. डेटाफ़्रेम की सभी रो (Rows) को HTML टेबल रो में बदलें
                     rows_html = ""
                     for _, row in final_p2_render.iterrows():
                         rows_html += "<tr>"
                         for val in row:
-                            rows_html += f"<td style='border:1px solid #111; padding:5px;'>{val}</td>"
+                            rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # 2. पूरा HTML डॉक्यूमेंट तैयार करें जो नए टैब में खुलेगा
-                    complete_html_document = f"""
+                    # 3. पूरा शुद्ध HTML डाक्यूमेंट तैयार करें (बिना किसी फालतू हेडर या साइडबार के)
+                    clean_table_html = f"""
                     <html>
                     <head>
-                        <title>Print Report</title>
                         <style>
                             @page {{ size: A4 landscape; margin: 8mm; }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
@@ -861,7 +861,7 @@ else:
                         </style>
                     </head>
                     <body>
-                        <table id='print-target-table'>
+                        <table>
                             <thead><tr>{headers_html}</tr></thead>
                             <tbody>{rows_html}</tbody>
                         </table>
@@ -869,22 +869,51 @@ else:
                     </html>
                     """
                     
-                    # 3. HTML कोड को Base64 में सुरक्षित एन्कोड करें ताकि ब्राउज़र सुरक्षा ब्लॉक न करे
-                    b64_html = base64.b64encode(complete_html_document.encode('utf-8')).decode('utf-8')
+                    # जावास्क्रिप्ट को सुरक्षित रखने के लिए टेक्स्ट से सिंगल और डबल कोट्स को साफ़ करना
+                    safe_html_string = clean_table_html.replace("`", "'").replace("\n", " ")
                     
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 4. प्रिंटर बटन जो नए टैब में केवल लिस्ट खोलेगा और तुरंत प्रिंट कमांड चला देगा
+                    # 4. प्रिंटर बटन जो स्क्रीन के नीचे कोई लिस्ट नहीं दिखाता, सीधे प्रिंट डायलॉग खोलता है
                     components.html(
                         f"""
                         <html>
                         <body>
-                            <button onclick="var nw=window.open('data:text/html;base64,{b64_html}', '_blank'); nw.onload=function(){{nw.focus(); nw.print(); nw.close();}};" style="
+                            <script>
+                            function printAdmissionList() {{
+                                // एक अस्थायी छुपा हुआ iframe बनाएं
+                                var iframe = window.parent.document.createElement('iframe');
+                                iframe.style.position = 'fixed';
+                                iframe.style.right = '0';
+                                iframe.style.bottom = '0';
+                                iframe.style.width = '0';
+                                iframe.style.height = '0';
+                                iframe.style.border = '0';
+                                window.parent.document.body.appendChild(iframe);
+                                
+                                // iframe के अंदर केवल एडमिशन लिस्ट का HTML डालें
+                                var doc = iframe.contentWindow.document;
+                                doc.open();
+                                doc.write(`{safe_html_string}`);
+                                doc.close();
+                                
+                                // लिस्ट लोड होते ही सीधे प्रिंटर डायलॉग चालू करें
+                                iframe.contentWindow.focus();
+                                iframe.contentWindow.print();
+                                
+                                // प्रिंट होने या कैंसिल होने के बाद iframe को मेमोरी से डिलीट करें
+                                setTimeout(function() {{
+                                    window.parent.document.body.removeChild(iframe);
+                                }}, 1000);
+                            }}
+                            </script>
+                            
+                            <button onclick="printAdmissionList()" style="
                                 width: 100%; background-color: #1465de; color: white; 
                                 padding: 14px; border: none; border-radius: 6px; 
                                 font-weight: bold; cursor: pointer; font-size: 16px;
                                 font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
-                                🖨️ Click Here to Print This Clean Data List
+                                🖨️ Click Here to Print Admission & Payment Report Sheet
                             </button>
                         </body>
                         </html>
