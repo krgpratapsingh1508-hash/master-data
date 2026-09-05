@@ -685,6 +685,15 @@ else:
                 
                 admission_display_db = p2_authorized_db.copy()
                 
+                # कॉलम नामों की विसंगतियों को ठीक करें ताकि डेटा ग्रिड में दिखाई दे
+                column_mapping_fixes = {
+                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                    "Email Id": "Email ID", "Year": "Current Year",
+                    "Application Number": "Admission Application Number"
+                }
+                admission_display_db = admission_display_db.rename(columns=column_mapping_fixes)
+                
                 if use_date_filter:
                     col_dt1, col_dt2 = st.columns(2)
                     with col_dt1:
@@ -703,6 +712,24 @@ else:
                         st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
                 st.markdown("---")
+                
+                # 📊 डेटा प्रदर्शित करने के लिए ग्रिड रेंडर करें
+                render_cols = [
+                    "Admission Application Number", "Student Name", "Father Name", 
+                    "Admission Year", "Admission Session", "Subject", "Mobile Number", 
+                    "Admssion & Enrollment Fees", "Payment Date", "Status"
+                ]
+                
+                # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हों
+                for col in render_cols:
+                    if col not in admission_display_db.columns:
+                        admission_display_db[col] = ""
+                        
+                final_p2_render = admission_display_db[render_cols].copy()
+                final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
+                
+                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
+                st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
