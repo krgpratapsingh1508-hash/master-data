@@ -194,6 +194,10 @@ if "pre_login_config" not in st.session_state or not isinstance(st.session_state
 if "dynamic_lists" not in st.session_state:
     st.session_state.dynamic_lists = load_dynamic_lists()
 
+# 🟢 दोनों एरर को ठीक करने के लिए बस यह 3 लाइन जोड़ें:
+if "p1_dropdown_schemas" not in st.session_state:
+    st.session_state.p1_dropdown_schemas = load_dynamic_lists()
+
 if "credentials" not in st.session_state or len(st.session_state.credentials) < 14:
     st.session_state.credentials = load_credentials()
 
