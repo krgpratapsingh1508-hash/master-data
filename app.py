@@ -836,7 +836,7 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # ✍️ NEW: THREE CUSTOM TEXT BOXES FOR PRINT HEADER (केवल पहले पेज हेतु)
+                # ✍️ PRINT HEADER TEXT BOXES (केवल पहले पेज हेतु)
                 # ==================================================================
                 st.markdown("---")
                 st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
@@ -852,73 +852,54 @@ else:
                 
                 st.markdown("---")
                 
-                # ओरिजिनल डेटा ग्रिड रेंडरिंग
+                # मुख्य डेटा ग्रिड रेंडरिंग
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ ADVANCED IFRAME PRINT ENGINE (3 Text Boxes Integration)
+                # 🖨️ CLEAN VARIABLE-BASED IFRAME PRINT ENGINE (Strict No Extra Table Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 1. डेटाफ़्रेम के कॉलम्स को HTML हेडर में बदलें
-                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in final_p2_render.columns])
+                    # 💡 ध्यान दें: यहाँ स्क्रीन पर कोई st.markdown(html_table) नहीं बनाया गया है
+                    # सारा डेटा शुद्ध डिक्शनरी लिस्ट के रूप में जावास्क्रिप्ट को पास किया जा रहा है
+                    columns_list = list(final_p2_render.columns)
+                    records_list = final_p2_render.to_dict(orient="records")
                     
-                    # 2. डेटाफ़्रेम की सभी रो (Rows) को HTML टेबल रो में बदलें
+                    # जावास्क्रिप्ट को क्रैश होने से बचाने के लिए कोट्स को साफ करना
+                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in columns_list])
+                    
                     rows_html = ""
-                    for _, row in final_p2_render.iterrows():
+                    for row in records_list:
                         rows_html += "<tr>"
-                        for val in row:
+                        for col in columns_list:
+                            val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
                             rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # 3. पूरा शुद्ध HTML डाक्यूमेंट तैयार करें (पहले पेज पर 3 टेक्स्ट बॉक्स के डेटा के साथ)
+                    # प्रिंट होने वाला शुद्ध HTML डॉक्यूमेंट आर्किटेक्चर
                     clean_table_html = f"""
                     <html>
                     <head>
                         <style>
                             @page {{ size: A4 landscape; margin: 8mm; }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
-                            
-                            /* 🏢 प्रिंट होने वाला मुख्य डायनेमिक हेडर बॉक्स */
                             .custom-print-header {{
-                                width: 100%;
-                                border: 2px solid #1465de;
-                                background-color: #f4f8ff;
-                                padding: 15px;
-                                margin-bottom: 20px;
-                                border-radius: 6px;
-                                box-sizing: border-box;
-                                text-align: center;
+                                width: 100%; border: 2px solid #1465de; background-color: #f4f8ff;
+                                padding: 15px; margin-bottom: 20px; border-radius: 6px;
+                                box-sizing: border-box; text-align: center;
                             }}
-                            .h-line-1 {{
-                                font-size: 16px;
-                                font-weight: bold;
-                                color: #1465de;
-                                margin-bottom: 5px;
-                            }}
-                            .h-line-2 {{
-                                font-size: 14px;
-                                font-weight: bold;
-                                color: #333;
-                                margin-bottom: 5px;
-                            }}
-                            .h-line-3 {{
-                                font-size: 12px;
-                                font-style: italic;
-                                color: #555;
-                            }}
-                            
+                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #1465de; margin-bottom: 5px; }}
+                            .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
+                            .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
                             table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
                         </style>
                     </head>
                     <body>
-                        <!-- 3 टेक्स्ट बॉक्स का डेटा केवल पहले पेज पर यहाँ प्रिंट होगा -->
                         <div class="custom-print-header">
                             <div class="h-line-1">{custom_header_1}</div>
                             <div class="h-line-2">{custom_header_2}</div>
                             <div class="h-line-3">{custom_header_3}</div>
                         </div>
-
                         <table>
                             <thead><tr>{headers_html}</tr></thead>
                             <tbody>{rows_html}</tbody>
@@ -927,12 +908,11 @@ else:
                     </html>
                     """
                     
-                    # जावास्क्रिप्ट को सुरक्षित रखने के लिए बैकस्लैश, कोट्स और न्यूलाइन्स को साफ़ करना
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 4. प्रिंटर बटन जो स्क्रीन के नीचे कोई फालतू लिस्ट नहीं दिखाता, सीधे प्रिंट डायलॉग खोलता है
+                    # कंपोनेंट जो केवल एक सुंदर और साफ बटन रेंडर करता है
                     components.html(
                         f"""
                         <html>
@@ -961,7 +941,6 @@ else:
                                 }}, 1000);
                             }}
                             </script>
-                            
                             <button onclick="printAdmissionList()" style="
                                 width: 100%; background-color: #1465de; color: white; 
                                 padding: 14px; border: none; border-radius: 6px; 
