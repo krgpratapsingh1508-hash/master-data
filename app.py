@@ -842,11 +842,13 @@ else:
             if p3_authorized_db.empty: 
                 st.warning("⚠️ इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है। कृपया P13 पैनल से डेटा अप्रूव करें।")
             else:
-                st.markdown("""
-                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                    📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विशिष्ट पहचान पत्र संख्या (Unique ID) से संबंधित डेटा प्रदर्शित है। सुरक्षा और पारदर्शिता के लिए केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।
-                    </div>
-                """, unsafe_allow_html=True)
+                # 🟢 सही किया गया कोड (यह बिना किसी एरर के हिंदी और इमोजी को रेंडर करेगा)
+                st.markdown(
+                    '<div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
+                    '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विशिष्ट पहचान पत्र संख्या (Unique ID) से संबंधित डेटा प्रदर्शित है। सुरक्षा और पारदर्शिता के लिए केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
+                    '</div>', 
+                    unsafe_allow_html=True
+                )
                 
                 # 🔍 Real-time Search Filter Sub-system
                 col_s1, col_s2 = st.columns(2)
