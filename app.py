@@ -434,23 +434,22 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Mantra, Logo & Title Restored)
+# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Bigger Logo Restored)
 # ==========================================================
 if st.session_state.user_role is None:
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    
-    # 🎯 यहाँ आपकी फ़ाइल का सटीक नाम अपडेट कर दिया गया है
     logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
+        # 🎯 यहाँ max-height को 80px से बढ़ाकर 110px कर दिया गया है
         header_html = f"""
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 80px; width: auto; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
+                {"<img src='" + img_base64 + "' style='max-height: 110px; width: auto; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: normal; font-size: 22px;">{mantra}</h3>
@@ -506,27 +505,25 @@ if st.session_state.user_role is None:
                 st.rerun()
 
 # ==========================================================
-# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
+# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग引擎
 # ==========================================================
 else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
-    # 🏛️ हर पैनल के ऊपर भी इमेज जैसा हॉरिजॉन्टल हेडर दिखाएं
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
-    
-    # 🎯 यहाँ भी फ़ाइल का नाम 'logo pratap.png' सेट कर दिया गया है
     logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
+        # 🎯 यहाँ पैनल के अंदर max-height को 60px से बढ़ाकर 90px कर दिया गया है
         panel_header_html = f"""
         <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 60px; width: auto; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
+                {"<img src='" + img_base64 + "' style='max-height: 90px; width: auto; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: normal; font-size: 16px;">{mantra}</h4>
@@ -575,7 +572,7 @@ else:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0]
+        current_panel_id = selected_tab_ui.split(" : ")
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
