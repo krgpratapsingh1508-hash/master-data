@@ -363,42 +363,52 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (फिक्स प्रिंट रूल)
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (सिर्फ लिस्ट प्रिंट करने हेतु)
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
-    /* 🖨️ प्रिंट लेते समय क्या दिखेगा और क्या छुपेगा */
+    /* 🖨️ कड़क प्रिंट नियम: प्रिंट दबाते ही लिस्ट को छोड़कर बाकी सब कुछ गायब हो जाएगा */
     @media print {{
+        /* 1. सब कुछ छुपाएं (हेडर, सूचना पटल, बटन्स, टाइटल्स) */
         header, 
         [data-testid="stHeader"], 
         [data-testid="stSidebar"], 
-        .stButton, 
-        .stFileUploader, 
         [data-testid="stDecoration"], 
         [data-testid="stNotification"], 
-        [data-testid="stForm"], 
-        .print-hide, 
+        [data-testid="stForm"],
+        .header-container,
+        .notice-board,
+        h1, h2, h3, h4, h5, h6, p, span, div,
+        .print-hide,
+        iframe,
         div.element-container:has(button) {{
             display: none !important;
         }}
+        
+        /* 2. सिर्फ डेटा ग्रिड (डेटाफ्रेम) को जबरन स्क्रीन पर रखें */
+        div[data-testid="stDataFrame"], 
+        div[data-testid="stDataFrame"] *, 
+        .stDataFrame {{
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100% !important;
+        }}
+        
         @page {{ 
-            margin: 8mm; 
+            margin: 5mm; 
             size: A4 landscape; 
         }}
         .main .block-container {{ 
             padding: 0 !important; 
             margin: 0 !important; 
         }}
-        /* सुनिश्चित करें कि डेटा ग्रिड प्रिंट में गायब न हो */
-        [data-testid="stDataFrame"] {{
-            display: block !important;
-            opacity: 1 !important;
-        }}
     }}
     
+    /* स्क्रीन डिस्प्ले के लिए सामान्य CSS (इसको न बदलें) */
     .header-container {{ display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }}
     .header-text {{ display: flex; flex-direction: column; }}
     .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #1465de; }}
