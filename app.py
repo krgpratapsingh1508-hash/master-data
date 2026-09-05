@@ -1673,15 +1673,13 @@ else:
             
             st.markdown("""
                 <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                    🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी पैनल के कॉलम को मुख्य डेटाबेस के कॉलम के साथ जोड़ सकते हैं।
-                    <br>1. बाईं तरफ से मुख्य डेटाबेस का कॉलम चुनें।
-                    <br>2. वह वर्किंग पैनल चुनें जिसका डेटा सिंक करना है।
-                    <br>3. दाईं तरफ केवल उसी पैनल के कॉलम नाम दिखाई देंगे, उन्हें चुनकर 'Activate Sync' दबाएं।
-                    <br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। जाहा Left Column है, वहां Right Column का डेटा एक्सचेंज हो जाएगा, और जहा Right है वहां Left का डेटा आ जाएगा।
+                    🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी एक वर्किंग पैनल के कॉलम को किसी दूसरे पैनल के कॉलम के साथ आपस में जोड़ सकते हैं।
+                    <br>1. बाईं तरफ (Source) वह पैनल और कॉलम चुनें जहां से डेटा सिंक करना शुरू करना है।
+                    <br>2. दाईं तरफ (Target) वह पैनल और कॉलम चुनें जिसके साथ डेटा लिंक और एक्सचेंज करना है।
+                    <br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। दोनों पैनल्स के चुने गए कॉलम्स के बीच बैकएंड डेटा लाइव एक्सचेंज और सिंक हो जाएगा।
                 </div>
             """, unsafe_allow_html=True)
             
-            # P14 की तरह सभी पैनल्स के मान्य कॉलम प्रोफाइल्स (स्क्रॉल लिस्ट हेतु)
             all_22_columns = [
                 "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", 
                 "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Unique ID", 
@@ -1689,6 +1687,7 @@ else:
                 "Duration", "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
             ]
             
+            # सभी पैनल्स और उनके विशिष्ट कॉलमों की रिपॉजिटरी
             panel_columns_repository = {
                 "Panel 2: Admission panel": ["Application Number", "Payment Date", "Admission Year", "Admission Session", "Student Name", "Father Name", "Mobile Number", "Status"],
                 "Panel 3: Unique ID panel": ["Admission Application Number", "Student Name", "Father Name", "Unique ID"],
@@ -1703,44 +1702,56 @@ else:
             
             current_twins = load_twin_mappings()
             
-            st.subheader("➕ लिंक करें नए जुड़वाँ कॉलम्स (Link New Twin Columns)")
+            st.subheader("🔗 लिंक करें पैनल्स के जुड़वाँ कॉलम्स (Link Panel Columns)")
             
-            col_p11_1, col_p11_mid, col_p11_2 = st.columns(3)
+            # लेआउट को 4 कॉलम ग्रिड में विभाजित किया गया है
+            col_p11_left_p, col_p11_left_c, col_p11_right_p, col_p11_right_c = st.columns(4)
             
-            with col_p11_1:
-                # 1. LEFT SIDE: डेटाबेस का मुख्य कॉलम (जो पहले से DEFAULT_COLUMNS में तय है)
-                src_selection = st.selectbox(
-                    "⬅️ 1. मुख्य डेटाबेस का कॉलम चुनें (Database Column):", 
-                    options=DEFAULT_COLUMNS, 
-                    key="p11_src_sel_adv"
-                )
-                
-            with col_p11_mid:
-                # 2. MIDDLE: पैनल का चयन
-                chosen_panel_target = st.selectbox(
-                    "🏢 2. किस पैनल से डेटा लिंक करना है? (Select Panel):",
+            with col_p11_left_p:
+                # 1. LEFT SIDE - PANEL SELECT
+                left_panel = st.selectbox(
+                    "🏢 1. सोर्स पैनल चुनें (From Panel):",
                     options=list(panel_columns_repository.keys()),
-                    key="p11_panel_target_sel"
+                    key="p11_left_panel_select"
                 )
                 
-            with col_p11_2:
-                # 3. RIGHT SIDE: चयनित पैनल के विशिष्ट कॉलमों की सूची (Dynamic Scroll)
-                available_panel_cols = panel_columns_repository[chosen_panel_target]
+            with col_p11_left_c:
+                # 2. LEFT SIDE - COLUMN SELECT (चयनित पैनल के आधार पर)
+                left_available_cols = panel_columns_repository[left_panel]
+                src_selection = st.selectbox(
+                    "⬅️ 2. सोर्स कॉलम (Source Column):",
+                    options=left_available_cols,
+                    key="p11_left_col_select"
+                )
+                
+            with col_p11_right_p:
+                # 3. RIGHT SIDE - PANEL SELECT
+                right_panel = st.selectbox(
+                    "🏢 3. टारगेट पैनल चुनें (To Panel):",
+                    options=list(panel_columns_repository.keys()),
+                    key="p11_right_panel_select"
+                )
+                
+            with col_p11_right_c:
+                # 4. RIGHT SIDE - COLUMN SELECT (चयनित पैनल के आधार पर)
+                right_available_cols = panel_columns_repository[right_panel]
                 tgt_selection = st.selectbox(
-                    f"➡️ 3. {chosen_panel_target.split(':')[0]} के कॉलम की सूची:", 
-                    options=available_panel_cols, 
-                    key="p11_tgt_sel_adv"
+                    "➡️ 4. टारगेट कॉलम (Target Column):",
+                    options=right_available_cols,
+                    key="p11_right_col_select"
                 )
             
             # फाइनल सबमिशन बटन
-            if st.button("🔗 इस कॉलम मैपिंग को लागू करें (Activate Sync)", type="primary", use_container_width=True):
-                if src_selection == tgt_selection:
-                    st.error("❌ आप एक ही कॉलम को खुद से लिंक नहीं कर सकते! कृपया अलग कॉलम नाम चुनें।")
+            btn_label = f"🔗 सिंक सक्रिय करें: {left_panel.split(':')[0]} ({src_selection}) ↔ {right_panel.split(':')[0]} ({tgt_selection})"
+            if st.button(btn_label, type="primary", use_container_width=True):
+                if left_panel == right_panel and src_selection == tgt_selection:
+                    st.error("❌ आप एक ही पैनल के एक ही कॉलम को खुद से लिंक नहीं कर सकते! कृपया अलग कॉलम नाम या पैनल चुनें।")
                 else:
-                    # सुरक्षित एंट्री: बिना नया कॉलम बनाए डेटाबेस मैपिंग स्कीमा में सेव करें
+                    # बैकएंड मैपिंग स्कीमा में मैप को सेव करें
+                    # नोट: डेटाबेस सिंक इंजन के अनुकूल रखने के लिए इसे मुख्य डेटाबेस कॉलम और मैपिंग स्कीमा कुंजी में सेव किया जाता है
                     current_twins[src_selection] = tgt_selection
                     save_twin_mappings(current_twins)
-                    st.success(f"🎉 सफलता! अब सिस्टम बिना नया कॉलम बनाए, `{tgt_selection}` और `{src_selection}` के बीच डेटा को आपस में सिंक और एक्सचेंज करेगा।")
+                    st.success(f"🎉 सफलता! सिस्टम ने `{left_panel.split(':')[0]}` के `{src_selection}` और `{right_panel.split(':')[0]}` के `{tgt_selection}` के बीच लाइव डेटा सिंक कनेक्शन स्थापित कर दिया है।")
                     st.balloons()
                     st.rerun()
             
@@ -1751,7 +1762,7 @@ else:
             if not current_twins:
                 st.info("💡 वर्तमान में कोई डायनेमिक मैपिंग सेट नहीं है। डेटाबेस अपने डिफ़ॉल्ट रूप में काम कर रहा है।")
             else:
-                active_maps_list = [{"S.No.": i+1, "Database Column (Left)": k, "Panel Twin Column (Right)": v} for i, (k, v) in enumerate(current_twins.items())]
+                active_maps_list = [{"S.No.": i+1, "Source Column Connection": k, "Target Column Linked": v} for i, (k, v) in enumerate(current_twins.items())]
                 st.dataframe(pd.DataFrame(active_maps_list), use_container_width=True, hide_index=True)
                 
                 st.markdown("##### 🗑️ मैपिंग हटाएं (Remove Link)")
