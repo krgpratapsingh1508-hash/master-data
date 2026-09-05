@@ -1752,18 +1752,18 @@ else:
             stage_db = load_stage_data()
             master_db_lookup = load_live_data()
                 
-                # 🆕 यहाँ पेस्ट करें (पूरी तरह से सिधाई में होना चाहिए):
-                stage_db = normalize_dataframe_columns(stage_db)
-                master_db_lookup = normalize_dataframe_columns(master_db_lookup)
-    
-                if stage_db.empty:
-                st.success("🟢 शानदार! स्टेजिंग कतार पूर्णतः खाली है। पैनल 1 से भेजी गयी सभी फाइलें प्रोसेस की जा चुकी हैं।")
-            else:
-                st.markdown("""
-                    <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                        🎯 <b>कन्फर्मेशन मर्ज गाइड:</b> पहले वह पैनल (Main File) चुनें जिसका डेटा बदलना है, फिर स्टेजिंग से नई फ़ाइल (Anya File) चुनकर लाइव मैचिंग चेक करें। यदि मर्ज नहीं करना है तो सीधे अप्रूव करें।
-                    </div>
-                """, unsafe_allow_html=True)
+            # 🆕 यहाँ पेस्ट करें (पूरी तरह से सिधाई में होना चाहिए):
+            stage_db = normalize_dataframe_columns(stage_db)
+            master_db_lookup = normalize_dataframe_columns(master_db_lookup)
+
+            if stage_db.empty:
+            st.success("🟢 शानदार! स्टेजिंग कतार पूर्णतः खाली है। पैनल 1 से भेजी गयी सभी फाइलें प्रोसेस की जा चुकी हैं।")
+        else:
+            st.markdown("""
+                <div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+                    🎯 <b>कन्फर्मेशन मर्ज गाइड:</b> पहले वह पैनल (Main File) चुनें जिसका डेटा बदलना है, फिर स्टेजिंग से नई फ़ाइल (Anya File) चुनकर लाइव मैचिंग चेक करें। यदि मर्ज नहीं करना है तो सीधे अप्रूव करें।
+                </div>
+            """, unsafe_allow_html=True)
                 
                 # ----------------------------------------------------------------------
                 # 👑 स्टेप 1: MAIN FILE (पैनल से डेटा का चयन और लाइव प्रीव्यू)
