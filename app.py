@@ -434,11 +434,36 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (ओरिजनल ड्रॉपडाउन सिस्टम)
+# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Mantra, Logo & Title Restored)
 # ==========================================================
 if st.session_state.user_role is None:
-    formatted_notice = "".join([f"<p>{line.strip()}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
+    # 🖼️ हेडर कॉन्फ़िगरेशन वेरिएबल्स लोड करें
+    show_header = st.session_state.pre_login_config.get("show_header_text", True)
+    mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
+    sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
+    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
     
+    # 🎭 यदि हेडर दिखाना चालू है तो मंत्र, लोगो और टाइटल रेंडर करें
+    if show_header:
+        st.markdown(f"<h3 style='text-align: center; color: #1465de; margin-bottom: 0;'>{mantra}</h3>", unsafe_allow_html=True)
+        
+        # लोगो इमेज को Base64 में बदलें ताकि पाथ की समस्या न आए
+        img_base64 = get_image_base64(logo_file_path)
+        
+        col_h1, col_h2 = st.columns(2)  # दो कॉलम का लेआउट
+        with col_h1:
+            if img_base64:
+                st.markdown(f"<img src='{img_base64}' style='max-height: 80px; display: block; margin: auto;'>", unsafe_allow_html=True)
+            else:
+                # यदि लोगो इमेज फ़ाइल नहीं मिलती है तो एक डिफ़ॉल्ट आइकन दिखाएं
+                st.markdown("<h1 style='text-align: center; margin: 0;'>🏛️</h1>", unsafe_allow_html=True)
+        with col_h2:
+            st.markdown(f"<h1 style='margin: 0; padding-top: 10px; color: #333; font-size: 28px;'>{sys_title}</h1>", unsafe_allow_html=True)
+        
+        st.markdown("---")
+
+    # 📢 कॉलेज सूचना पटल (Official Notice Board)
+    formatted_notice = "".join([f"<p>{line.strip()}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
     st.markdown(f"""
         <div class="notice-board">
             <div class="notice-title">📢 कॉलेज सूचना पटल (Official Notice Board)</div>
@@ -488,6 +513,28 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
+    # 🏛️ [Restored Header inside Panels] हर पैनल के ऊपर मंत्र, लोगो और टाइटल दिखाएं
+    show_header = st.session_state.pre_login_config.get("show_header_text", True)
+    mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
+    sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
+    logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo.png")
+    
+    if show_header:
+        st.markdown(f"<div class='print-hide'><h3 style='text-align: center; color: #1465de; margin-bottom: 0;'>{mantra}</h3></div>", unsafe_allow_html=True)
+        
+        img_base64 = get_image_base64(logo_file_path)
+        col_h1, col_h2 = st.columns(2)
+        with col_h1:
+            if img_base64:
+                st.markdown(f"<div class='print-hide'><img src='{img_base64}' style='max-height: 60px; display: block; margin: auto;'></div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div class='print-hide'><h1 style='text-align: center; margin: 0;'>🏛️</h1></div>", unsafe_allow_html=True)
+        with col_h2:
+            st.markdown(f"<div class='print-hide'><h2 style='margin: 0; padding-top: 5px; color: #333; font-size: 22px;'>{sys_title}</h2></div>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='print-hide'><hr style='margin-top: 10px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+
+    # 🚪 सक्रिय सत्र और लॉगआउट ब्लॉक
     st.markdown('<div class="print-hide">', unsafe_allow_html=True)
     col_top1, col_top2 = st.columns(2)
     with col_top1:
@@ -500,32 +547,6 @@ else:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
-
-    allowed_panels = []
-    if role == "full_admin":
-        allowed_panels = list(DEFAULT_PANELS.keys()) 
-    elif role == "p1_role": allowed_panels = ["P1"]
-    elif role == "p2_role": allowed_panels = ["P2"]
-    elif role == "p3_role": allowed_panels = ["P3"]
-    elif role == "p4_role": allowed_panels = ["P4"]
-    elif role == "p5_role": allowed_panels = ["P5"]
-    elif role == "p6_role": allowed_panels = ["P6"]
-    elif role == "p7_role": allowed_panels = ["P7"]
-    elif role == "p8_role": allowed_panels = ["P8"]
-    elif role == "p9_role": allowed_panels = ["P9"]
-    elif role == "p10_role": allowed_panels = ["P10"]
-    elif role == "p11_role": allowed_panels = ["P11"]
-    elif role == "p12_role": allowed_panels = ["P12"]
-    elif role == "p13_role": allowed_panels = ["P13"]
-    elif role == "p14_role": allowed_panels = ["P14"]
-
-    active_tabs_names = [f"{p} : {get_panel_title(p)}" for p in allowed_panels if not st.session_state.get(f"hide_panel_{p}", False) or role == "full_admin"]
-    
-    if not active_tabs_names:
-        st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
-    else:
-        selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")[0]
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
