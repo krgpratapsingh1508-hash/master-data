@@ -2414,7 +2414,7 @@ else:
             with col_ctrl3:
                 lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
                 # 🟢 नया सुधारा हुआ कोड (इसे पेस्ट करें):
-                  if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final_fix"):
+                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final_fix"):
                     st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                     st.rerun()
 
