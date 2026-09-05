@@ -186,46 +186,6 @@ def get_image_base64(path):
     return ""
 
 # ==========================================================
-# 🔄 न्यू एक्सटेंशन: डायनेमिक कॉलम सिनोनिम्स (Alias Mapping) मैनेजर
-# ==========================================================
-SYNONYM_FILE = "column_synonyms_schema.json"
-
-def load_column_synonyms():
-    default_synonyms = {
-        "Admission Application Number": ["Application Number", "Application No", "App Number", "Form No"],
-        "Unique ID": ["Unique Id", "Student Abc Id", "UID", "Student UID"],
-        "Enrollment No.": ["Enrollment No", "Enrollment Number", "Enroll No"],
-        "Duration": ["Duretion", "Course Duration", "Duration (Years)"],
-        "Email ID": ["Email", "Email Id", "Email Address"],
-        "Current Year": ["Year", "Class Year", "Academic Year"],
-        "Date of Birth": ["Date Of Birth", "DOB", "Birth Date"]
-    }
-    if os.path.exists(SYNONYM_FILE):
-        try:
-            with open(SYNONYM_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict): return data
-        except: return default_synonyms
-    return default_synonyms
-
-def save_column_synonyms(synonyms_dict):
-    with open(SYNONYM_FILE, "w", encoding="utf-8") as f:
-        json.dump(synonyms_dict, f, ensure_ascii=False, indent=4)
-
-def normalize_dataframe_columns(df_to_normalize):
-    if df_to_normalize.empty:
-        return df_to_normalize
-    synonyms_map = load_column_synonyms()
-    rename_rules = {}
-    for master_col, aliases in synonyms_map.items():
-        for col in df_to_normalize.columns:
-            if col == master_col:
-                continue
-            if col in aliases or col.strip().lower() in [a.strip().lower() for a in aliases]:
-                rename_rules[col] = master_col
-    return df_to_normalize.rename(columns=rename_rules)
-
-# ==========================================================
 # 🧠 स्टेप 3: सेशन स्टेट वेरिएबल्स इनिशियलाइज़ेशन
 # ==========================================================
 if "pre_login_config" not in st.session_state or not isinstance(st.session_state.pre_login_config, dict):
@@ -1751,11 +1711,7 @@ else:
             # Load the staging verification queue and main central repository
             stage_db = load_stage_data()
             master_db_lookup = load_live_data()
-                
-            # 🆕 यहाँ पेस्ट करें (पूरी तरह से सिधाई में होना चाहिए):
-            stage_db = normalize_dataframe_columns(stage_db)
-            master_db_lookup = normalize_dataframe_columns(master_db_lookup)
-
+            
             if stage_db.empty:
                 st.success("🟢 शानदार! स्टेजिंग कतार पूर्णतः खाली है। पैनल 1 से भेजी गयी सभी फाइलें प्रोसेस की जा चुकी हैं।")
             else:
@@ -2240,37 +2196,6 @@ else:
                 # ... (आपका पुराना ड्रॉपडाउन सेव करने वाला कोड यहाँ ख़त्म होगा)
                 st.rerun()
 
-            # ======================================================================
-            # 🔄 न्यू एडमिन मॉड्यूल: डायनेमिक कॉलम नाम समानता / सिनोनिम्स मैनेजर
-            # ======================================================================
-            st.markdown("---")
-            st.subheader("🔗 Multi-Column Name Synonym & Mapping Settings (Same Columns Rule)")
-            st.markdown("यदि किसी फ़ाइल में कॉलम का नाम अलग है (जैसे: `Application Number`) लेकिन वह मास्टर डेटा के समान ही है, तो यहाँ सेट करें:")
-            
-            current_synonyms = load_column_synonyms()
-            with st.expander("📝 कॉलम समानता (Synonyms Matching Matrix) कस्टमाइज़ करें", expanded=False):
-                with st.form(key="p15_column_synonyms_mapping_form"):
-                    updated_synonyms_dict = {}
-                    col_sym1, col_sym2 = st.columns(2)
-                    target_mapping_fields = ["Admission Application Number", "Unique ID", "Enrollment No.", "Duration", "Email ID", "Current Year", "Date of Birth"]
-                    
-                    for idx, master_field in enumerate(target_mapping_fields):
-                        existing_aliases = ", ".join(current_synonyms.get(master_field, []))
-                        if idx % 2 == 0:
-                            with col_sym1:
-                                user_aliases_input = st.text_input(f"Master Key: **{master_field}** के अन्य नाम:", value=existing_aliases, key=f"p15_syn_input_{idx}")
-                        else:
-                            with col_sym2:
-                                user_aliases_input = st.text_input(f"Master Key: **{master_field}** के अन्य नाम:", value=existing_aliases, key=f"p15_syn_input_{idx}")
-                        
-                        alias_list = [a.strip() for a in user_aliases_input.split(",") if a.strip() != ""]
-                        updated_synonyms_dict[master_field] = alias_list
-                        
-                    if st.form_submit_button("💾 Save Column Mapping Rules Permanently", type="primary", use_container_width=True):
-                        save_column_synonyms(updated_synonyms_dict)
-                        st.success("🎉 कॉलम मैपिंग नियम सफलतापूर्वक लागू हो गए हैं!")
-                        st.rerun()
-        
             # ======================================================================
             # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Fixed Auto Lock)
             # ======================================================================
