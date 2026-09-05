@@ -842,10 +842,10 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ CLEAN VARIABLE-BASED IFRAME ENGINE (Zero Screen Footprint)
+                # 🖨️ Clean Variable-Based Iframe Print Engine (No Screen Leak)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # बैकएंड में सुरक्षित तरीके से HTML स्ट्रिंग तैयार करना ताकि नीचे कोई एक्स्ट्रा ऑब्जेक्ट रेंडर न हो
+                    # 1. पूरे डेटा को बिना किसी स्क्रीन ऑब्जेक्ट के सीधे बैकएंड वेरिएबल में प्रोसेस करना
                     columns_list = list(final_p2_render.columns)
                     records_list = final_p2_render.to_dict(orient="records")
                     
@@ -859,7 +859,7 @@ else:
                             rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # प्रिंटर का शुद्ध लेआउट फ़्रेमवर्क
+                    # 2. प्रिंट होने वाला शुद्ध HTML डॉक्यूमेंट लेआउट
                     clean_table_html = f"""
                     <html>
                     <head>
@@ -893,8 +893,9 @@ else:
                     
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     
-                    # 🟢 महत्वपूर्ण फिक्स: यहाँ हमने पुराने 'st.markdown(html_table)' को पूरी तरह हटा दिया है।
-                    # अब नीचे की तरफ कोई भी अतिरिक्त लिस्ट या टेक्स्ट बनने का रास्ता बंद है।
+                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                    
+                    # 3. प्रिंट बटन कंपोनेंट (यह केवल एक बटन रेंडर करेगा, नीचे कोई एक्स्ट्रा लिस्ट नहीं बनाएगा)
                     components.html(
                         f"""
                         <html>
@@ -927,7 +928,7 @@ else:
                                 width: 100%; background-color: #1465de; color: white; 
                                 padding: 14px; border: none; border-radius: 6px; 
                                 font-weight: bold; cursor: pointer; font-size: 16px;
-                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
+                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2); width: 100%;">
                                 🖨️ Click Here to Print Admission & Payment Report Sheet
                             </button>
                         </body>
