@@ -13,7 +13,6 @@ st.set_page_config(layout="wide", page_title="Permanent Shared Live Database")
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
 STAGE_FILE = "merge_stage_database.csv"
-NOTICE_FILE = "notice_board_schema.json"
 CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
@@ -2280,36 +2279,6 @@ else:
                             st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
                             st.rerun()
 
-            # ======================================================================
-            # ➕ 🗑️ केवल कॉलम जोड़ने और हटाने का छोटा कोड
-            # ======================================================================
-            st.markdown("---")
-            st.subheader("🏗️ Add/Delete Columns Control")
-            col_cfg1, col_cfg2 = st.columns(2)
-            
-            with col_cfg1:
-                new_col_input = st.text_input("नया कॉलम का नाम:", key="p15_new_col_add_txt").strip()
-                if st.button("➕ कॉलम जोड़ें", type="primary", use_container_width=True):
-                    if new_col_input and new_col_input not in DEFAULT_COLUMNS:
-                        DEFAULT_COLUMNS.append(new_col_input)
-                        st.session_state.admin_columns_order.append(new_col_input)
-                        live_db[new_col_input] = ""
-                        save_live_data(live_db)
-                        st.success("🎉 कॉलम जोड़ दिया गया है!")
-                        st.rerun()
-
-            with col_cfg2:
-                column_to_delete = st.selectbox("हटाने के लिए कॉलम चुनें:", options=["-- चुनें --"] + [c for c in DEFAULT_COLUMNS], key="p15_del_col_sel")
-                if column_to_delete != "-- चुनें --":
-                    confirm_col_del = st.checkbox(f"हाँ, `{column_to_delete}` को डिलीट करें", key="p15_conf_col_del")
-                    if st.button("🗑️ कॉलम हटाएं", type="primary", use_container_width=True, disabled=not confirm_col_del):
-                        if column_to_delete in DEFAULT_COLUMNS: DEFAULT_COLUMNS.remove(column_to_delete)
-                        if column_to_delete in st.session_state.admin_columns_order: st.session_state.admin_columns_order.remove(column_to_delete)
-                        if column_to_delete in live_db.columns: live_db = live_db.drop(columns=[column_to_delete])
-                        live_db.fillna("").astype(str).to_csv(DB_FILE, index=False)
-                        st.error("💥 कॉलम हटा दिया गया!")
-                        st.rerun()            
-            
             # ⚙️ सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र
             st.markdown("---")
             st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
