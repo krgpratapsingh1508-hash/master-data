@@ -513,7 +513,7 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
-    # 🏛️ [Restored Header inside Panels] हर पैनल के ऊपर मंत्र, लोगो और टाइटल दिखाएं
+    # 🏛️ हर पैनल के ऊपर मंत्र, लोगो और टाइटल दिखाएं
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
@@ -547,6 +547,9 @@ else:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("---")
+
+    # 🚨 ध्यान दें: नीचे दी गई लाइनों के आगे की स्पेसिंग (4 Spaces) इसके बिल्कुल बराबर होनी चाहिए:
+    allowed_panels = []
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
