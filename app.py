@@ -1673,13 +1673,14 @@ else:
             
             st.markdown("""
                 <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                    🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी एक वर्किंग पैनल के कॉलम को किसी दूसरे पैनल के कॉलम के साथ आपस में जोड़ सकते हैं।
+                    🎯 <b>कंट्रोल निर्देश:</b> यहाँ से आप किसी भी एक वर्किंग पैनल (P1 से P15) के कॉलम को किसी दूसरे पैनल के कॉलम के साथ आपस में जोड़ सकते हैं।
                     <br>1. बाईं तरफ (Source) वह पैनल और कॉलम चुनें जहां से डेटा सिंक करना शुरू करना है।
                     <br>2. दाईं तरफ (Target) वह पैनल और कॉलम चुनें जिसके साथ डेटा लिंक और एक्सचेंज करना है।
                     <br><br>⚠️ <b>नो न्यू कॉलम पॉलिसी:</b> सिस्टम डेटाबेस में कोई भी नया कॉलम नहीं बनाएगा। दोनों पैनल्स के चुने गए कॉलम्स के बीच बैकएंड डेटा लाइव एक्सचेंज और सिंक हो जाएगा।
                 </div>
             """, unsafe_allow_html=True)
             
+            # मुख्य डेटाबेस के सभी 22+ प्रमाणित कॉलम्स
             all_22_columns = [
                 "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", 
                 "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Unique ID", 
@@ -1687,8 +1688,9 @@ else:
                 "Duration", "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
             ]
             
-            # सभी पैनल्स और उनके विशिष्ट कॉलमों की रिपॉजिटरी
+            # 🟢 P1 और P15 सहित सभी पैनल्स और उनके कॉलम की कम्प्लीट लिस्ट
             panel_columns_repository = {
+                "Panel 1: Data entry Onboarding": all_22_columns,
                 "Panel 2: Admission panel": ["Application Number", "Payment Date", "Admission Year", "Admission Session", "Student Name", "Father Name", "Mobile Number", "Status"],
                 "Panel 3: Unique ID panel": ["Admission Application Number", "Student Name", "Father Name", "Unique ID"],
                 "Panel 4: Roll No. panel": ["Admission Application Number", "Unique ID", "Student Name", "Roll No."],
@@ -1697,7 +1699,8 @@ else:
                 "Panel 7: CCE panel": all_22_columns,
                 "Panel 8: Promotion panel": all_22_columns,
                 "Panel 9: Result panel": ["Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", "Marks Obtained", "Result Status", "Exam Remarks"],
-                "Panel 10: Register panel": all_22_columns
+                "Panel 10: Register panel": all_22_columns,
+                "Panel 15: Super-Admin Master Control": all_22_columns
             }
             
             current_twins = load_twin_mappings()
@@ -1716,7 +1719,7 @@ else:
                 )
                 
             with col_p11_left_c:
-                # 2. LEFT SIDE - COLUMN SELECT (चयनित पैनल के आधार पर)
+                # 2. LEFT SIDE - COLUMN SELECT
                 left_available_cols = panel_columns_repository[left_panel]
                 src_selection = st.selectbox(
                     "⬅️ 2. सोर्स कॉलम (Source Column):",
@@ -1733,7 +1736,7 @@ else:
                 )
                 
             with col_p11_right_c:
-                # 4. RIGHT SIDE - COLUMN SELECT (चयनित पैनल के आधार पर)
+                # 4. RIGHT SIDE - COLUMN SELECT
                 right_available_cols = panel_columns_repository[right_panel]
                 tgt_selection = st.selectbox(
                     "➡️ 4. टारगेट कॉलम (Target Column):",
@@ -1748,10 +1751,9 @@ else:
                     st.error("❌ आप एक ही पैनल के एक ही कॉलम को खुद से लिंक नहीं कर सकते! कृपया अलग कॉलम नाम या पैनल चुनें।")
                 else:
                     # बैकएंड मैपिंग स्कीमा में मैप को सेव करें
-                    # नोट: डेटाबेस सिंक इंजन के अनुकूल रखने के लिए इसे मुख्य डेटाबेस कॉलम और मैपिंग स्कीमा कुंजी में सेव किया जाता है
                     current_twins[src_selection] = tgt_selection
                     save_twin_mappings(current_twins)
-                    st.success(f"🎉 सफलता! सिस्टम ने `{left_panel.split(':')[0]}` के `{src_selection}` और `{right_panel.split(':')[0]}` के `{tgt_selection}` के बीच लाइव डेटा सिंक कनेक्शन स्थापित कर दिया है।")
+                    st.success(f"🎉 सफलता! `{left_panel.split(':')[0]}` के `{src_selection}` और `{right_panel.split(':')[0]}` के `{tgt_selection}` के बीच लाइव डेटा सिंक कनेक्शन स्थापित हो गया है।")
                     st.balloons()
                     st.rerun()
             
