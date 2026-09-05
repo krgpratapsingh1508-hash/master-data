@@ -836,7 +836,28 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ ADVANCED IFRAME PRINT ENGINE (100% Fixed Admission List Print)
+                # ✍️ NEW: THREE CUSTOM TEXT BOXES FOR PRINT HEADER (केवल पहले पेज हेतु)
+                # ==================================================================
+                st.markdown("---")
+                st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
+                st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
+                
+                col_tb1, col_tb2, col_tb3 = st.columns(3)
+                with col_tb1:
+                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज/संस्था का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1")
+                with col_tb2:
+                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट/सूची का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2")
+                with col_tb3:
+                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश क्रमांक या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3")
+                
+                st.markdown("---")
+                
+                # ओरिजिनल डेटा ग्रिड रेंडरिंग
+                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
+                st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+
+                # ==================================================================
+                # 🖨️ ADVANCED IFRAME PRINT ENGINE (3 Text Boxes Integration)
                 # ==================================================================
                 if not final_p2_render.empty:
                     # 1. डेटाफ़्रेम के कॉलम्स को HTML हेडर में बदलें
@@ -850,17 +871,54 @@ else:
                             rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # 3. पूरा शुद्ध HTML डाक्यूमेंट तैयार करें (बिना किसी फालतू हेडर या साइडबार के)
+                    # 3. पूरा शुद्ध HTML डाक्यूमेंट तैयार करें (पहले पेज पर 3 टेक्स्ट बॉक्स के डेटा के साथ)
                     clean_table_html = f"""
                     <html>
                     <head>
                         <style>
                             @page {{ size: A4 landscape; margin: 8mm; }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
-                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+                            
+                            /* 🏢 प्रिंट होने वाला मुख्य डायनेमिक हेडर बॉक्स */
+                            .custom-print-header {{
+                                width: 100%;
+                                border: 2px solid #1465de;
+                                background-color: #f4f8ff;
+                                padding: 15px;
+                                margin-bottom: 20px;
+                                border-radius: 6px;
+                                box-sizing: border-box;
+                                text-align: center;
+                            }}
+                            .h-line-1 {{
+                                font-size: 16px;
+                                font-weight: bold;
+                                color: #1465de;
+                                margin-bottom: 5px;
+                            }}
+                            .h-line-2 {{
+                                font-size: 14px;
+                                font-weight: bold;
+                                color: #333;
+                                margin-bottom: 5px;
+                            }}
+                            .h-line-3 {{
+                                font-size: 12px;
+                                font-style: italic;
+                                color: #555;
+                            }}
+                            
+                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
                         </style>
                     </head>
                     <body>
+                        <!-- 3 टेक्स्ट बॉक्स का डेटा केवल पहले पेज पर यहाँ प्रिंट होगा -->
+                        <div class="custom-print-header">
+                            <div class="h-line-1">{custom_header_1}</div>
+                            <div class="h-line-2">{custom_header_2}</div>
+                            <div class="h-line-3">{custom_header_3}</div>
+                        </div>
+
                         <table>
                             <thead><tr>{headers_html}</tr></thead>
                             <tbody>{rows_html}</tbody>
@@ -869,19 +927,18 @@ else:
                     </html>
                     """
                     
-                    # जावास्क्रिप्ट को सुरक्षित रखने के लिए टेक्स्ट से सिंगल और डबल कोट्स को साफ़ करना
-                    safe_html_string = clean_table_html.replace("`", "'").replace("\n", " ")
+                    # जावास्क्रिप्ट को सुरक्षित रखने के लिए बैकस्लैश, कोट्स और न्यूलाइन्स को साफ़ करना
+                    safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 4. प्रिंटर बटन जो स्क्रीन के नीचे कोई लिस्ट नहीं दिखाता, सीधे प्रिंट डायलॉग खोलता है
+                    # 4. प्रिंटर बटन जो स्क्रीन के नीचे कोई फालतू लिस्ट नहीं दिखाता, सीधे प्रिंट डायलॉग खोलता है
                     components.html(
                         f"""
                         <html>
                         <body>
                             <script>
                             function printAdmissionList() {{
-                                // एक अस्थायी छुपा हुआ iframe बनाएं
                                 var iframe = window.parent.document.createElement('iframe');
                                 iframe.style.position = 'fixed';
                                 iframe.style.right = '0';
@@ -891,17 +948,14 @@ else:
                                 iframe.style.border = '0';
                                 window.parent.document.body.appendChild(iframe);
                                 
-                                // iframe के अंदर केवल एडमिशन लिस्ट का HTML डालें
                                 var doc = iframe.contentWindow.document;
                                 doc.open();
                                 doc.write(`{safe_html_string}`);
                                 doc.close();
                                 
-                                // लिस्ट लोड होते ही सीधे प्रिंटर डायलॉग चालू करें
                                 iframe.contentWindow.focus();
                                 iframe.contentWindow.print();
                                 
-                                // प्रिंट होने या कैंसिल होने के बाद iframe को मेमोरी से डिलीट करें
                                 setTimeout(function() {{
                                     window.parent.document.body.removeChild(iframe);
                                 }}, 1000);
