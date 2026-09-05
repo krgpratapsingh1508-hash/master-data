@@ -1266,11 +1266,14 @@ else:
                 # ------------------------------------------------------------------
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("📝 1. CCE Data Entry Desk & 22-Columns Student List")
-                st.markdown("""
-                    <div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं।
-                    </div>
-                """, unsafe_allow_html=True)
+                
+                # 🟢 Corrected Safe String Layout Structure
+                st.markdown(
+                    '<div style="background-color: #f1f8e9; border-left: 5px solid #558b2f; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
+                    '📌 <b>डेटा एंट्री निर्देश:</b> नीचे दी गयी तालिका में छात्र के नाम के आगे सीधे <b>CCE Marks Obtained</b> और <b>CCE Attendance Status</b> भरें। बदलाव करने के बाद <b>Save Changes</b> बटन को ज़रूर दबाएं।'
+                    '</div>', 
+                    unsafe_allow_html=True
+                )
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # आपके द्वारा मांगे गए सटीक 22 कॉलम का फ़्रेमवर्क
