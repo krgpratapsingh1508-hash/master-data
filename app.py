@@ -20,6 +20,9 @@ TWIN_MAP_FILE = "twin_column_mapping_schema.json"
 PRE_LOGIN_CONFIG_FILE = "pre_login_view_config.json"
 DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 
+# 🟢 ADD THIS MISSING LINE HERE:
+NOTICE_FILE = "notice_board_schema.json" 
+
 # डिफ़ॉल्ट कॉन्फ़िगरेशन बैकअप डिक्शनरी
 DEFAULT_PRE_LOGIN_CONFIG = {
     "show_header_text": True,
