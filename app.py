@@ -680,66 +680,113 @@ else:
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                st.subheader("📆 Filter Records By Payment Date Range")
-                use_date_filter = st.checkbox("Enable Date Range Filter (तिथि सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure")
-                
-                admission_display_db = p2_authorized_db.copy()
-                
-                # कॉलम नामों की विसंगतियों को ठीक करें ताकि डेटा ग्रिड में दिखाई दे
+                # कॉलम नामों की विसंगतियों को ठीक करें
                 column_mapping_fixes = {
                     "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
                     "Application Number": "Admission Application Number"
                 }
-                admission_display_db = admission_display_db.rename(columns=column_mapping_fixes)
-                
-                # 🟢 एरर फिक्स: डुप्लिकेट कॉलम्स को फिल्टर करके पूरी तरह हटाने के लिए यह लाइन जोड़ें
-                admission_display_db = admission_display_db.loc[:, ~admission_display_db.columns.duplicated()].copy()
-                
-                if use_date_filter:
-                    col_dt1, col_dt2 = st.columns(2)
-                    with col_dt1:
-                        start_date = st.date_input("इस तिथि से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure")
-                    with col_dt2:
-                        end_date = st.date_input("इस तिथि तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure")
-                    
-                    try:
-                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], errors="coerce")
-                        admission_display_db = admission_display_db[
-                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
-                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
-                        ]
-                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"])
-                    except Exception as date_err:
-                        st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
+                p2_authorized_db = p2_authorized_db.rename(columns=column_mapping_fixes)
+                p2_authorized_db = p2_authorized_db.loc[:, ~p2_authorized_db.columns.duplicated()].copy()
 
+                # ==================================================================
+                # 🎛️ NEW: 4 SCROLL FILTERS CONTROL PANEL
+                # ==================================================================
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                st.subheader("🔍 Advanced Multi-Scroll Filters Matrix")
+                
+                col_p2_1, col_p2_2, col_p2_3, col_p2_4 = st.columns(4)
+                
+                with col_p2_1:
+                    # Scroll 1: Admission Year Filter
+                    available_years = ["All Years"] + sorted(list(p2_authorized_db["Admission Year"].dropna().unique()))
+                    p2_filter_year = st.selectbox("1. Admission Year:", options=available_years, key="p2_scroll_filter_year")
+                
+                with col_p2_2:
+                    # Scroll 2: Subject Filter
+                    available_subjects = ["All Subjects"] + sorted(list(p2_authorized_db["Subject"].dropna().unique()))
+                    p2_filter_subject = st.selectbox("2. Subject:", options=available_subjects, key="p2_scroll_filter_subject")
+                
+                with col_p2_3:
+                    # Scroll 3: Select Column Name Dynamically
+                    ignore_cols = ["Target Panel Visibility", "_parsed_date"]
+                    available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
+                    p2_selected_col = st.selectbox("3. Select Field (Column Name):", options=available_cols, key="p2_scroll_filter_column")
+                
+                with col_p2_4:
+                    # Scroll 4: Select Values from Selected Column 3
+                    unique_col_vals = ["All Values"] + sorted(list(p2_authorized_db[p2_selected_col].dropna().unique()))
+                    p2_selected_val = st.selectbox(f"4. Values for {p2_selected_col}:", options=unique_col_vals, key="p2_scroll_filter_value")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                # ==================================================================
+                # ⚡ DATA FILTERING ENGINE BASED ON 4 SCROLLS
+                # ==================================================================
+                admission_display_db = p2_authorized_db.copy()
+                
+                # 1. Apply Year Filter
+                if p2_filter_year != "All Years":
+                    admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
+                
+                # 2. Apply Subject Filter
+                if p2_filter_subject != "All Subjects":
+                    admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
+                
+                # 3 & 4. Apply Dynamic Column Value Filter
+                if p2_selected_val != "All Values":
+                    admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
+
+                # ==================================================================
+                # 📊 DATA GRID RENDERING & PRINT BUTTON
+                # ==================================================================
                 st.markdown("---")
                 
-                # 📊 डेटा प्रदर्शित करने के लिए ग्रिड रेंडर करें
-                # 🟢 सुधार: यहाँ "Application Number" को बदलकर "Admission Application Number" कर दिया गया है
+                # Default rendering columns layout framework
                 render_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
                 
-                # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हों
+                # Ensure fields exist safely
                 for col in render_cols:
                     if col not in admission_display_db.columns:
                         admission_display_db[col] = ""
                         
                 final_p2_render = admission_display_db[render_cols].copy()
-                
-                # 🟢 सुधार: ग्रिड में हेडर सुंदर दिखे, इसलिए "Admission Application Number" को बदलकर सिर्फ "Application Number" डिस्प्ले नाम देंगे
                 final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
-                
-                # फाइनल रेंडर से पहले एक बार सेफगार्ड क्लीनअप
                 final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
-                final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
+                
+                # Serial numbers injection
+                if not final_p2_render.empty:
+                    final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
+                
+                # Display final dataset table
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+
+                # 🖨️ NEW: Print Button System (Invisible during print output layout)
+                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                if not final_p2_render.empty:
+                    st.button(
+                        "🖨️ Click to Print Clean Filtered List", 
+                        on_click=st.js_code, 
+                        args=["window.print()"], 
+                        type="primary", 
+                        use_container_width=True,
+                        key="p2_trigger_print_window_btn"
+                    )
+                    # Fallback standard javascript handler injection for open printers
+                    st.markdown("""
+                        <script>
+                        const btn = window.parent.document.querySelector("button[key='p2_trigger_print_window_btn']");
+                        if(btn) { btn.addEventListener('click', () => { window.print(); }); }
+                        </script>
+                    """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
