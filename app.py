@@ -690,12 +690,12 @@ else:
                 p2_authorized_db = p2_authorized_db.rename(columns=column_mapping_fixes)
                 p2_authorized_db = p2_authorized_db.loc[:, ~p2_authorized_db.columns.duplicated()].copy()
 
-                # सभी कॉलम के डेटा को साफ़ और स्ट्रिंग (String) में बदलें ताकि फ़िल्टर सही से काम करे
+                # सभी कॉलम के डेटा को साफ़ और स्ट्रिंग (String) में बदलें
                 for c in p2_authorized_db.columns:
                     p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
 
                 # ==================================================================
-                # 🎛️ 4 SCROLL DYNAMIC CONTROL MATRIX
+                # 🎛️ 4 SCROLL DYNAMIC CONTROL MATRIX (DEPENDENT VALUES FIXED)
                 # ==================================================================
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("🔍 Advanced Matrix Filters System")
@@ -705,29 +705,41 @@ else:
                 with col_p2_1:
                     # 1st Scroll: Admission Year Selector
                     year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
-                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v16")
+                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v17")
                 
+                # पहले फ़िल्टर के आधार पर सब्जेक्ट की लिस्ट को छोटा करें
+                temp_db_for_sub = p2_authorized_db.copy()
+                if p2_filter_year != "All Years":
+                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Admission Year"] == p2_filter_year]
+
                 with col_p2_2:
-                    # 2nd Scroll: Subject Selector
-                    subject_list = ["All Subjects"] + sorted([s for s in p2_authorized_db["Subject"].unique() if s and s.lower() != "nan"])
-                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v16")
+                    # 2nd Scroll: Subject Selector (अब यह चुने गए साल के अनुसार ही सब्जेक्ट दिखाएगा)
+                    subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
+                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v17")
                 
                 with col_p2_3:
                     # 3rd Scroll: Select Database Column Name Dynamically
                     ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v16")
+                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v17")
                 
+                # 🎯 फिक्स: चौथे स्क्रॉल के लिए डेटाबेस को पहले, दूसरे और तीसरे स्क्रॉल के आधार पर पहले ही फ़िल्टर करें
+                dependent_db = p2_authorized_db.copy()
+                if p2_filter_year != "All Years":
+                    dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
+                if p2_filter_subject != "All Subjects":
+                    dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
+
                 with col_p2_4:
-                    # 4th Scroll: Pull Unique Values From the Column Selected Above
-                    raw_vals = p2_authorized_db[p2_selected_col].unique()
+                    # 4th Scroll: Pull Unique Values (अब इसमें सिर्फ वही नाम दिखेंगे जो ऊपर के साल और सब्जेक्ट में उपलब्ध हैं)
+                    raw_vals = dependent_db[p2_selected_col].unique()
                     val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
-                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v16")
+                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v17")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
                 # ==================================================================
-                # ⚡ FILTERS EXECUTION FLOW (सटीक स्ट्रिंग मैचिंग के साथ)
+                # ⚡ FINAL FILTERS EXECUTION
                 # ==================================================================
                 admission_display_db = p2_authorized_db.copy()
                 
@@ -748,14 +760,12 @@ else:
                 # ==================================================================
                 st.markdown("---")
                 
-                # प्रदर्शित करने के लिए निश्चित कॉलम
                 render_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
                 
-                # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हों
                 for col in render_cols:
                     if col not in admission_display_db.columns:
                         admission_display_db[col] = ""
@@ -771,12 +781,10 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (क्रैश-फ़्री बटन)
+                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE
                 # ==================================================================
                 if not final_p2_render.empty:
                     st.markdown('<div class="print-hide" style="margin-top: 20px;">', unsafe_allow_html=True)
-                    
-                    # HTML बटन जो बिना किसी Streamlit क्रैश के सीधे ब्राउज़र का प्रिंट डायलॉग खोलेगा
                     st.markdown("""
                         <button onclick="window.print()" style="
                             width: 100%; 
@@ -791,7 +799,6 @@ else:
                             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                         ">🖨️ Click Here to Print Clean Filtered List (PDF/Paper)</button>
                     """, unsafe_allow_html=True)
-                    
                     st.markdown('</div>', unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
