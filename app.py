@@ -511,6 +511,7 @@ else:
     role = st.session_state.user_role
     username = st.session_state.logged_username
     
+    # 🏛️ हर पैनल के ऊपर भी इमेज जैसा हॉरिजॉन्टल हेडर दिखाएं
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
@@ -519,7 +520,7 @@ else:
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
-        # 🎨 यहाँ पैनल के अंदर भी समान शैडो बॉर्डर और बोल्ड लुक दिया गया है
+        # 🎨 पैनल के अंदर प्रीमियम शैडो बॉर्डर और बोल्ड लुक
         panel_header_html = f"""
         <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
@@ -572,7 +573,9 @@ else:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
-        current_panel_id = selected_tab_ui.split(" : ")
+        
+        # 🎯 यहाँ फिक्स किया गया है (अंतिम भाग [0] को जोड़कर इसे दोबारा स्ट्रिंग बनाया गया है)
+        current_panel_id = selected_tab_ui.split(" : ")[0]
 
         # ----------------------------------------------------------------------
         # P1: PANEL ENTRY MODULE (3 Scroll Lists & Multi-Format Upload System)
