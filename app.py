@@ -694,6 +694,9 @@ else:
                 }
                 admission_display_db = admission_display_db.rename(columns=column_mapping_fixes)
                 
+                # 🟢 एरर फिक्स: डुप्लिकेट कॉलम्स को फिल्टर करके पूरी तरह हटाने के लिए यह लाइन जोड़ें
+                admission_display_db = admission_display_db.loc[:, ~admission_display_db.columns.duplicated()].copy()
+                
                 if use_date_filter:
                     col_dt1, col_dt2 = st.columns(2)
                     with col_dt1:
