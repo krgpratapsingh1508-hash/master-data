@@ -2549,15 +2549,6 @@ else:
                         num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
                         key="p15_supreme_master_live_editor_grid"
                     )
-
-                    edited_master_db = st.data_editor(
-                        ordered_db_display,
-                        use_container_width=True,
-                        disabled=disabled_fields,
-                        hide_index=True,
-                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
-                        key="p15_supreme_master_live_editor_grid"
-                    )
                     
                     if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                         try:
