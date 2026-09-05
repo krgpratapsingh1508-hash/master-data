@@ -718,7 +718,7 @@ else:
                 
                 # 📊 डेटा प्रदर्शित करने के लिए ग्रिड रेंडर करें
                 render_cols = [
-                    "Admission Application Number", "Student Name", "Father Name", 
+                    "Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
