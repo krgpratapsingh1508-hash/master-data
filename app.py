@@ -2334,53 +2334,53 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-                    # 🟢 नया सिस्टम: कॉलम-टू-पैनल असाइनमेंट इंजन (Target Panel Visibility Controller)
-                    st.markdown("---")
-                    st.subheader("🎯 Quick Panel Assignment Matrix")
-                    st.markdown("आप यहाँ से सीधे किसी भी छात्र का रिकॉर्ड चुनकर उसे उसके सही वर्किंग पैनल (जैसे P2, P3, P4 आदि) में असाइन कर सकते हैं:")
-                    
-                    with st.expander("🔗 छात्रों को उनके संबंधित वर्किंग पैनल में भेजें", expanded=False):
-                        if not live_db.empty:
-                            # छात्रों की लिस्ट ड्रॉपडाउन के लिए तैयार करें
-                            student_options = []
-                            for idx, row in live_db.iterrows():
-                                app_no = row.get("Application Number", row.get("Admission Application Number", f"Row-{idx}"))
-                                s_name = row.get("Student Name", "Unknown")
-                                current_vis = row.get("Target Panel Visibility", "None")
-                                student_options.append(f"{idx} | {s_name} (App: {app_no}) [Current: {current_vis}]")
-                            
-                            col_assign1, col_assign2 = st.columns(2)
-                            with col_assign1:
-                                selected_stud_str = st.selectbox("👤 छात्र का चयन करें:", options=student_options, key="admin_panel_assign_student_select")
-                                selected_idx = int(selected_stud_str.split(" | ")[0])
-                                
-                            with col_assign2:
-                                target_panels_list = {
-                                    "P2 : Admission panel": "P2",
-                                    "P3 : Unique ID panel": "P3",
-                                    "P4 : Roll No. panel": "P4",
-                                    "P5 : Enrollment panel": "P5",
-                                    "P6 : Scholarship panel": "P6",
-                                    "P7 : CCE panel": "P7",
-                                    "P8 : Promotion panel": "P8",
-                                    "P9 : Result panel": "P9",
-                                    "P10 : Register panel": "P10"
-                                }
-                                selected_target_panel_lbl = st.selectbox("🎯 किस पैनल में भेजना (असाइन करना) है?", options=list(target_panels_list.keys()), key="admin_panel_assign_target_select")
-                                target_panel_id = target_panels_list[selected_target_panel_lbl]
-                            
-                            if st.button("🔗 Confirm & Link Student to Selected Panel", type="primary", use_container_width=True, key="admin_panel_assign_submit_btn"):
-                                try:
-                                    # लाइव डेटाबेस में सीधे Target Panel Visibility कॉलम की वैल्यू को अपडेट करें
-                                    live_db.at[selected_idx, "Target Panel Visibility"] = target_panel_id
-                                    save_live_data(live_db)
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! छात्र को सफलतापूर्वक `{target_panel_id}` पैनल में मैप (असाइन) कर दिया गया है।")
-                                    st.balloons()
-                                    st.rerun()
-                                except Exception as assign_err:
-                                    st.error(f"पैनल मैपिंग के दौरान तकनीकी समस्या आई: {assign_err}")
-                        else:
-                            st.warning("⚠️ डेटाबेस में कोई छात्र रिकॉर्ड उपलब्ध नहीं है।")
+    # 🟢 नया सिस्टम: कॉलम-टू-पैनल असाइनमेंट इंजन (Target Panel Visibility Controller)
+    st.markdown("---")
+    st.subheader("🎯 Quick Panel Assignment Matrix")
+    st.markdown("आप यहाँ से सीधे किसी भी छात्र का रिकॉर्ड चुनकर उसे उसके सही वर्किंग पैनल (जैसे P2, P3, P4 आदि) में असाइन कर सकते हैं:")
+    
+    with st.expander("🔗 छात्रों को उनके संबंधित वर्किंग पैनल में भेजें", expanded=False):
+        if not live_db.empty:
+            # छात्रों की लिस्ट ड्रॉपडाउन के लिए तैयार करें
+            student_options = []
+            for idx, row in live_db.iterrows():
+                app_no = row.get("Application Number", row.get("Admission Application Number", f"Row-{idx}"))
+                s_name = row.get("Student Name", "Unknown")
+                current_vis = row.get("Target Panel Visibility", "None")
+                student_options.append(f"{idx} | {s_name} (App: {app_no}) [Current: {current_vis}]")
+            
+            col_assign1, col_assign2 = st.columns(2)
+            with col_assign1:
+                selected_stud_str = st.selectbox("👤 छात्र का चयन करें:", options=student_options, key="admin_panel_assign_student_select")
+                selected_idx = int(selected_stud_str.split(" | ")[0])
+                
+            with col_assign2:
+                target_panels_list = {
+                    "P2 : Admission panel": "P2",
+                    "P3 : Unique ID panel": "P3",
+                    "P4 : Roll No. panel": "P4",
+                    "P5 : Enrollment panel": "P5",
+                    "P6 : Scholarship panel": "P6",
+                    "P7 : CCE panel": "P7",
+                    "P8 : Promotion panel": "P8",
+                    "P9 : Result panel": "P9",
+                    "P10 : Register panel": "P10"
+                }
+                selected_target_panel_lbl = st.selectbox("🎯 किस पैनल में भेजना (असाइन करना) है?", options=list(target_panels_list.keys()), key="admin_panel_assign_target_select")
+                target_panel_id = target_panels_list[selected_target_panel_lbl]
+            
+            if st.button("🔗 Confirm & Link Student to Selected Panel", type="primary", use_container_width=True, key="admin_panel_assign_submit_btn"):
+                try:
+                    # लाइव डेटाबेस में सीधे Target Panel Visibility कॉलम की वैल्यू को अपडेट करें
+                    live_db.at[selected_idx, "Target Panel Visibility"] = target_panel_id
+                    save_live_data(live_db)
+                    st.success(f"🎉 शत-प्रतिशत सफलता! छात्र को सफलतापूर्वक `{target_panel_id}` पैनल में मैप (असाइन) कर दिया गया है।")
+                    st.balloons()
+                    st.rerun()
+                except Exception as assign_err:
+                    st.error(f"पैनल मैपिंग के दौरान तकनीकी समस्या आई: {assign_err}")
+        else:
+            st.warning("⚠️ डेटाबेस में कोई छात्र रिकॉर्ड उपलब्ध नहीं है।")
             
             st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
             
