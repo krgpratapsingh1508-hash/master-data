@@ -2334,54 +2334,82 @@ else:
             ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
             ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-    # 🟢 नया सब-सिस्टम: डायनेमिक कॉलम मैपिंग कस्टमाइज़र (Column Schema Mapper)
+        # 🟢 नया सिस्टम: क्रॉस-पैनल कॉलम डेटा लिंकर (Precision Column-to-Panel Router)
     st.markdown("---")
-    st.subheader("🗺️ Dynamic Column Mapping Customizer")
-    st.markdown("बाहर से अपलोड होने वाले कॉलम नामों को अपने मास्टर डेटाबेस के सटीक कॉलम नामों के सामने लिंक करें:")
+    st.subheader("🔗 Cross-Panel Column Data Routing Matrix")
+    st.markdown("यह कॉन्फ़िगर करें कि मास्टर डेटाबेस का कौन सा कॉलम किस पैनल के किस वेरिएबल से डेटा सिंक करेगा:")
 
-    with st.expander("📝 मास्टर कॉलम मैपिंग स्कीमा (Edit Column Aliases)", expanded=False):
-        # आपके मास्टर डेटाबेस के महत्वपूर्ण कोर कॉलम्स
-        core_db_columns = [
-            "Admission Application Number", "Unique ID", "Roll No.", 
-            "Enrollment No.", "Date of Birth", "Email ID", "Duration", "Current Year"
+    with st.expander("🛠️ सेटअप करें: मास्टर कॉलम ➡️ वर्किंग पैनल कॉलम मैपिंग", expanded=False):
+        # 1. डेटाबेस की स्कीमा फाइल का पाथ तय करें
+        ROUTER_SCHEMA_FILE = "cross_panel_column_router.json"
+        
+        # 2. पुराना सेव किया हुआ स्कीमा लोड करें या डिफ़ॉल्ट बनाएं
+        if os.path.exists(ROUTER_SCHEMA_FILE):
+            try:
+                with open(ROUTER_SCHEMA_FILE, "r", encoding="utf-8") as rf:
+                    current_routes = json.load(rf)
+            except: current_routes = {}
+        else: current_routes = {}
+
+        # हमारे मुख्य ट्रैक होने वाले कॉलम्स
+        target_sync_fields = [
+            "Unique ID", "Roll No.", "Enrollment No.", 
+            "Scholarship Status", "CCE Marks Obtained", "Marks Obtained"
         ]
         
-        # वर्तमान स्कीमा लोड करें
-        if "column_mappings" not in st.session_state:
-            st.session_state.column_mappings = load_column_mappings()
-            
-        updated_mappings = {}
-        col_map1, col_map2 = st.columns(2)
+        # उपलब्ध पैनल्स की सूची ड्रॉपडाउन के लिए
+        panel_options_list = {
+            "P3 : Unique ID panel": "P3",
+            "P4 : Roll No. panel": "P4",
+            "P5 : Enrollment panel": "P5",
+            "P6 : Scholarship panel": "P6",
+            "P7 : CCE panel": "P7",
+            "P9 : Result panel": "P9"
+        }
         
-        for idx, core_col in enumerate(core_db_columns):
-            current_mapped_value = st.session_state.column_mappings.get(core_col, core_col)
+        updated_routes = {}
+        
+        # हर एक मास्टर कॉलम के लिए पैनल और उसका इंटरनल इनपुट कॉलम चुनने का ग्रिड
+        for field in target_sync_fields:
+            st.markdown(f"**📊 मास्टर डेटाबेस कॉलम: `{field}`**")
+            c_rt1, c_rt2 = st.columns(2)
             
-            # दो बराबर कॉलमों में बाँटकर इनपुट बॉक्स दिखाएँ
-            if idx % 2 == 0:
-                with col_map1:
-                    updated_mappings[core_col] = st.text_input(
-                        f"Master Column: '{core_col}' ➡️ इसके सामने का नाम:",
-                        value=current_mapped_value,
-                        key=f"p15_map_input_{idx}"
-                    )
-            else:
-                with col_map2:
-                    updated_mappings[core_col] = st.text_input(
-                        f"Master Column: '{core_col}' ➡️ इसके सामने का नाम:",
-                        value=current_mapped_value,
-                        key=f"p15_map_input_{idx}"
-                    )
-                    
-        if st.button("💾 Save Column Mapping Schema Permanently", type="primary", use_container_width=True, key="p15_save_column_maps_btn"):
+            saved_field_data = current_routes.get(field, {"panel": "P3", "source_col": field})
+            
+            with c_rt1:
+                # यह तय करेगा कि किस पैनल से डेटा आएगा
+                selected_p_lbl = st.selectbox(
+                    f"यह डेटा किस वर्किंग पैनल से खींचना है?",
+                    options=list(panel_options_list.keys()),
+                    index=list(panel_options_list.values()).index(saved_field_data.get("panel", "P3")) if saved_field_data.get("panel", "P3") in panel_options_list.values() else 0,
+                    key=f"router_p_select_{field}"
+                )
+                chosen_panel_id = panel_options_list[selected_p_lbl]
+                
+            with c_rt2:
+                # यह तय करेगा कि उस पैनल के किस कॉलम के सामने से डेटा उठाना है
+                chosen_source_col = st.text_input(
+                    f"उस पैनल के किस कॉलम नाम (Variable) से लिंक करना है?",
+                    value=saved_field_data.get("source_col", field),
+                    key=f"router_col_input_{field}"
+                )
+                
+            updated_routes[field] = {
+                "panel": chosen_panel_id,
+                "source_col": chosen_source_col
+            }
+            st.markdown("<div style='border-bottom: 1px dashed #ddd; margin-bottom:10px;'></div>", unsafe_allow_html=True)
+            
+        if st.button("💾 Apply & Save Column Routing Schema permanently", type="primary", use_container_width=True, key="save_column_router_matrix_btn"):
             try:
-                # स्कीमा फ़ाइल में सहेजें
-                with open(MAP_FILE, "w", encoding="utf-8") as f:
-                    json.dump(updated_mappings, f, ensure_ascii=False, indent=4)
-                st.session_state.column_mappings = updated_mappings
-                st.success("🎉 शत-प्रतिशत सफलता! आपके द्वारा सेट किए गए कॉलम के सामने वाले नाम (Aliases) स्थायी रूप से सेव हो गए हैं।")
+                with open(ROUTER_SCHEMA_FILE, "w", encoding="utf-8") as wf:
+                    json.dump(updated_routes, wf, ensure_ascii=False, indent=4)
+                st.success("🎉 शत-प्रतिशत सफलता! कॉलम-टू-पैनल डेटा सोर्स रूल्स सेव हो गए हैं। अब पूरा ग्रिड इसी नियम से सिंक होगा।")
+                st.balloons()
                 st.rerun()
-            except Exception as map_err:
-                st.error(f"स्कीमा सेव करने में त्रुटि: {map_err}")
+            except Exception as json_err:
+                st.error(f"रूटिंग स्कीमा सहेजने में तकनीकी त्रुटि: {json_err}")
+
             else:
                 if st.session_state.admin_lock_state:
                     # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
