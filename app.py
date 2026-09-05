@@ -1898,11 +1898,13 @@ else:
         elif current_panel_id == "P12":
             st.header(f"🛠️ {get_panel_title('P12')} (Dash Board Editer & Notice Configuration)")
             
-            st.markdown("""
-                <div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                    📌 <b>प्रशासक निर्देश (Dash Board Control Room):</b> इस एकीकृत कंट्रोल रूम से आप होम स्क्रीन पर दिखने वाले <b>आधिकारिक डिजिटल सूचना पटल (Notice Board)</b> और <b>लैंडिंग स्क्रीन की थीम</b> दोनों को लाइव बदल सकते हैं।
-                </div>
-            """, unsafe_allow_html=True)
+            # 🟢 Corrected Safe Inline Str Framework Configuration
+            st.markdown(
+                '<div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
+                '📌 <b>प्रशासक निर्देश (Dash Board Control Room):</b> इस एकीकृत कंट्रोल रूम से आप होम स्क्रीन पर दिखने वाले <b>आधिकारिक डिजिटल सूचना पटल (Notice Board)</b> और <b>लैंडिंग स्क्रीन की थीम</b> दोनों को लाइव बदल सकते हैं।'
+                '</div>', 
+                unsafe_allow_html=True
+            )
             
             if "pre_login_config" not in st.session_state or not isinstance(st.session_state.pre_login_config, dict):
                 st.session_state.pre_login_config = load_pre_login_config()
