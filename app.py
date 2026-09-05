@@ -813,22 +813,20 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE
+                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (Fixed & Terminated Safely)
                 # ==================================================================
                 if not final_p2_render.empty:
                     st.markdown('<div class="print-hide" style="margin-top: 20px;">', unsafe_allow_html=True)
-                    st.markdown("""
-                        <button onclick="window.print()" style="
-                            width: 100%; 
-                            background-color: #1465de; 
-                            color: white; 
-                            padding: 12px; 
-                            border: none; 
-                            border-radius: 4px; 
-                            font-weight: bold; 
-                            cursor: pointer;
-                            font-size: 16px;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    st.markdown(
+                        '<button onclick="window.print()" style="'
+                        'width: 100%; background-color: #1465de; color: white; '
+                        'padding: 12px; border: none; border-radius: 4px; '
+                        'font-weight: bold; cursor: pointer; font-size: 16px; '
+                        'box-shadow: 0 2px 4px rgba(0,0,0,0.1);">'
+                        '🖨️ Print Report Sheet</button>'
+                        '</div>', 
+                        unsafe_allow_html=True
+                    )
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
