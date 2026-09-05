@@ -1623,14 +1623,15 @@ else:
                 )
 
         # ----------------------------------------------------------------------
-        # P11: DYNAMIC COLUMN TWIN MAPPING SYSTEM (CUSTOM ENGINE)
+        # P11: DYNAMIC COLUMN TWIN MAPPING SYSTEM (CUSTOM DATABASE SELECTOR)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P11":
             st.header(f"📢 {get_panel_title('P11')} (Dynamic Column Twin Mapping Engine)")
             
             st.markdown("""
                 <div style="background-color: #f4fbf7; border-left: 5px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
-                    💡 <b>कंट्रोल निर्देश:</b> यहाँ से आप डेटाबेस को बता सकते हैं कि कौन से दो कॉलम्स आपस में जुड़वाँ (Twin) हैं। जब भी किसी एक पैनल में डेटा बदला जाएगा, वह बिना नया कॉलम बनाए दूसरे में ऑटोमैटिक सिंक हो जाएगा।
+                    💡 <b>कंट्रोल निर्देश:</b> यहाँ से आप डेटाबेस को बता सकते हैं कि कौन से दो कॉलम्स आपस में जुड़वाँ (Twin) हैं। 
+                    <b>बाईं तरफ (Left Side)</b> से आप मुख्य डेटाबेस का कॉलम चुनेंगे, और <b>दाईं तरफ (Right Side)</b> से उसका जुड़वाँ कॉलम चुनेंगे।
                 </div>
             """, unsafe_allow_html=True)
             
@@ -1640,16 +1641,28 @@ else:
             st.subheader("➕ लिंक करें नए जुड़वाँ कॉलम्स (Link New Twin Columns)")
             with st.form(key="p11_add_twin_map_form"):
                 col_p11_1, col_p11_2 = st.columns(2)
+                
                 with col_p11_1:
-                    src_selection = st.selectbox("पहला मुख्य कॉलम चुनें (जैसे Admission Application Number या Admission Date):", options=DEFAULT_COLUMNS, key="p11_src_sel")
+                    # 💾 LEFT SIDE: डेटाबेस के सभी ओरिजिनल 42 कॉलम (DEFAULT_COLUMNS) दिखाई देंगे
+                    src_selection = st.selectbox(
+                        "⬅️ मुख्य डेटाबेस का कॉलम चुनें (Left Side Column):", 
+                        options=DEFAULT_COLUMNS, 
+                        key="p11_src_sel"
+                    )
+                    
                 with col_p11_2:
-                    tgt_selection = st.selectbox("इसके बराबर का दूसरा कॉलम चुनें (जैसे Application Number या Payment Date):", options=DEFAULT_COLUMNS, key="p11_tgt_sel")
+                    # 🔄 RIGHT SIDE: इसके बराबर का दूसरा जुड़वाँ कॉलम चुनेंगे
+                    tgt_selection = st.selectbox(
+                        "➡️ इसके बराबर का जुड़वाँ कॉलम चुनें (Right Side Twin Column):", 
+                        options=DEFAULT_COLUMNS, 
+                        key="p11_tgt_sel"
+                    )
                 
                 submit_twin = st.form_submit_button("🔗 इस कॉलम मैपिंग को लागू करें (Activate Sync)", type="primary", use_container_width=True)
                 
                 if submit_twin:
                     if src_selection == tgt_selection:
-                        st.error("❌ आप एक ही कॉलम को खुद से लिंक नहीं कर सकते!")
+                        st.error("❌ आप एक ही कॉलम को खुद से लिंक नहीं कर सकते! कृपया दोनों तरफ अलग-अलग कॉलम चुनें।")
                     else:
                         current_twins[src_selection] = tgt_selection
                         save_twin_mappings(current_twins)
@@ -1664,7 +1677,7 @@ else:
                 st.info("💡 वर्तमान में कोई डायनेमिक मैपिंग सेट नहीं है। डेटाबेस अपने डिफ़ॉल्ट रूप में काम कर रहा है।")
             else:
                 # ग्रिड व्यू में दिखाने के लिए डेटाफ्रेम बनाएं
-                active_maps_list = [{"S.No.": i+1, "Column A": k, "Column B (Twin)": v} for i, (k, v) in enumerate(current_twins.items())]
+                active_maps_list = [{"S.No.": i+1, "Database Column (Left)": k, "Twin Column (Right)": v} for i, (k, v) in enumerate(current_twins.items())]
                 st.dataframe(pd.DataFrame(active_maps_list), use_container_width=True, hide_index=True)
                 
                 # किसी मैपिंग को हटाने का इंजन
