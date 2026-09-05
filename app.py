@@ -836,20 +836,50 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (Guaranteed Strict Hide Fix)
+                # 🖨️ NEW SYSTEM: DIRECT POPUP PRINT ENGINE (White Page & Extra List Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # टेबल को एक 'print-only-container' div के अंदर रैप किया गया है जो स्क्रीन पर ब्लॉक है
-                    raw_html_table = final_p2_render.to_html(index=False)
-                    full_print_payload = f'<div class="print-only-container">{raw_html_table}</div>'
-                    st.markdown(full_print_payload, unsafe_allow_html=True)
+                    # 1. डेटाफ़्रेम को साफ HTML रो और कॉलम में बदलें
+                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2;'>{col}</th>" for col in final_p2_render.columns])
+                    
+                    rows_html = ""
+                    for _, row in final_p2_render.iterrows():
+                        rows_html += "<tr>"
+                        for val in row:
+                            rows_html += f"<td style='border:1px solid #111; padding:5px;'>{val}</td>"
+                        rows_html += "</tr>"
+                    
+                    # 2. पूरा HTML डॉक्यूमेंट तैयार करें जो नए टैब में खुलेगा
+                    complete_html_document = f"""
+                    <html>
+                    <head>
+                        <title>Print Report</title>
+                        <style>
+                            @page {{ size: A4 landscape; margin: 8mm; }}
+                            body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
+                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+                        </style>
+                    </head>
+                    <body>
+                        <table id='print-target-table'>
+                            <thead><tr>{headers_html}</tr></thead>
+                            <tbody>{rows_html}</tbody>
+                        </table>
+                    </body>
+                    </html>
+                    """
+                    
+                    # 3. HTML कोड को Base64 में सुरक्षित एन्कोड करें ताकि ब्राउज़र सुरक्षा ब्लॉक न करे
+                    b64_html = base64.b64encode(complete_html_document.encode('utf-8')).decode('utf-8')
                     
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                    
+                    # 4. प्रिंटर बटन जो नए टैब में केवल लिस्ट खोलेगा और तुरंत प्रिंट कमांड चला देगा
                     components.html(
-                        """
+                        f"""
                         <html>
                         <body>
-                            <button onclick="window.parent.print()" style="
+                            <button onclick="var nw=window.open('data:text/html;base64,{b64_html}', '_blank'); nw.onload=function(){{nw.focus(); nw.print(); nw.close();}};" style="
                                 width: 100%; background-color: #1465de; color: white; 
                                 padding: 14px; border: none; border-radius: 6px; 
                                 font-weight: bold; cursor: pointer; font-size: 16px;
