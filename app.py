@@ -434,7 +434,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Bigger Logo Restored)
+# 🛑स्टेप 5: सुरक्षित लॉगिन ऑथेंटिकेशन गेटवे (Bold Mantra & Shadow Border Added)
 # ==========================================================
 if st.session_state.user_role is None:
     show_header = st.session_state.pre_login_config.get("show_header_text", True)
@@ -445,14 +445,14 @@ if st.session_state.user_role is None:
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
-        # 🎯 यहाँ max-height को 80px से बढ़ाकर 110px कर दिया गया है
+        # 🎨 यहाँ लोगो पर 'box-shadow' बॉर्डर और मंत्र को 'font-weight: bold' किया गया है
         header_html = f"""
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 110px; width: auto; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
+                {"<img src='" + img_base64 + "' style='max-height: 110px; width: auto; display: block; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: normal; font-size: 22px;">{mantra}</h3>
+                <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 24px; letter-spacing: 0.5px;">{mantra}</h3>
                 <h1 style="margin: 5px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: 32px; font-weight: bold;">{sys_title}</h1>
             </div>
         </div>
@@ -505,7 +505,7 @@ if st.session_state.user_role is None:
                 st.rerun()
 
 # ==========================================================
-# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग引擎
+# 🧭 स्टेप 6: पोस्ट-लॉगिन वर्कस्पेस और पैनल राउटिंग इंजन
 # ==========================================================
 else:
     role = st.session_state.user_role
@@ -519,14 +519,14 @@ else:
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
         
-        # 🎯 यहाँ पैनल के अंदर max-height को 60px से बढ़ाकर 90px कर दिया गया है
+        # 🎨 यहाँ पैनल के अंदर भी समान शैडो बॉर्डर और बोल्ड लुक दिया गया है
         panel_header_html = f"""
         <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: sans-serif;">
             <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 90px; width: auto; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
+                {"<img src='" + img_base64 + "' style='max-height: 90px; width: auto; display: block; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: normal; font-size: 16px;">{mantra}</h4>
+                <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 18px;">{mantra}</h4>
                 <h2 style="margin: 3px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: 24px; font-weight: bold;">{sys_title}</h2>
             </div>
         </div>
