@@ -690,39 +690,44 @@ else:
                 p2_authorized_db = p2_authorized_db.rename(columns=column_mapping_fixes)
                 p2_authorized_db = p2_authorized_db.loc[:, ~p2_authorized_db.columns.duplicated()].copy()
 
+                # सभी कॉलम के डेटा को साफ़ और स्ट्रिंग (String) में बदलें ताकि फ़िल्टर सही से काम करे
+                for c in p2_authorized_db.columns:
+                    p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
+
                 # ==================================================================
-                # 🎛️ NEW: 4 SCROLL FILTERS CONTROL PANEL
+                # 🎛️ 4 SCROLL DYNAMIC CONTROL MATRIX
                 # ==================================================================
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                st.subheader("🔍 Advanced Multi-Scroll Filters Matrix")
+                st.subheader("🔍 Advanced Matrix Filters System")
                 
                 col_p2_1, col_p2_2, col_p2_3, col_p2_4 = st.columns(4)
                 
                 with col_p2_1:
-                    # Scroll 1: Admission Year Filter
-                    available_years = ["All Years"] + sorted(list(p2_authorized_db["Admission Year"].dropna().unique()))
-                    p2_filter_year = st.selectbox("1. Admission Year:", options=available_years, key="p2_scroll_filter_year")
+                    # 1st Scroll: Admission Year Selector
+                    year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
+                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v16")
                 
                 with col_p2_2:
-                    # Scroll 2: Subject Filter
-                    available_subjects = ["All Subjects"] + sorted(list(p2_authorized_db["Subject"].dropna().unique()))
-                    p2_filter_subject = st.selectbox("2. Subject:", options=available_subjects, key="p2_scroll_filter_subject")
+                    # 2nd Scroll: Subject Selector
+                    subject_list = ["All Subjects"] + sorted([s for s in p2_authorized_db["Subject"].unique() if s and s.lower() != "nan"])
+                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v16")
                 
                 with col_p2_3:
-                    # Scroll 3: Select Column Name Dynamically
-                    ignore_cols = ["Target Panel Visibility", "_parsed_date"]
+                    # 3rd Scroll: Select Database Column Name Dynamically
+                    ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("3. Select Field (Column Name):", options=available_cols, key="p2_scroll_filter_column")
+                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v16")
                 
                 with col_p2_4:
-                    # Scroll 4: Select Values from Selected Column 3
-                    unique_col_vals = ["All Values"] + sorted(list(p2_authorized_db[p2_selected_col].dropna().unique()))
-                    p2_selected_val = st.selectbox(f"4. Values for {p2_selected_col}:", options=unique_col_vals, key="p2_scroll_filter_value")
+                    # 4th Scroll: Pull Unique Values From the Column Selected Above
+                    raw_vals = p2_authorized_db[p2_selected_col].unique()
+                    val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
+                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v16")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
                 # ==================================================================
-                # ⚡ DATA FILTERING ENGINE BASED ON 4 SCROLLS
+                # ⚡ FILTERS EXECUTION FLOW (सटीक स्ट्रिंग मैचिंग के साथ)
                 # ==================================================================
                 admission_display_db = p2_authorized_db.copy()
                 
@@ -739,18 +744,18 @@ else:
                     admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
 
                 # ==================================================================
-                # 📊 DATA GRID RENDERING & PRINT BUTTON
+                # 📊 DATA GRID OVERVIEW & MASTER RENDER
                 # ==================================================================
                 st.markdown("---")
                 
-                # Default rendering columns layout framework
+                # प्रदर्शित करने के लिए निश्चित कॉलम
                 render_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
                 
-                # Ensure fields exist safely
+                # सुनिश्चित करें कि सभी आवश्यक कॉलम मौजूद हों
                 for col in render_cols:
                     if col not in admission_display_db.columns:
                         admission_display_db[col] = ""
@@ -759,34 +764,35 @@ else:
                 final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
                 final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
                 
-                # Serial numbers injection
                 if not final_p2_render.empty:
                     final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
-                
-                # Display final dataset table
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
-                # 🖨️ NEW: Print Button System (Invisible during print output layout)
-                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                # ==================================================================
+                # 🖨️ SYSTEM LIVE HTML/JS PRINT ENGINE (क्रैश-फ़्री बटन)
+                # ==================================================================
                 if not final_p2_render.empty:
-                    st.button(
-                        "🖨️ Click to Print Clean Filtered List", 
-                        on_click=st.js_code, 
-                        args=["window.print()"], 
-                        type="primary", 
-                        use_container_width=True,
-                        key="p2_trigger_print_window_btn"
-                    )
-                    # Fallback standard javascript handler injection for open printers
+                    st.markdown('<div class="print-hide" style="margin-top: 20px;">', unsafe_allow_html=True)
+                    
+                    # HTML बटन जो बिना किसी Streamlit क्रैश के सीधे ब्राउज़र का प्रिंट डायलॉग खोलेगा
                     st.markdown("""
-                        <script>
-                        const btn = window.parent.document.querySelector("button[key='p2_trigger_print_window_btn']");
-                        if(btn) { btn.addEventListener('click', () => { window.print(); }); }
-                        </script>
+                        <button onclick="window.print()" style="
+                            width: 100%; 
+                            background-color: #1465de; 
+                            color: white; 
+                            padding: 12px; 
+                            border: none; 
+                            border-radius: 4px; 
+                            font-weight: bold; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">🖨️ Click Here to Print Clean Filtered List (PDF/Paper)</button>
                     """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
