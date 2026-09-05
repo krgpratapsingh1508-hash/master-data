@@ -363,48 +363,52 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (सिर्फ लिस्ट प्रिंट करने हेतु)
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट HTML प्रिंट हेतु)
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
-    /* 🖨️ कड़क प्रिंट नियम: प्रिंट दबाते ही लिस्ट को छोड़कर बाकी सब कुछ गायब हो जाएगा */
+    /* 📋 केवल स्क्रीन पर दिखने वाला प्रिंट टेबल स्टाइल */
+    .print-only-table {{
+        display: none;
+    }}
+    
     @media print {{
-        /* 1. सब कुछ छुपाएं (हेडर, सूचना पटल, बटन्स, टाइटल्स) */
-        header, 
-        [data-testid="stHeader"], 
-        [data-testid="stSidebar"], 
-        [data-testid="stDecoration"], 
-        [data-testid="stNotification"], 
-        [data-testid="stForm"],
-        .header-container,
-        .notice-board,
-        h1, h2, h3, h4, h5, h6, p, span, div,
-        .print-hide,
-        iframe,
-        div.element-container:has(button) {{
+        /* 1. स्क्रीन के सारे तत्व (बटन्स, साइडबार, हेडर) गायब करें */
+        header, [data-testid="stHeader"], [data-testid="stSidebar"], 
+        [data-testid="stDecoration"], [data-testid="stNotification"], 
+        [data-testid="stForm"], .header-container, .notice-board,
+        .print-hide, iframe, div.element-container, div[data-testid="stDataFrame"] {{
             display: none !important;
         }}
         
-        /* 2. सिर्फ डेटा ग्रिड (डेटाफ्रेम) को जबरन स्क्रीन पर रखें */
-        div[data-testid="stDataFrame"], 
-        div[data-testid="stDataFrame"] *, 
-        .stDataFrame {{
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+        /* 2. सिर्फ प्रिंट वाली HTML टेबल को जबरन दिखाएं */
+        .print-only-table {{
+            display: table !important;
             width: 100% !important;
+            border-collapse: collapse !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 11px !important;
+            color: #000 !important;
+        }}
+        .print-only-table th {{
+            background-color: #f2f2f2 !important;
+            border: 1px solid #111 !important;
+            padding: 6px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }}
+        .print-only-table td {{
+            border: 1px solid #111 !important;
+            padding: 5px !important;
+            text-align: left !important;
         }}
         
         @page {{ 
-            margin: 5mm; 
+            margin: 8mm; 
             size: A4 landscape; 
-        }}
-        .main .block-container {{ 
-            padding: 0 !important; 
-            margin: 0 !important; 
         }}
     }}
     
@@ -829,38 +833,25 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (100% Guaranteed Fix)
+                # 🖨️ SYSTEM LIVE HTML TABLE GENERATOR & PRINT ENGINE (White Paper Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    st.markdown('<div class="print-hide" style="margin-top: 25px;"></div>', unsafe_allow_html=True)
+                    # 1. डेटाफ़्रेम को प्योर HTML टेबल में बदलें जो प्रिंटर पढ़ सके
+                    html_table = final_p2_render.to_html(index=False, classes="print-only-table")
+                    st.markdown(html_table, unsafe_allow_html=True)
                     
-                    # सुरक्षित Streamlit HTML घटक जो ब्राउज़र सिक्योरिटी को बायपास करके सीधे प्रिंट कमांड ट्रिगर करता है
+                    # 2. सुरक्षित प्रिंटर ट्रिगर बटन
+                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     components.html(
                         """
                         <html>
-                        <head>
-                        <style>
-                        .print-btn {
-                            width: 100%;
-                            background-color: #1465de;
-                            color: white;
-                            padding: 14px;
-                            border: none;
-                            border-radius: 6px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                            box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);
-                        }
-                        .print-btn:hover {
-                            background-color: #0b4eb5;
-                        }
-                        </style>
-                        </head>
                         <body>
-                            <button class="print-btn" onclick="window.parent.print()">
-                                🖨️ Click Here to Print Admission & Payment Report Sheet
+                            <button onclick="window.parent.print()" style="
+                                width: 100%; background-color: #1465de; color: white; 
+                                padding: 14px; border: none; border-radius: 6px; 
+                                font-weight: bold; cursor: pointer; font-size: 16px;
+                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
+                                🖨️ Click Here to Print Clean Data List
                             </button>
                         </body>
                         </html>
