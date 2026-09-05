@@ -718,7 +718,7 @@ else:
                     p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
 
                 # ==================================================================
-                # 🎛️ भाग 1: 4 SCROLL DYNAMIC CONTROL MATRIX
+                # 🎛️ Advanced Matrix Filters System
                 # ==================================================================
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("🔍 Advanced Matrix Filters System")
@@ -726,27 +726,22 @@ else:
                 col_p2_1, col_p2_2, col_p2_3, col_p2_4 = st.columns(4)
                 
                 with col_p2_1:
-                    # 1st Scroll: Admission Year Selector
                     year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
                     p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
                 
-                # पहले फ़िल्टर के आधार पर सब्जेक्ट लिस्ट डिपेंडेंट करें
                 temp_db_for_sub = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Admission Year"] == p2_filter_year]
 
                 with col_p2_2:
-                    # 2nd Scroll: Subject Selector
                     subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
                     p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
                 
                 with col_p2_3:
-                    # 3rd Scroll: Select Database Column Name Dynamically
                     ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
                     p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
                 
-                # चौथे स्क्रॉल के लिए डिपेंडेंट डेटाबेस सेट करें
                 dependent_db = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
@@ -754,19 +749,15 @@ else:
                     dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
 
                 with col_p2_4:
-                    # 4th Scroll: Pull Unique Values 
                     raw_vals = dependent_db[p2_selected_col].unique()
                     val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
                     p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
                 
-                # ==================================================================
-                # 📅 📅 NEW: PAYMENT DATE RANGE FILTER (4 स्क्रॉल के ठीक नीचे)
-                # ==================================================================
+                # Payment Date Range Filter
                 st.markdown("---")
                 st.subheader("📆 Filter Records By Payment Date Range")
                 use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
                 
-                # डिफॉल्ट तारीख सेटिंग्स
                 start_date = pd.to_datetime("2024-01-01")
                 end_date = pd.to_datetime("2026-12-31")
                 
@@ -780,11 +771,10 @@ else:
                 st.markdown('</div>', unsafe_allow_html=True)
 
                 # ==================================================================
-                # ⚡ FILTERS EXECUTION ENGINE
+                # ⚡ Filters Execution Engine
                 # ==================================================================
                 admission_display_db = p2_authorized_db.copy()
                 
-                # 1. 4 स्क्रॉल फ़िल्टर लागू करें
                 if p2_filter_year != "All Years":
                     admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
                 
@@ -794,36 +784,50 @@ else:
                 if p2_selected_val != "All Values":
                     admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
 
-                # 2. तारीख सीमा (Date Range) फ़िल्टर लागू करें
                 if use_date_filter:
                     try:
-                        # विभिन्न तारीख फॉर्मेट्स (DD-MM-YYYY / YYYY-MM-DD) को सेफली पार्स करने के लिए
                         admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], dayfirst=True, errors="coerce")
-                        
-                        # तय सीमा के बीच का डेटा फ़िल्टर करें
                         admission_display_db = admission_display_db[
                             (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
                             (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
                         ]
-                        # टेम्पररी कॉलम को हटा दें
                         admission_display_db = admission_display_db.drop(columns=["_parsed_date"], errors="ignore")
                     except Exception as date_err:
                         st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
                 # ==================================================================
-                # 📊 DATA GRID OVERVIEW & MASTER RENDER
+                # ✍️ Print Header Text Boxes Customizer
                 # ==================================================================
                 st.markdown("---")
+                st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
+                st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
                 
+                col_tb1, col_tb2, col_tb3 = st.columns(3)
+                with col_tb1:
+                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
+                with col_tb2:
+                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
+                with col_tb3:
+                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
+                
+                st.markdown("---")
+                
+                # ==================================================================
+                # 📊 Data Grid Overview (केवल यही एक लिस्ट स्क्रीन पर दिखेगी)
+                # ==================================================================
                 render_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
-                    "Admssion & Enrollment Fees", "Payment Date", "Status"
+                    "Admission & Enrollment Fees", "Payment Date", "Status"
                 ]
                 
+                # सुनिश्चित करें कि सभी कॉलम मौजूद हों
                 for col in render_cols:
                     if col not in admission_display_db.columns:
-                        admission_display_db[col] = ""
+                        if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
+                            admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
+                        else:
+                            admission_display_db[col] = ""
                         
                 final_p2_render = admission_display_db[render_cols].copy()
                 final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
@@ -833,27 +837,8 @@ else:
                     final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
-                st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
-
-                # ==================================================================
-                # ✍️ PRINT HEADER TEXT BOXES (Strict Single List Model - No Extra Markdown)
-                # ==================================================================
-                st.markdown("---")
-                st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
-                st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
                 
-                col_tb1, col_tb2, col_tb3 = st.columns(3)
-                with col_tb1:
-                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज/संस्था का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
-                with col_tb2:
-                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट/सूची का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
-                with col_tb3:
-                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश क्रमांक या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
-                
-                st.markdown("---")
-                
-                # 🌟 केवल यही एक ग्रिड और लिस्ट पूरे स्क्रीन पर रहेगी
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
+                # 🌟 स्क्रीन पर दिखने वाली एकमात्र मुख्य ग्रिड तालिका
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
