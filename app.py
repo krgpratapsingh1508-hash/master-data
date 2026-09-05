@@ -363,56 +363,44 @@ def save_p1_dropdown_schemas():
         json.dump(st.session_state.p1_dropdown_schemas, f, ensure_ascii=False, indent=4)
 
 # ==========================================================
-# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट HTML प्रिंट हेतु)
+# 🎨 स्टेप 4: डायनेमिक सीएसएस (CSS) रेंडरिंग इंजन (परफेक्ट ग्रिड प्रिंट हेतु)
 # ==========================================================
 b_color = st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733")
 bg_color = st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9")
 
 st.markdown(f"""
     <style>
-    /* 📋 केवल स्क्रीन पर दिखने वाला प्रिंट टेबल स्टाइल */
-    .print-only-table {{
-        display: none;
-    }}
-    
     @media print {{
-        /* 1. स्क्रीन के सारे तत्व (बटन्स, साइडबार, हेडर) गायब करें */
+        /* 1. स्क्रीन के फालतू हिस्से (हेडर, सूचना पटल, फॉर्म, बटन्स) छुपाएं */
         header, [data-testid="stHeader"], [data-testid="stSidebar"], 
         [data-testid="stDecoration"], [data-testid="stNotification"], 
         [data-testid="stForm"], .header-container, .notice-board,
-        .print-hide, iframe, div.element-container, div[data-testid="stDataFrame"] {{
+        .print-hide, iframe, div.element-container:has(button) {{
             display: none !important;
         }}
         
-        /* 2. सिर्फ प्रिंट वाली HTML टेबल को जबरन दिखाएं */
-        .print-only-table {{
-            display: table !important;
+        /* 2. स्क्रीन पर दिख रहे ओरिजिनल डेटा ग्रिड को ही प्रिंट में साफ दिखाएं */
+        div[data-testid="stDataFrame"], 
+        div[data-testid="stDataFrame"] > div,
+        .stDataFrame {{
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
             width: 100% !important;
-            border-collapse: collapse !important;
-            font-family: Arial, sans-serif !important;
-            font-size: 11px !important;
-            color: #000 !important;
-        }}
-        .print-only-table th {{
-            background-color: #f2f2f2 !important;
-            border: 1px solid #111 !important;
-            padding: 6px !important;
-            font-weight: bold !important;
-            text-align: center !important;
-        }}
-        .print-only-table td {{
-            border: 1px solid #111 !important;
-            padding: 5px !important;
-            text-align: left !important;
+            height: auto !important;
         }}
         
         @page {{ 
             margin: 8mm; 
             size: A4 landscape; 
         }}
+        .main .block-container {{ 
+            padding: 0 !important; 
+            margin: 0 !important; 
+        }}
     }}
     
-    /* स्क्रीन डिस्प्ले के लिए सामान्य CSS (इसको न बदलें) */
+    /* स्क्रीन डिस्प्ले के लिए सामान्य CSS */
     .header-container {{ display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }}
     .header-text {{ display: flex; flex-direction: column; }}
     .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #1465de; }}
@@ -833,15 +821,12 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ SYSTEM LIVE HTML TABLE GENERATOR & PRINT ENGINE (White Paper Fix)
+                # 🖨️ SYSTEM LIVE SECURE PRINT ENGINE (No Extra Table View Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 1. डेटाफ़्रेम को प्योर HTML टेबल में बदलें जो प्रिंटर पढ़ सके
-                    html_table = final_p2_render.to_html(index=False, classes="print-only-table")
-                    st.markdown(html_table, unsafe_allow_html=True)
-                    
-                    # 2. सुरक्षित प्रिंटर ट्रिगर बटन
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                    
+                    # यह कंपोनेंट सिर्फ एक साफ बटन बनाएगा और स्क्रीन पर दिख रहे ग्रिड को ही प्रिंट करेगा
                     components.html(
                         """
                         <html>
@@ -851,7 +836,7 @@ else:
                                 padding: 14px; border: none; border-radius: 6px; 
                                 font-weight: bold; cursor: pointer; font-size: 16px;
                                 font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
-                                🖨️ Click Here to Print Clean Data List
+                                🖨️ Click Here to Print This Clean Data List
                             </button>
                         </body>
                         </html>
