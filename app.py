@@ -717,8 +717,9 @@ else:
                 st.markdown("---")
                 
                 # 📊 डेटा प्रदर्शित करने के लिए ग्रिड रेंडर करें
+                # 🟢 सुधार: यहाँ "Application Number" को बदलकर "Admission Application Number" कर दिया गया है
                 render_cols = [
-                    "Application Number", "Student Name", "Father Name", 
+                    "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admssion & Enrollment Fees", "Payment Date", "Status"
                 ]
@@ -729,6 +730,12 @@ else:
                         admission_display_db[col] = ""
                         
                 final_p2_render = admission_display_db[render_cols].copy()
+                
+                # 🟢 सुधार: ग्रिड में हेडर सुंदर दिखे, इसलिए "Admission Application Number" को बदलकर सिर्फ "Application Number" डिस्प्ले नाम देंगे
+                final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
+                
+                # फाइनल रेंडर से पहले एक बार सेफगार्ड क्लीनअप
+                final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
                 final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
