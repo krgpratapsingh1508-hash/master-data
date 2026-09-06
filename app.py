@@ -925,7 +925,7 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix)
+                # 🖨️ WAPAS lAYA GAYA: Clean Variable-Based Iframe Print Engine
                 # ==================================================================
                 if not final_p2_render.empty:
                     columns_list = list(final_p2_render.columns)
@@ -975,7 +975,7 @@ else:
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है
+                    # 🔵 Streamlit Component Wrapper Button
                     components.html(
                         f"""
                         <html>
