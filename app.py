@@ -1843,6 +1843,18 @@ else:
                                         flex-direction: column; 
                                         background: #ffffff !important;
                                     }}
+                                    
+                                    /* 🟢 कॉलेज के नाम के ऊपर और नीचे एक जैसी समान मजबूत बॉर्डर रेखा का नियम */
+                                    .header-block {{
+                                        text-align: center; 
+                                        border-top: 1.5px solid #000 !important; 
+                                        border-bottom: 1.5px solid #000 !important; 
+                                        padding-top: 6px !important;
+                                        padding-bottom: 6px !important; 
+                                        margin-top: 5px !important;
+                                        margin-bottom: 8px !important;
+                                    }}
+                                    
                                     @media print {{
                                         body {{ 
                                             background-color: #fff; 
