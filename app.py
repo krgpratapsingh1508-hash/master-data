@@ -1724,92 +1724,92 @@ else:
                             """, height=60
                         )
 
-                        # --- फ़ॉर्मेट 2: DETAILED MARKS VIEW ---
-                        elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
-                            mark_entry_html = f"""
-                            <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
-                                    GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
-                                </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
-                                    <span>Examination: CCE</span>
-                                    <span>SCOPE: {chosen_option.upper()} ({target_db_year.upper()})</span>
-                                </div>
-                                <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
-                                    Subject: {selected_subject.upper()}
-                                </div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
-                                    <thead>
-                                        <tr>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">Code No.</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 18%;">Roll Number</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE Marks</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 12%;">Attendance</th>
-                                            <th style="border: 1px solid #000; padding: 4px; width: 44%;">In Words</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                    # --- फ़ॉर्मेट 2: DETAILED MARKS VIEW ---
+                    elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
+                        mark_entry_html = f"""
+                        <div style="width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                            <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 13px;">
+                                GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0;">
+                                <span>Examination: CCE</span>
+                                <span>SCOPE: {chosen_option.upper()} ({target_db_year.upper()})</span>
+                            </div>
+                            <div style="font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 5px;">
+                                Subject: {selected_subject.upper()}
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
+                                <thead>
+                                    <tr>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 12%;">Code No.</th>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 18%;">Roll Number</th>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 12%;">CCE Marks</th>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 12%;">Attendance</th>
+                                        <th style="border: 1px solid #000; padding: 4px; width: 44%;">In Words</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        """
+                        for idx, row in enumerate(records_list):
+                            tot = str(row.get("CCE Marks Obtained", "")).strip()
+                            att = str(row.get("CCE Attendance Status", "")).strip()
+                            mark_entry_html += f"""
+                                    <tr>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{tot if tot else "&nbsp;"}</td>
+                                        <td style="border: 1px solid #000; padding: 5px;">{att if att else "&nbsp;"}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{num_to_words(tot) if tot else ""}</td>
+                                    </tr>
                             """
-                            for idx, row in enumerate(records_list):
-                                tot = str(row.get("CCE Marks Obtained", "")).strip()
-                                att = str(row.get("CCE Attendance Status", "")).strip()
-                                mark_entry_html += f"""
-                                        <tr>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 12px;">{row.get("Roll No.", "")}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{tot if tot else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{att if att else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; text-align: left; padding-left: 10px;">{num_to_words(tot) if tot else ""}</td>
-                                        </tr>
-                                """
-                            mark_entry_html += "</tbody></table></div>"
-                            st.markdown(mark_entry_html, unsafe_allow_html=True)
+                        mark_entry_html += "</tbody></table></div>"
+                        st.markdown(mark_entry_html, unsafe_allow_html=True)
 
-                        # --- फ़ॉर्मेट 3: MULTI-PAPER ASSESSMENT LIST ---
-                        elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
-                            multi_paper_html = f"""
-                            <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
-                                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
-                                    GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
-                                    Scope: {chosen_option.upper()} | Mapped Year: {target_db_year}
-                                </div>
-                                <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px;">
-                                    CCE List (Internal Evaluation Master Log)
-                                </div>
-                                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed;">
-                                    <thead>
-                                        <tr style="font-weight: bold;">
-                                            <th style="border: 1px solid #000; padding: 6px; width: 6%;">S. No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 14%;">Roll No.</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Father Name</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 12%;">CCE Obtained</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 12%;">Status</th>
-                                            <th style="border: 1px solid #000; padding: 6px; width: 12%;">Sign</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                    # --- फ़ॉर्मेट 3: MULTI-PAPER ASSESSMENT LIST ---
+                    elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
+                        multi_paper_html = f"""
+                        <div style="width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; background-color: #fff; font-family: Arial, sans-serif; box-sizing: border-box;">
+                            <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px;">
+                                GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)
+                            </div>
+                            <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
+                                Scope: {chosen_option.upper()} | Mapped Year: {target_db_year}
+                            </div>
+                            <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px;">
+                                CCE List (Internal Evaluation Master Log)
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed;">
+                                <thead>
+                                    <tr style="font-weight: bold;">
+                                        <th style="border: 1px solid #000; padding: 6px; width: 6%;">S. No.</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 14%;">Roll No.</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Name</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 22%; text-align: left;">Father Name</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 12%;">CCE Obtained</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 12%;">Status</th>
+                                        <th style="border: 1px solid #000; padding: 6px; width: 12%;">Sign</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        """
+                        for idx, row in enumerate(records_list):
+                            s_name = str(row.get("Student Name", "")).upper()
+                            f_name = str(row.get("Father Name", "")).upper()
+                            cce_live = str(row.get("CCE Marks Obtained", "")).strip()
+                            att_live = str(row.get("CCE Attendance Status", "")).strip()
+                            multi_paper_html += f"""
+                                    <tr>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">{row.get("Roll No.", "")}</td>
+                                        <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{s_name}</td>
+                                        <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{f_name}</td>
+                                        <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
+                                        <td style="border: 1px solid #000; padding: 5px;">{att_live if att_live else "&nbsp;"}</td>
+                                        <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
+                                    </tr>
                             """
-                            for idx, row in enumerate(records_list):
-                                s_name = str(row.get("Student Name", "")).upper()
-                                f_name = str(row.get("Father Name", "")).upper()
-                                cce_live = str(row.get("CCE Marks Obtained", "")).strip()
-                                att_live = str(row.get("CCE Attendance Status", "")).strip()
-                                multi_paper_html += f"""
-                                        <tr>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold;">{idx + 1}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">{row.get("Roll No.", "")}</td>
-                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{s_name}</td>
-                                            <td style="border: 1px solid #000; padding: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{f_name}</td>
-                                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">{att_live if att_live else "&nbsp;"}</td>
-                                            <td style="border: 1px solid #000; padding: 5px;">&nbsp;</td>
-                                        </tr>
-                                """
-                            multi_paper_html += "</tbody></table></div>"
-                            st.markdown(multi_paper_html, unsafe_allow_html=True)                                
+                        multi_paper_html += "</tbody></table></div>"
+                        st.markdown(multi_paper_html, unsafe_allow_html=True)                                
 
         # ----------------------------------------------------------------------
         # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
