@@ -2901,40 +2901,6 @@ else:
                             clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
                             display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                             clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
-                            
-                            # ======================================================================
-                            # ⚡ 🆕 ADMIN LIST MASTER GRID PARSING ENGINE (Save Time)
-                            # ======================================================================
-                            for idx, row in clean_edited_master.iterrows():
-                                # 1. AllottedCourse कॉलम की लाइव पार्सिंग
-                                if "AllottedCourse" in clean_edited_master.columns:
-                                    course_val = str(row.get("AllottedCourse", "")).strip()
-                                    if course_val and "-" in course_val:
-                                        parts = course_val.split("-", 1)
-                                        sub_code = parts[0].strip()   # हाइफन के पहले का हिस्सा (उदा. C085)
-                                        sub_name = parts[1].strip()   # हाइफन के बाद का हिस्सा (उदा. B. Sc...)
-                                        
-                                        clean_edited_master.at[idx, "Subject Code"] = sub_code
-                                        clean_edited_master.at[idx, "Subject"] = sub_name
-
-                                # 2. Degree कॉलम से Duration की लाइव पार्सिंग
-                                if "Degree" in clean_edited_master.columns:
-                                    degree_val = str(row.get("Degree", "")).strip()
-                                    if degree_val and "(" in degree_val and ")" in degree_val:
-                                        try:
-                                            outside_bracket = degree_val.split("(")[0].strip()  # ब्रैकेट के बाहर का हिस्सा (उदा. M. A.)
-                                            inside_bracket = degree_val.split("(")[1].split(")")[0].strip() # ब्रैकेट के अंदर का हिस्सा (2-Year)
-                                            
-                                            # अंदर से केवल संख्या (नंबर) छांटें
-                                            duration_digits = "".join([char for char in inside_bracket if char.isdigit()])
-                                            
-                                            if duration_digits:
-                                                clean_edited_master.at[idx, "Duration"] = duration_digits
-                                                clean_edited_master.at[idx, "Degree"] = outside_bracket
-                                        except Exception:
-                                            pass
-                            # ======================================================================
-                            
                             save_live_data(clean_edited_master)
                             st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
                             st.rerun()
