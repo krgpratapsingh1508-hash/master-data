@@ -1708,17 +1708,18 @@ else:
                                         if i < len(data_subset):
                                             row = data_subset[i]
                                             roll_no = str(row.get("Roll No.", "")).strip()
-                                            # वास्तविक सीरियल नंबर (S. No.) की गणना
                                             s_no = absolute_start_idx + i + 1
                                         else:
                                             # खाली रो ताकि टेबल का ढांचा (Height) छोटा-बड़ा न हो
                                             roll_no = "&nbsp;"
                                             s_no = absolute_start_idx + i + 1
                                             
+                                        # 🟢 मजबूत अलाइनमेंट फ़िक्स: 'text-align: left !important;' के साथ फॉन्ट को 'Arial' किया गया है 
+                                        # ताकि जब नाम आए तो वह बिना किसी अतिरिक्त स्पेस के बिल्कुल बाईं तरफ चिपक कर दिखे।
                                         html_rows += f"""
                                         <tr>
                                             <td style='border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;'>{s_no}</td>
-                                            <td style='border: 1px solid #000; padding: 4px; font-family: monospace; font-size: 11px; text-align: center; letter-spacing: 0.5px;'>{roll_no}</td>
+                                            <td style='border: 1px solid #000; padding: 4px 2px 4px 6px; font-family: Arial, sans-serif; font-size: 10px; text-align: left !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; letter-spacing: 0px;'>{roll_no}</td>
                                             <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
                                             <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
                                         </tr>
