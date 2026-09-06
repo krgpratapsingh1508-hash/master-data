@@ -1793,7 +1793,7 @@ else:
                                             <div>Name of Examiner...........................................................</div>
                                             <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
                                                 <span>Place............................................</span>
-                                                <span style='border: 1px solid #000; font-size: 9px;'>Date: ____/____/________</span>
+                                                <span style='border: 1px solid #000; padding: 2px; font-size: 9px;'>Date: ____/____/________</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1848,7 +1848,7 @@ else:
                                             <div>Name of Examiner...........................................................</div>
                                             <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
                                                 <span>Place............................................</span>
-                                                <span style='border: 1px solid #000; padding: 2px; font-size: 9px;'>Date: ____/____/________</span>
+                                                <span style='padding: 2px; font-size: 9px;'>Date: ____/____/________</span>
                                             </div>
                                         </div>
                                     </div>
