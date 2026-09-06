@@ -902,6 +902,12 @@ else:
                 # ==================================================================
                 # 📊 Data Grid Overview (स्क्रीन पर दिखने वाली एकमात्र मुख्य तालिका)
                 # ==================================================================
+                # 🟢 सुधार: दोनों नाम विविधताओं को सुरक्षित रूप से सिंक करें
+                if "Admission Application Number" in admission_display_db.columns:
+                    admission_display_db["Application Number"] = admission_display_db["Admission Application Number"]
+                elif "Application Number" in admission_display_db.columns:
+                    admission_display_db["Admission Application Number"] = admission_display_db["Application Number"]
+
                 for col in chosen_render_cols:
                     if col not in admission_display_db.columns:
                         if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
@@ -911,9 +917,7 @@ else:
                         
                 final_p2_render = admission_display_db[chosen_render_cols].copy()
                 
-                if "Admission Application Number" in final_p2_render.columns:
-                    final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
-                    
+                # 🟢 पुराना रीनेम कोड हटाकर इसे पूरी तरह साफ़ और सुरक्षित किया गया
                 final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
                 
                 if not final_p2_render.empty:
