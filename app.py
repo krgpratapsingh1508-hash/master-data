@@ -924,58 +924,10 @@ else:
                 # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
-                # ==================================================================
-                # 🖨️ WAPAS lAYA GAYA: Clean Variable-Based Iframe Print Engine
-                # ==================================================================
-                if not final_p2_render.empty:
-                    columns_list = list(final_p2_render.columns)
-                    records_list = final_p2_render.to_dict(orient="records")
-                    
-                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in columns_list])
-                    
-                    rows_html = ""
-                    for row in records_list:
-                        rows_html += "<tr>"
-                        for col in columns_list:
-                            val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
-                            rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
-                        rows_html += "</tr>"
-                    
-                    clean_table_html = f"""
-                    <html>
-                    <head>
-                        <style>
-                            @page {{ size: A4 {orientation_css}; margin: 8mm; }}
-                            body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
-                            .custom-print-header {{
-                                width: 100%; border: 2px solid #1465de; background-color: #f4f8ff;
-                                padding: 15px; margin-bottom: 20px; border-radius: 6px;
-                                box-sizing: border-box; text-align: center;
-                            }}
-                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #1465de; margin-bottom: 5px; }}
-                            .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
-                            .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
-                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
-                        </style>
-                    </head>
-                    <body>
-                        <div class="custom-print-header">
-                            <div class="h-line-1">{custom_header_1}</div>
-                            <div class="h-line-2">{custom_header_2}</div>
-                            <div class="h-line-3">{custom_header_3}</div>
-                        </div>
-                        <table>
-                            <thead><tr>{headers_html}</tr></thead>
-                            <tbody>{rows_html}</tbody>
-                        </table>
-                    </body>
-                    </html>
-                    """
-                    
-                    safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
+                    # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix) - CORRECTED
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 🔵 Streamlit Component Wrapper Button
+                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है (Fix applied here)
                     components.html(
                         f"""
                         <html>
@@ -1003,7 +955,7 @@ else:
                         </body>
                         </html>
                         """,
-                        height=60
+                        height=70
                     )
 
         # ----------------------------------------------------------------------
