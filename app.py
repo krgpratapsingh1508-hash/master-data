@@ -2279,6 +2279,9 @@ else:
                             try:
                                 file_subset_direct["Target Panel Visibility"] = parsed_direct_panel_id
                                 
+                                # 1. नाम बदलने से पहले ही डुप्लिकेट कॉलम हटाएँ
+                                file_subset_direct = file_subset_direct.loc[:, ~file_subset_direct.columns.duplicated()].copy()
+                                
                                 # Remap layout variables to protect 22 column structural norms
                                 column_mapping_fixes = {
                                     "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
@@ -2287,19 +2290,26 @@ else:
                                 }
                                 file_subset_direct = file_subset_direct.rename(columns=column_mapping_fixes)
                                 
-                                # सुरक्षित असाइनमेंट ताकि मल्टिपल कॉलम वाली एरर न आए
+                                # 2. नाम बदलने के बाद भी यदि कोई डुप्लिकेट बनता है तो साफ़ करें
+                                file_subset_direct = file_subset_direct.loc[:, ~file_subset_direct.columns.duplicated()].copy()
+                                
+                                # सुरक्षित असाइनमेंट
                                 if "Application Number" not in file_subset_direct.columns:
                                     if "Admission Application Number" in file_subset_direct.columns:
                                         file_subset_direct["Application Number"] = file_subset_direct["Admission Application Number"].astype(str)
                                     else:
                                         file_subset_direct["Application Number"] = ""
-
+                                
+                                # 3. सुनिश्चित करें कि टारगेट कॉलम्स का ढांचा साफ़ हो
                                 for col in DEFAULT_COLUMNS:
                                     if col not in file_subset_direct.columns:
                                         file_subset_direct[col] = ""
                                         
-                                remaining_master_db_dir = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_direct_panel_id].copy()
+                                # 4. मास्टर डेटाबेस के डुप्लिकेट कॉलम्स भी हटाएँ ताकि जोड़ने में एरर न आए
+                                master_db_clean = master_db_lookup.loc[:, ~master_db_lookup.columns.duplicated()].copy()
+                                remaining_master_db_dir = master_db_clean[master_db_clean["Target Panel Visibility"] != parsed_direct_panel_id].copy()
                                 
+                                # 5. अंतिम सुरक्षित कॉनकेट (Concat)
                                 final_direct_master = pd.concat([remaining_master_db_dir, file_subset_direct[DEFAULT_COLUMNS]], ignore_index=True)
                                 save_live_data(final_direct_master)
                                 
