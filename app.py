@@ -925,7 +925,7 @@ else:
                         else:
                             admission_display_db[col] = ""
                         
-                final_p2_render = admission_display_db[render_cols].copy()
+                final_p2_render = admission_display_db[chosen_render_cols].copy()
                 final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
                 final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
                 
