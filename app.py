@@ -1615,56 +1615,65 @@ else:
                             }
                             return words_dict.get(m_str, m_str) + " ONLY"
 
-                        # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil (Dynamic Pagination - Strict 35 Rows Limit) ---
+                        # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil (Vertical Half-Split Pagination) ---
                         if foil_format_type == "University Official Blank Foil Sheets (Side-by-Side)":
                             
-                            # 🔄 छात्रों की सूची को 35-35 के ब्लॉक में विभाजित करने का लॉजिक (Strict 35 Rows Limit)
-                            chunk_size = 35
+                            chunk_size = 35 # प्रति फॉयल ब्लॉक की सटीक रोल नंबर सीमा
                             total_students = len(records_list)
-                            pages_html = ""
                             
-                            # 🎯 ड्रॉपडाउन विकल्प के टेक्स्ट को आपकी शर्त के अनुसार कस्टमाइज़ करने का आंतरिक इंजन
+                            # 🎯 ड्रॉपडाउन विकल्प के टेक्स्ट को कस्टमाइज़ करने का आंतरिक इंजन
                             def format_scope_label(raw_opt):
                                 raw_str = str(raw_opt).strip().lower()
                                 if "sem" in raw_str:
                                     num_part = raw_str.split("sem")[0].strip()
-                                    return f"{num_part.lower()} Sem."
+                                    return f"{num_part} Sem."
                                 elif "year" in raw_str:
                                     num_part = raw_str.split("year")[0].strip()
-                                    return f"{num_part.lower()} Year"
+                                    return f"{num_part} Year"
                                 return raw_opt
 
                             formatted_scope = format_scope_label(chosen_option)
                             
-                            # प्रत्येक लूप एक पूरा A4 पेज (70 छात्र क्षमता - 35 लेफ्ट + 35 राइट) जनरेट करेगा
-                            for page_idx, base_start in enumerate(range(0, total_students, chunk_size * 2)):
+                            # 🔄 कुल छात्रों की संख्या के आधार पर आवश्यक कुल पेजों की गणना (Vertical Split Logic)
+                            # एक पेज के बाएं हिस्से में 35 छात्र आएंगे, इसलिए कुल पेजों की संख्या = ceil(total_students / 70)
+                            import math
+                            total_pages_needed = math.ceil(total_students / (chunk_size * 2))
+                            if total_pages_needed == 0:
+                                total_pages_needed = 1
                                 
-                                # ⬅️ लेफ्ट ब्लॉक (35 छात्र)
-                                left_start = base_start
-                                left_end = min(left_start + chunk_size, total_students)
-                                left_chunk = records_list[left_start:left_end]
+                            # कुल छात्रों को वर्टिकल हाफ-स्प्लिट के अनुसार बाएं और दाएं हिस्सों के लिए अलग-अलग विभाजित करना
+                            half_total_capacity = total_pages_needed * chunk_size
+                            left_side_students = records_list[0:half_total_capacity]
+                            right_side_students = records_list[half_total_capacity:]
+                            
+                            pages_html = ""
+                            
+                            # प्रत्येक लूप एक पूरा A4 पेज (बायां + दायां ब्लॉक) जनरेट करेगा
+                            for p_num in range(total_pages_needed):
                                 
-                                # ➡️ राइट ब्लॉक (35 छात्र)
-                                right_start = left_start + chunk_size
-                                right_end = min(right_start + chunk_size, total_students)
-                                right_chunk = records_list[right_start:right_end] if right_start < total_students else []
+                                # ⬅️ वर्तमान पेज का बायां हिस्सा (Left Side Vertical Slice)
+                                l_start = p_num * chunk_size
+                                l_end = l_start + chunk_size
+                                current_left_chunk = left_side_students[l_start:l_end]
                                 
-                                # यदि मुख्य सूची खत्म हो चुकी है और कोई रिकॉर्ड शेष नहीं है, तो न्यू फॉयल नहीं बनेगी
-                                if not left_chunk and not right_chunk:
-                                    break
-                                    
+                                # ➡️ वर्तमान पेज का दायां हिस्सा (Right Side Vertical Slice)
+                                r_start = p_num * chunk_size
+                                r_end = r_start + chunk_size
+                                current_right_chunk = right_side_students[r_start:r_end]
+                                
                                 # 🛠️ फंक्शन: सिंगल ब्लॉक (लेफ्ट या राइट) की टेबल रो रेंडर करना
-                                def generate_block_rows(start_no, data_subset):
+                                def generate_vertical_rows(absolute_start_idx, data_subset):
                                     html_rows = ""
                                     for i in range(chunk_size):
                                         if i < len(data_subset):
                                             row = data_subset[i]
                                             roll_no = str(row.get("Roll No.", "")).strip()
-                                            s_no = start_no + i
+                                            # वास्तविक सीरियल नंबर (S. No.) की गणना
+                                            s_no = absolute_start_idx + i + 1
                                         else:
-                                            # खाली रो ताकि टेबल का ढांचा (Height) न बिगड़े
+                                            # खाली रो ताकि टेबल का ढांचा (Height) छोटा-बड़ा न हो
                                             roll_no = "&nbsp;"
-                                            s_no = start_no + i
+                                            s_no = absolute_start_idx + i + 1
                                             
                                         html_rows += f"""
                                         <tr>
@@ -1676,13 +1685,12 @@ else:
                                         """
                                     return html_rows
 
-                                # 📄 सिंगल A4 पेज टेम्पलेट विथ कस्टमाइज्ड हेडर रूल्स
+                                # 📄 सिंगल A4 पेज टेम्पलेट विथ कस्टमाइज्ड वर्टिकल अलाइनमेंट रूल्स
                                 pages_html += f"""
                                 <div class='a4-page-wrapper' style='page-break-after: always; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: 2%; margin-bottom: 30px; background: #fff;'>
                                     
-                                    <!-- ⬅️ लेफ्ट फॉयल ब्लॉक (अधिकतम 35 छात्र) -->
+                                    <!-- ⬅️ लेफ्ट फॉयल ब्लॉक (वर्टिकल क्रम में 1 से 35, अगले पेज पर 36 से 70 आदि) -->
                                     <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
-                                        <!-- 🎯 पेपर कोड और बंडल नंबर का राइट साइड अलाइनमेंट -->
                                         <div class='top-meta' style='display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; text-align: right;'>
                                             <div style='margin-bottom: 2px;'>Paper Code...................</div>
                                             <div>Bundle No.....................</div>
@@ -1691,17 +1699,14 @@ else:
                                             <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
                                             <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
                                         </div>
-                                        <!-- 🎯 सेमेस्टर/ईयर फॉर्मेट सुधार -->
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Examination :- CCE</span>
                                             <span>{formatted_scope}</span>
                                         </div>
-                                        <!-- 🎯 सब्जेक्ट के सामने केवल डॉट्स लाइन -->
                                         <div class='info-row' style='font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
                                             <span>Subject: {selected_subject.upper()}</span>
                                             <span>............................................</span>
                                         </div>
-                                        <!-- 🎯 मैक्सिमम मार्क्स के सामने 20 हटाकर केवल डॉट्स लाइन -->
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Maximum Marks: ........................</span>
                                             <span>Min Pass Marks: ............</span>
@@ -1724,7 +1729,63 @@ else:
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {generate_block_rows(left_start + 1, left_chunk)}
+                                                {generate_vertical_rows(l_start, current_left_chunk)}
+                                            </tbody>
+                                        </table>
+                                        <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 9px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
+                                            <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible.
+                                        </div>
+                                        <div class='footer-sign' style='font-size: 10px; line-height: 1.6; font-weight: bold;'>
+                                            <div>Signature of Examiner........................................................</div>
+                                            <div>Name of Examiner...........................................................</div>
+                                            <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
+                                                <span>Place............................................</span>
+                                                <span style='border: 1px solid #000; padding: 2px; font-size: 9px;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ➡️ राइट फॉयल ब्लॉक (वर्टिकल क्रम में लेफ्ट साइड की पूरी सिरीज़ खत्म होने के बाद के रोल नंबर) -->
+                                    <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
+                                        <div class='top-meta' style='display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; text-align: right;'>
+                                            <div style='margin-bottom: 2px;'>Paper Code...................</div>
+                                            <div>Bundle No.....................</div>
+                                        </div>
+                                        <div class='header-block' style='text-align: center; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 5px;'>
+                                            <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Examination :- CCE</span>
+                                            <span>{formatted_scope}</span>
+                                        </div>
+                                        <div class='info-row' style='font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
+                                            <span>Subject: {selected_subject.upper()}</span>
+                                            <span>............................................</span>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Maximum Marks: ........................</span>
+                                            <span>Min Pass Marks: ............</span>
+                                        </div>
+                                        <div class='foil-label' style='text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;'>FOIL</div>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px;'>
+                                            <thead>
+                                                <tr>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>1</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>2</th>
+                                                </tr>
+                                                <tr>
+                                                    <th rowspan='2' style='text-align: center; width: 15%; padding: 2px;'>Code No.</th>
+                                                    <th rowspan='2' style='text-align: center; width: 35%; padding: 2px;'>Roll No.</th>
+                                                    <th colspan='2' style='text-align: center; padding: 2px;'>Marks Obtained</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 20%; padding: 2px;'>In Fig</th>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 30%; padding: 2px;'>In Words</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {generate_vertical_rows(half_total_capacity + r_start, current_right_chunk)}
                                             </tbody>
                                         </table>
                                         <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 9px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
@@ -1811,7 +1872,7 @@ else:
                             
                             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
                             
-                            # 🖨️ यह आपका मुख्य सुरक्षित प्रिंटर गेटवे बटन है (हरे रंग में)
+                            # 🖨️ मुख्य सुरक्षित प्रिंटर गेटवे बटन
                             components.html(
                                 f"""
                                 <html>
