@@ -2765,7 +2765,64 @@ else:
                                     approve_action_btn = st.button("🚀 Approve & Update Selected Data Rows", type="primary", use_container_width=True, key="p13_final_approve_btn_v15")
                                 
                                 if approve_action_btn:
-                                    final_preview_df["Target Panel Visibility"] = parsed_panel_id
+                                    try:
+                                        # 1. किसी भी तरह के डुप्लिकेट कॉलम को पहले ही साफ़ करें
+                                        final_preview_df = final_preview_df.loc[:, ~final_preview_df.columns.duplicated()].copy()
+                                        
+                                        final_preview_df["Target Panel Visibility"] = parsed_panel_id
+                                        
+                                        # 2. पुराने कॉलम नामों को प्रमाणित स्कीमों में बदलें
+                                        column_mapping_fixes = {
+                                            "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                            "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                                            "Email Id": "Email ID", "Year": "Current Year"
+                                        }
+                                        final_preview_df = final_preview_df.rename(columns=column_mapping_fixes)
+                                        
+                                        # 3. नाम बदलने के बाद यदि फिर से कोई डुप्लिकेट बनता है, तो उसे दोबारा साफ़ करें
+                                        final_preview_df = final_preview_df.loc[:, ~final_preview_df.columns.duplicated()].copy()
+                                        
+                                        # 4. 🔴 एरर फिक्स सुरक्षित असाइनमेंट इंजन:
+                                        # चेक करें कि 'Application Number' कॉलम मौजूद है या नहीं
+                                        if "Application Number" in final_preview_df.columns:
+                                            # सुनिश्चित करें कि हम डेटाफ्रेम नहीं, बल्कि उसकी वैल्यू या सीरीज़ ही ले रहे हैं
+                                            app_num_data = final_preview_df["Application Number"]
+                                            if isinstance(app_num_data, pd.DataFrame):
+                                                final_preview_df["Application Number"] = app_num_data.iloc[:, 0].astype(str)
+                                            else:
+                                                final_preview_df["Application Number"] = app_num_data.astype(str)
+                                        elif "Admission Application Number" in final_preview_df.columns:
+                                            adm_app_data = final_preview_df["Admission Application Number"]
+                                            if isinstance(adm_app_data, pd.DataFrame):
+                                                final_preview_df["Application Number"] = adm_app_data.iloc[:, 0].astype(str)
+                                            else:
+                                                final_preview_df["Application Number"] = adm_app_data.astype(str)
+                                        else:
+                                            final_preview_df["Application Number"] = ""
+
+                                        # 5. मास्टर डेटाबेस से पुराना विज़िबिलिटी डेटा साफ़ करें
+                                        remaining_master_db = master_db_lookup[master_db_lookup["Target Panel Visibility"] != parsed_panel_id].copy()
+                                        remaining_master_db = remaining_master_db.loc[:, ~remaining_master_db.columns.duplicated()].copy()
+                                        
+                                        # 6. सभी आवश्यक DEFAULT_COLUMNS को सुरक्षित सेट करें
+                                        for col in DEFAULT_COLUMNS:
+                                            if col not in final_preview_df.columns:
+                                                final_preview_df[col] = ""
+                                                
+                                        # 7. केवल एकल और ओरिजिनल कॉलम्स का सुरक्षित संकलन (Concat)
+                                        final_updated_master_db = pd.concat([remaining_master_db, final_preview_df[DEFAULT_COLUMNS]], ignore_index=True)
+                                        save_live_data(final_updated_master_db)
+                                        
+                                        # 8. स्टेजिंग कतार से प्रविष्टि हटाएं
+                                        remaining_stage_db = stage_db[stage_db["Uploaded File Name"] != selected_anya_file]
+                                        save_stage_data(remaining_stage_db)
+                                        
+                                        st.success(f"🎉 शत-प्रतिशत सफलता! Anya फ़ाइल का डेटा मुख्य फ़ाइल में सही जगह अपडेट होकर और मैचिंग कॉलम के साथ {parsed_panel_id} पर लाइव हो चुका है!")
+                                        st.balloons()
+                                        st.rerun()
+                                        
+                                    except Exception as inner_merge_err:
+                                        st.error(f"मर्ज डेटाबेस सेव चक्र के दौरान तकनीकी समस्या आई: {inner_merge_err}")
                                     
                                     # Normalize alternate key names to standardized core database headers before final commit
                                     column_mapping_fixes = {
