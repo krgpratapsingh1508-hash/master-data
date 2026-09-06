@@ -753,9 +753,9 @@ else:
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # कॉलम नामों की विसंगतियों को ठीक करें
+                # 🟢 सही किया गया ट्रांसलेशन मैप (Student Abc Id को Unique ID में बदलने वाला गलत नियम हटा दिया गया है)
                 column_mapping_fixes = {
-                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Unique Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
                     "Application Number": "Admission Application Number"
@@ -866,6 +866,7 @@ else:
                 st.markdown("---")
                 st.subheader("👁️ Select Columns to Display & Print")
                 
+                # 🟢 इसमें 'Student Abc Id' को बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किया गया है
                 all_possible_p2_cols = [
                     "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
                     "Date Of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
