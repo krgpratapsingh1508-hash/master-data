@@ -1604,121 +1604,98 @@ else:
                     if len(records_list) == 0:
                         st.warning(f"🔍 चयनित Subject और '{chosen_option}' ({target_db_year}) के आधार पर कोई डेटा नहीं मिला।")
                     else:
-                        def num_to_words(m_str):
-                            m_str = str(m_str).strip()
-                            if not m_str or m_str.lower() == "nan": return ""
-                            words_dict = {
-                                "0": "ZERO", "1": "ONE", "2": "TWO", "3": "THREE", "4": "FOUR", "5": "FIVE",
-                                "6": "SIX", "7": "SEVEN", "8": "EIGHT", "9": "NINE", "10": "TEN",
-                                "11": "ELEVEN", "12": "TWELVE", "13": "THIRTEEN", "14": "FOURTEEN", "15": "FIFTEEN",
-                                "16": "SIXTEEN", "17": "SEVENTEEN", "18": "EIGHTEEN", "19": "NINETEEN", "20": "TWENTY"
-                            }
-                            return words_dict.get(m_str, m_str) + " ONLY"
-
-                        # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil (As per User Image) ---
-                        if foil_format_type == "University Official Blank Foil Sheets (Side-by-Side)":
-                            rows_html = ""
-                            for idx, row in enumerate(records_list):
-                                rows_html += f"""
-                                <tr>
-                                    <td style='border: 1px solid #000; padding: 5px; font-weight: bold; text-align: center;'>{idx + 1}</td>
-                                    <td style='border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 13px; text-align: center; letter-spacing: 1px;'>{row.get("Roll No.", "")}</td>
-                                    <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
-                                    <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
-                                </tr>
-                                """
-                                
-                            clean_foil_template = f"""
-                            <html>
-                            <head>
-                                <style>
-                                    @page {{ size: A4 portrait; margin: 10mm; }}
-                                    body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background-color: #fff; }}
-                                    .foil-container {{ width: 100%; border: 1px solid #000; padding: 20px; box-sizing: border-box; }}
-                                    .top-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 8px; }}
-                                    .header-block {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 8px; }}
-                                    .header-block h2 {{ margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }}
-                                    .info-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 6px; }}
-                                    .foil-label {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 2px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 15px; }}
-                                    th, td {{ border: 1px solid #000; padding: 6px; }}
-                                    .note-box {{ border: 1px solid #000; padding: 8px; font-size: 11px; line-height: 1.4; margin-bottom: 25px; text-align: justify; }}
-                                    .footer-sign {{ font-size: 12px; line-height: 2.0; font-weight: bold; }}
-                                </style>
-                            </head>
-                            <body>
-                                <div class='foil-container'>
-                                    <!-- Top Row Elements -->
-                                    <div class='top-meta'>
-                                        <span>Paper Code...................</span>
-                                        <span>Bundle No...................</span>
-                                    </div>
-                                    
-                                    <!-- College Institutional Banner -->
-                                    <div class='header-block'>
-                                        <h2>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                        <h2 style='margin-top: 3px;'>GWALIOR (M.P.)</h2>
-                                    </div>
-                                    
-                                    <!-- Examination & Semester Details -->
-                                    <div class='info-row'>
-                                        <span>Examination :- CCE</span>
-                                        <span>{chosen_option.upper()}</span>
-                                    </div>
-                                    <div class='info-row'>
-                                        <span>Subject: {selected_subject.upper()}</span>
-                                        <span>Paper............................................</span>
-                                    </div>
-                                    <div class='info-row'>
-                                        <span>Maximum Marks: {max_marks}</span>
-                                        <span>Minimum Pass Marks: .......................</span>
-                                    </div>
-                                    
-                                    <!-- Section Marker Label -->
-                                    <div class='foil-label'>FOIL</div>
-                                    
-                                    <!-- Structured Matrix Table matching User Image -->
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th colspan='2' style='text-align: center; width: 40%; font-weight: bold;'>1</th>
-                                                <th colspan='2' style='text-align: center; width: 60%; font-weight: bold;'>2</th>
-                                            </tr>
-                                            <tr>
-                                                <th rowspan='2' style='text-align: center; width: 12%;'>Code No.</th>
-                                                <th rowspan='2' style='text-align: center; width: 28%;'>Roll No.</th>
-                                                <th colspan='2' style='text-align: center;'>Marks Obtained</th>
-                                            </tr>
-                                            <tr>
-                                                <th style='text-align: center; width: 20%;'>In Figures</th>
-                                                <th style='text-align: center; width: 40%;'>In Words</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rows_html}
-                                        </tbody>
-                                    </table>
-                                    
-                                    <!-- Footer Statutory Note -->
-                                    <div class='note-box'>
-                                        <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
-                                    </div>
-                                    
-                                    <!-- Examiner Authentication Seals -->
-                                    <div class='footer-sign'>
-                                        <div>Signature of Examiner........................................................................................</div>
-                                        <div>Name of Examiner.............................................................................................</div>
-                                        <div style='display: flex; justify-content: space-between; margin-top: 5px;'>
-                                            <span style='width: 60%;'>Place..............................................................................</span>
-                                            <span style='width: 40%; border: 1px solid #000; padding: 4px 8px; display: inline-block; box-sizing: border-box;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
-                                        </div>
+                        # 🖨️ 2. टेबल रो जनरेटर लूप
+                        rows_html = ""
+                        for idx, row in enumerate(records_list):
+                            rows_html += f"""
+                            <tr>
+                                <td style='border: 1px solid #000; padding: 5px; font-weight: bold; text-align: center;'>{idx + 1}</td>
+                                <td style='border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 13px; text-align: center; letter-spacing: 1px;'>{row.get("Roll No.", "")}</td>
+                                <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
+                                <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
+                            </tr>
+                            """
+                            
+                        # 🚨 ध्यान दें: यहाँ f""" से स्ट्रिंग शुरू हो रही है, जिससे डिस्प्ले सही होगा
+                        clean_foil_template = f"""
+                        <html>
+                        <head>
+                            <style>
+                                @page {{ size: A4 portrait; margin: 10mm; }}
+                                body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background-color: #fff; }}
+                                .foil-container {{ width: 100%; border: 1px solid #000; padding: 20px; box-sizing: border-box; }}
+                                .top-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 8px; }}
+                                .header-block {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 8px; }}
+                                .header-block h2 {{ margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }}
+                                .info-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 6px; }}
+                                .foil-label {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 2px; }}
+                                table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 15px; }}
+                                th, td {{ border: 1px solid #000; padding: 6px; }}
+                                .note-box {{ border: 1px solid #000; padding: 8px; font-size: 11px; line-height: 1.4; margin-bottom: 25px; text-align: justify; }}
+                                .footer-sign {{ font-size: 12px; line-height: 2.0; font-weight: bold; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class='foil-container'>
+                                <div class='top-meta'>
+                                    <span>Paper Code...................</span>
+                                    <span>Bundle No...................</span>
+                                </div>
+                                <div class='header-block'>
+                                    <h2>GOVT. K.R.G. POST-GRADUGE AUTONOMOUS COLLEGE,</h2>
+                                    <h2 style='margin-top: 3px;'>GWALIOR (M.P.)</h2>
+                                </div>
+                                <div class='info-row'>
+                                    <span>Examination :- CCE</span>
+                                    <span>{chosen_option.upper()}</span>
+                                </div>
+                                <div class='info-row'>
+                                    <span>Subject: {selected_subject.upper()}</span>
+                                    <span>Paper............................................</span>
+                                </div>
+                                <div class='info-row'>
+                                    <span>Maximum Marks: {max_marks}</span>
+                                    <span>Minimum Pass Marks: .......................</span>
+                                </div>
+                                <div class='foil-label'>FOIL</div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th colspan='2' style='text-align: center; width: 40%; font-weight: bold;'>1</th>
+                                            <th colspan='2' style='text-align: center; width: 60%; font-weight: bold;'>2</th>
+                                        </tr>
+                                        <tr>
+                                            <th rowspan='2' style='text-align: center; width: 12%;'>Code No.</th>
+                                            <th rowspan='2' style='text-align: center; width: 28%;'>Roll No.</th>
+                                            <th colspan='2' style='text-align: center;'>Marks Obtained</th>
+                                        </tr>
+                                        <tr>
+                                            <th style='text-align: center; width: 20%;'>In Figures</th>
+                                            <th style='text-align: center; width: 40%;'>In Words</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rows_html}
+                                    </tbody>
+                                </table>
+                                <div class='note-box'>
+                                    <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
+                                </div>
+                                <div class='footer-sign'>
+                                    <div>Signature of Examiner........................................................................................</div>
+                                    <div>Name of Examiner.............................................................................................</div>
+                                    <div style='display: flex; justify-content: space-between; margin-top: 5px;'>
+                                        <span style='width: 60%;'>Place..............................................................................</span>
+                                        <span style='width: 40%; border: 1px solid #000; padding: 4px 8px; display: inline-block; box-sizing: border-box;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
                                     </div>
                                 </div>
-                            </body>
-                            </html>
-                            """
-                            # Render Live UI Screen Preview
-                            st.markdown(clean_foil_template, unsafe_allow_html=True)
+                            </div>
+                        </body>
+                        </html>
+                        """ # 🚨 यहाँ पर स्ट्रिंग कोट्स बन्द हो रहे हैं
+                        
+                        # 🖥️ यह लाइन आपके स्क्रीन डिस्प्ले को सही फॉर्मेट में रेंडर करेगी
+                        st.markdown(clean_foil_template, unsafe_allow_html=True)
                             
                             # Execute Isolated Print Engine Gateway
                             safe_html_string = clean_foil_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
