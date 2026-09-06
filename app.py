@@ -2762,19 +2762,29 @@ else:
                     st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
                     st.rerun()
 
-            # Column shift parameters handler layer
+            # ======================================================================
+            # 🔀 कॉलम शिफ्टर ब्लॉक (लिस्ट लॉक होने पर यह आटोमेटिक फ्रीज हो जाएगा)
+            # ======================================================================
             if st.session_state.admin_unhide_move:
                 st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
-                target_col = st.selectbox("मूव करने के लिए कॉलम चुनें:", options=st.session_state.admin_columns_order, key="p15_column_shifter_select_box_final")
+                
+                # 🚨 यदि लिस्ट लॉक है, तो ड्रॉपडाउन को भी डिसेबल (फ्रीज) कर दें
+                target_col = st.selectbox(
+                    "मूव करने के लिए कॉलम चुनें:", 
+                    options=st.session_state.admin_columns_order, 
+                    disabled=st.session_state.admin_lock_state,
+                    key="p15_column_shifter_select_box_final"
+                )
                 c_left, c_right = st.columns(2)
                 
-                if c_left.button("⬅️ Shift Left", use_container_width=True, key="p15_shift_left_master_btn_final"):
+                # 🔒 सुरक्षा गेटवे: यदि लिस्ट लॉक है (admin_lock_state = True), तो बटन लॉक रहेंगे
+                if c_left.button("⬅️ Shift Left", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_left_master_btn_final"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx > 0:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                         st.rerun()
                         
-                if c_right.button("➡️ Shift Right", use_container_width=True, key="p15_shift_right_master_btn_final"):
+                if c_right.button("➡️ Shift Right", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_right_master_btn_final"):
                     idx = st.session_state.admin_columns_order.index(target_col)
                     if idx < len(st.session_state.admin_columns_order) - 1:
                         st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
