@@ -1697,32 +1697,32 @@ else:
                         # 🖥️ यह लाइन आपके स्क्रीन डिस्प्ले को सही फॉर्मेट में रेंडर करेगी
                         st.markdown(clean_foil_template, unsafe_allow_html=True)
                             
-                            # Execute Isolated Print Engine Gateway
-                            safe_html_string = clean_foil_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
-                            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-                            components.html(
-                                f"""
-                                <html>
-                                <body>
-                                    <script>
-                                    function printFoilSheet() {{
-                                        var iframe = window.parent.document.createElement('iframe');
-                                        iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
-                                        iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
-                                        window.parent.document.body.appendChild(iframe);
-                                        var doc = iframe.contentWindow.document;
-                                        doc.open(); doc.write(`{safe_html_string}`); doc.close();
-                                        iframe.contentWindow.focus(); iframe.contentWindow.print();
-                                        setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
-                                    }}
-                                    </script>
-                                    <button onclick="printFoilSheet()" style="width: 100%; background-color: #28a745; color: white; padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: sans-serif; box-shadow: 0 4px 6px rgba(40,167,69,0.15);">
-                                        🖨️ Click Here to Print Official Blank Foil Sheet (A4 Size)
-                                    </button>
-                                </body>
-                                </html>
-                                """, height=60
-                            )
+                        # Execute Isolated Print Engine Gateway
+                        safe_html_string = clean_foil_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
+                        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+                        components.html(
+                            f"""
+                            <html>
+                            <body>
+                                <script>
+                                function printFoilSheet() {{
+                                    var iframe = window.parent.document.createElement('iframe');
+                                    iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
+                                    iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
+                                    window.parent.document.body.appendChild(iframe);
+                                    var doc = iframe.contentWindow.document;
+                                    doc.open(); doc.write(`{safe_html_string}`); doc.close();
+                                    iframe.contentWindow.focus(); iframe.contentWindow.print();
+                                    setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
+                                }}
+                                </script>
+                                <button onclick="printFoilSheet()" style="width: 100%; background-color: #28a745; color: white; padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: sans-serif; box-shadow: 0 4px 6px rgba(40,167,69,0.15);">
+                                    🖨️ Click Here to Print Official Blank Foil Sheet (A4 Size)
+                                </button>
+                            </body>
+                            </html>
+                            """, height=60
+                        )
 
                         # --- फ़ॉर्मेट 2: DETAILED MARKS VIEW ---
                         elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
