@@ -1782,43 +1782,37 @@ else:
                                 </div>
                                 """
 
-                            # 🏛️ 3. पूर्ण एकीकृत एचटीएमएल संरचना (स्क्रीन और ए4 प्रिंट दोनों को हूबहू दिखाने हेतु)
+                            # 🏛️ 3. पूर्ण एकीकृत एचटीएमएल संरचना (A4 Portrait Frame)
                             clean_foil_template = f"""
                             <html>
                             <head>
                                 <style>
-                                    /* 📑 प्रिंटर के लिए सेटिंग्स */
                                     @page {{ 
                                         size: A4 portrait; 
                                         margin: 8mm; 
                                     }}
-                                    
-                                    /* 💻 स्क्रीन डिस्प्ले को प्रिंट जैसा दिखाने के लिए सेटिंग्स */
                                     body {{ 
                                         font-family: Arial, sans-serif; 
                                         margin: 0; 
                                         padding: 20px; 
-                                        background-color: #e0e0e0; /* स्क्रीन पर पीछे हल्का ग्रे बैकग्राउंड */
+                                        background-color: #f0f2f5; 
                                         display: flex;
                                         flex-direction: column;
                                         align-items: center;
                                     }}
-                                    
-                                    /* 📄 हर पेज को असली A4 पेपर जैसा सफ़ेद बॉक्स बनाएँ */
                                     .a4-page-wrapper {{ 
                                         box-sizing: border-box; 
-                                        width: 210mm; /* A4 की सटीक चौड़ाई */
-                                        min-height: 297mm; /* A4 की सटीक लम्बाई */
+                                        width: 210mm; 
+                                        min-height: 297mm; 
                                         padding: 15mm; 
                                         margin-bottom: 30px; 
-                                        background: #ffffff !important; /* सफ़ेद पेपर लुक */
-                                        box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* सुंदर शैडो बॉर्डर */
+                                        background: #ffffff !important; 
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
                                         display: flex; 
                                         justify-content: space-between; 
                                         gap: 3%;
                                         page-break-after: always; 
                                     }}
-                                    
                                     .foil-block {{ 
                                         width: 48.5%; 
                                         border: 1px solid #000; 
@@ -1828,8 +1822,6 @@ else:
                                         flex-direction: column; 
                                         background: #ffffff !important;
                                     }}
-                                    
-                                    /* 🖨️ जब सचमुच प्रिंट बटन दबाएँ, तो पीछे का ग्रे रंग और शैडो गायब हो जाए */
                                     @media print {{
                                         body {{ 
                                             background-color: #fff; 
@@ -1852,12 +1844,17 @@ else:
                             </html>
                             """
                             
-                            # 🖥️ यह कमांड अब आपके स्क्रीन डिस्प्ले को सीधे प्रिंटर जैसा पेपर फ्रेम देगी
-                            st.markdown(clean_foil_template, unsafe_allow_html=True)
-                            
-                            # 🖨️ 4. लाइव आईफ्रेम प्रिंट इंजन (A4 Portrait Direct Print Window)
+                            # 🚨 फिक्स: 'st.markdown' को हटाकर पूरे फ्रेम को Iframe Component के जरिए रेंडर कर रहे हैं
+                            # इससे स्क्रीन पर दिखने वाला सारा कोड तुरंत गायब हो जाएगा और असली A4 शीट दिखने लगेगी
                             safe_html_string = clean_foil_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
+                            
+                            # स्क्रीन प्रीव्यू के लिए आईफ्रेम (यह छात्रों की संख्या के हिसाब से अपनी ऊंचाई एडजस्ट कर लेगा)
+                            # यदि रिकॉर्ड बहुत ज़्यादा हैं तो आप height को 800 या 1000 भी कर सकते हैं
+                            st.components.v1.html(clean_foil_template, height=800, scrolling=True)
+                            
                             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+                            
+                            # 🖨️ यह आपका मुख्य सुरक्षित प्रिंट बटन है जो नीचे हरे रंग में दिखेगा
                             components.html(
                                 f"""
                                 <html>
