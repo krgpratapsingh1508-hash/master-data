@@ -918,7 +918,7 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
                 
                 # सुनिश्चित करें कि सभी कॉलम मौजूद हों
-                for col in render_cols:
+                for col in chosen_render_cols:
                     if col not in admission_display_db.columns:
                         if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
                             admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
