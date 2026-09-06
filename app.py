@@ -1615,97 +1615,194 @@ else:
                             }
                             return words_dict.get(m_str, m_str) + " ONLY"
 
-                        # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil (As per User Image) ---
+                        # --- फ़ॉर्मेट 1: Standard Side-By-Side Blank Foil (Dynamic Multi-Page Pagination) ---
                         if foil_format_type == "University Official Blank Foil Sheets (Side-by-Side)":
-                            rows_html = ""
-                            for idx, row in enumerate(records_list):
-                                rows_html += f"""
-                                <tr>
-                                    <td style='border: 1px solid #000; padding: 5px; font-weight: bold; text-align: center;'>{idx + 1}</td>
-                                    <td style='border: 1px solid #000; padding: 5px; font-family: monospace; font-size: 13px; text-align: center; letter-spacing: 1px;'>{row.get("Roll No.", "")}</td>
-                                    <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
-                                    <td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>
-                                </tr>
-                                """
+                            
+                            # 🔄 छात्रों की सूची को 25-25 के ब्लॉक में विभाजित करने का लॉजिक
+                            chunk_size = 25
+                            total_students = len(records_list)
+                            pages_html = ""
+                            
+                            # प्रत्येक लूप एक पूरा A4 पेज (50 छात्र क्षमता) जनरेट करेगा
+                            for page_idx, base_start in enumerate(range(0, total_students, chunk_size * 2)):
                                 
+                                # ⬅️ लेफ्ट ब्लॉक (25 छात्र)
+                                left_start = base_start
+                                left_end = min(left_start + chunk_size, total_students)
+                                left_chunk = records_list[left_start:left_end]
+                                
+                                # ➡️ राइट ब्लॉक (25 छात्र)
+                                right_start = left_start + chunk_size
+                                right_end = min(right_start + chunk_size, total_students)
+                                right_chunk = records_list[right_start:right_end] if right_start < total_students else []
+                                
+                                # यदि दोनों ही ब्लॉक खाली हैं तो लूप रोकें
+                                if not left_chunk and not right_chunk:
+                                    break
+                                    
+                                # 🛠️ फंक्शन: सिंगल ब्लॉक (लेफ्ट या राइट) की टेबल रो रेंडर करना
+                                def generate_block_rows(start_no, data_subset):
+                                    html_rows = ""
+                                    for i in range(chunk_size):
+                                        if i < len(data_subset):
+                                            row = data_subset[i]
+                                            roll_no = str(row.get("Roll No.", "")).strip()
+                                            s_no = start_no + i
+                                        else:
+                                            # खाली रो ताकि टेबल का ढांचा (Height) न बिगड़े
+                                            roll_no = "&nbsp;"
+                                            s_no = start_no + i
+                                            
+                                        html_rows += f"""
+                                        <tr>
+                                            <td style='border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;'>{s_no}</td>
+                                            <td style='border: 1px solid #000; padding: 4px; font-family: monospace; font-size: 11px; text-align: center; letter-spacing: 0.5px;'>{roll_no}</td>
+                                            <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
+                                            <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
+                                        </tr>
+                                        """
+                                    return html_rows
+
+                                # 📄 सिंगल A4 पेज टेम्पलेट विथ पेज-ब्रेक सीएसएस
+                                pages_html += f"""
+                                <div class='a4-page-wrapper' style='page-break-after: always; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: 2%; margin-bottom: 30px; background: #fff;'>
+                                    
+                                    <!-- ⬅️ लेफ्ट फॉयल ब्लॉक (1 से 25 या 51 से 75 आदि) -->
+                                    <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
+                                        <div class='top-meta' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; margin-bottom: 5px;'>
+                                            <span>Paper Code...................</span>
+                                            <span>Bundle No...................</span>
+                                        </div>
+                                        <div class='header-block' style='text-align: center; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 5px;'>
+                                            <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Examination :- CCE</span>
+                                            <span>{chosen_option.upper()}</span>
+                                        </div>
+                                        <div class='info-row' style='font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
+                                            <span>Subject: {selected_subject.upper()}</span>
+                                            <span>Paper.......................</span>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Maximum Marks: {max_marks}</span>
+                                            <span>Min Pass Marks: ............</span>
+                                        </div>
+                                        <div class='foil-label' style='text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;'>FOIL</div>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px;'>
+                                            <thead>
+                                                <tr>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>1</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>2</th>
+                                                </tr>
+                                                <tr>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 15%; padding: 2px;'>Code No.</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No.</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; padding: 2px;'>Marks Obtained</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 20%; padding: 2px;'>In Fig</th>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 30%; padding: 2px;'>In Words</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {generate_block_rows(left_start + 1, left_chunk)}
+                                            </tbody>
+                                        </table>
+                                        <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 9px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
+                                            <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible.
+                                        </div>
+                                        <div class='footer-sign' style='font-size: 10px; line-height: 1.6; font-weight: bold;'>
+                                            <div>Signature of Examiner........................................................</div>
+                                            <div>Name of Examiner...........................................................</div>
+                                            <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
+                                                <span>Place............................................</span>
+                                                <span style='border: 1px solid #000; padding: 2px; font-size: 9px;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ➡️ राइट फॉयल ब्लॉक (26 से 50 या 76 से 100 आदि) -->
+                                    <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
+                                        <div class='top-meta' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; margin-bottom: 5px;'>
+                                            <span>Paper Code...................</span>
+                                            <span>Bundle No...................</span>
+                                        </div>
+                                        <div class='header-block' style='text-align: center; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 5px;'>
+                                            <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Examination :- CCE</span>
+                                            <span>{chosen_option.upper()}</span>
+                                        </div>
+                                        <div class='info-row' style='font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
+                                            <span>Subject: {selected_subject.upper()}</span>
+                                            <span>Paper.......................</span>
+                                        </div>
+                                        <div class='info-row' style='display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
+                                            <span>Maximum Marks: {max_marks}</span>
+                                            <span>Min Pass Marks: ............</span>
+                                        </div>
+                                        <div class='foil-label' style='text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;'>FOIL</div>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px;'>
+                                            <thead>
+                                                <tr>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>1</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>2</th>
+                                                </tr>
+                                                <tr>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 15%; padding: 2px;'>Code No.</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No.</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; padding: 2px;'>Marks Obtained</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 20%; padding: 2px;'>In Fig</th>
+                                                    <th style='border: 1px solid #000; text-align: center; width: 30%; padding: 2px;'>In Words</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {generate_block_rows(right_start + 1, right_chunk)}
+                                            </tbody>
+                                        </table>
+                                        <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 9px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
+                                            <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible.
+                                        </div>
+                                        <div class='footer-sign' style='font-size: 10px; line-height: 1.6; font-weight: bold;'>
+                                            <div>Signature of Examiner........................................................</div>
+                                            <div>Name of Examiner...........................................................</div>
+                                            <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
+                                                <span>Place............................................</span>
+                                                <span style='border: 1px solid #000; padding: 2px; font-size: 9px;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                """
+
+                            # 🏛️ 3. पूर्ण एकीकृत एचटीएमएल संरचना (स्क्रीन और ए4 प्रिंट हेतु)
                             clean_foil_template = f"""
                             <html>
                             <head>
                                 <style>
-                                    @page {{ size: A4 portrait; margin: 10mm; }}
-                                    body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background-color: #fff; }}
-                                    .foil-container {{ width: 100%; border: 1px solid #000; padding: 20px; box-sizing: border-box; }}
-                                    .top-meta {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 8px; }}
-                                    .header-block {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 8px; }}
-                                    .header-block h2 {{ margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }}
-                                    .info-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 6px; }}
-                                    .foil-label {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 2px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 15px; }}
-                                    th, td {{ border: 1px solid #000; padding: 6px; }}
-                                    .note-box {{ border: 1px solid #000; padding: 8px; font-size: 11px; line-height: 1.4; margin-bottom: 25px; text-align: justify; }}
-                                    .footer-sign {{ font-size: 12px; line-height: 2.0; font-weight: bold; }}
+                                    @page {{ size: A4 portrait; margin: 8mm; }}
+                                    body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #fff; }}
+                                    @media print {{
+                                        .a4-page-wrapper {{ page-break-after: always !important; }}
+                                    }}
                                 </style>
                             </head>
                             <body>
-                                <div class='foil-container'>
-                                    <div class='top-meta'>
-                                        <span>Paper Code...................</span>
-                                        <span>Bundle No...................</span>
-                                    </div>
-                                    <div class='header-block'>
-                                        <h2>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
-                                        <h2 style='margin-top: 3px;'>GWALIOR (M.P.)</h2>
-                                    </div>
-                                    <div class='info-row'>
-                                        <span>Examination :- CCE</span>
-                                        <span>{chosen_option.upper()}</span>
-                                    </div>
-                                    <div class='info-row'>
-                                        <span>Subject: {selected_subject.upper()}</span>
-                                        <span>Paper............................................</span>
-                                    </div>
-                                    <div class='info-row'>
-                                        <span>Maximum Marks: {max_marks}</span>
-                                        <span>Minimum Pass Marks: .......................</span>
-                                    </div>
-                                    <div class='foil-label'>FOIL</div>
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th colspan='2' style='text-align: center; width: 40%; font-weight: bold;'>1</th>
-                                                <th colspan='2' style='text-align: center; width: 60%; font-weight: bold;'>2</th>
-                                            </tr>
-                                            <tr>
-                                                <th rowspan='2' style='text-align: center; width: 12%;'>Code No.</th>
-                                                <th rowspan='2' style='text-align: center; width: 28%;'>Roll No.</th>
-                                                <th colspan='2' style='text-align: center;'>Marks Obtained</th>
-                                            </tr>
-                                            <tr>
-                                                <th style='text-align: center; width: 20%;'>In Figures</th>
-                                                <th style='text-align: center; width: 40%;'>In Words</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rows_html}
-                                        </tbody>
-                                    </table>
-                                    <div class='note-box'>
-                                        <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible. These may be checked again to ensure that no mistake remains.
-                                    </div>
-                                    <div class='footer-sign'>
-                                        <div>Signature of Examiner........................................................................................</div>
-                                        <div>Name of Examiner.............................................................................................</div>
-                                        <div style='display: flex; justify-content: space-between; margin-top: 5px;'>
-                                            <span style='width: 60%;'>Place..............................................................................</span>
-                                            <span style='width: 40%; border: 1px solid #000; padding: 4px 8px; display: inline-block; box-sizing: border-box;'>Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 2026</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                {pages_html}
                             </body>
                             </html>
                             """
+                            
+                            # 🖥️ स्क्रीन पर लाइव प्रीव्यू प्रदर्शित करें
                             st.markdown(clean_foil_template, unsafe_allow_html=True)
-                                
+                            
+                            # 🖨️ 4. लाइव आईफ्रेम प्रिंट इंजन (A4 Portrait Direct Print Window)
                             safe_html_string = clean_foil_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
                             components.html(
@@ -1718,18 +1815,24 @@ else:
                                         iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
                                         iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
                                         window.parent.document.body.appendChild(iframe);
+                                        
                                         var doc = iframe.contentWindow.document;
                                         doc.open(); doc.write(`{safe_html_string}`); doc.close();
                                         iframe.contentWindow.focus(); iframe.contentWindow.print();
+                                        
                                         setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
                                     }}
                                     </script>
-                                    <button onclick="printFoilSheet()" style="width: 100%; background-color: #28a745; color: white; padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: sans-serif; box-shadow: 0 4px 6px rgba(40,167,69,0.15);">
+                                    <button onclick="printFoilSheet()" style="
+                                        width: 100%; background-color: #28a745; color: white; padding: 14px; 
+                                        border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
+                                        font-family: sans-serif; box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);">
                                         🖨️ Click Here to Print Official Blank Foil Sheet (A4 Size)
                                     </button>
                                 </body>
                                 </html>
-                                """, height=60
+                                """,
+                                height=60
                             )
 
                         # --- फ़ॉर्मेट 2: DETAILED MARKS VIEW ---
