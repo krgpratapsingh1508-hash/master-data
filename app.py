@@ -2283,12 +2283,16 @@ else:
                                 column_mapping_fixes = {
                                     "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
                                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                                    "Email Id": "Email ID", "Year": "Current Year",
-                                    "Application Number": "Admission Application Number"
+                                    "Email Id": "Email ID", "Year": "Current Year"
                                 }
                                 file_subset_direct = file_subset_direct.rename(columns=column_mapping_fixes)
-                                if "Application Number" not in file_subset_direct.columns and "Admission Application Number" in file_subset_direct.columns:
-                                    file_subset_direct["Application Number"] = file_subset_direct["Admission Application Number"]
+                                
+                                # सुरक्षित असाइनमेंट ताकि मल्टिपल कॉलम वाली एरर न आए
+                                if "Application Number" not in file_subset_direct.columns:
+                                    if "Admission Application Number" in file_subset_direct.columns:
+                                        file_subset_direct["Application Number"] = file_subset_direct["Admission Application Number"].astype(str)
+                                    else:
+                                        file_subset_direct["Application Number"] = ""
 
                                 for col in DEFAULT_COLUMNS:
                                     if col not in file_subset_direct.columns:
