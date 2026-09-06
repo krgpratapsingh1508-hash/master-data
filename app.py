@@ -1661,6 +1661,13 @@ else:
                             chunk_size = 35 # प्रति फॉयल ब्लॉक की सटीक रोल नंबर सीमा
                             total_students = len(records_list)
                             
+                            # 🟢 चेक करें कि क्या लिस्ट में वास्तव में किसी छात्र का नाम रोल नंबर वाले कॉलम में आया है
+                            # यदि कोई रोल नंबर खाली था और उसकी जगह टेक्स्ट (नाम) आया है, तो यह True हो जाएगा
+                            has_names_in_roll_col = any(not str(row.get("Roll No.", "")).strip().isdigit() for row in records_list if str(row.get("Roll No.", "")).strip() != "")
+                            
+                            # 🟢 यदि नाम आया है तभी हेडर "Roll No./ Student Name" होगा, अन्यथा केवल "Roll No." रहेगा
+                            column_header_text = "Roll No./ Student Name" if has_names_in_roll_col else "Roll No."
+                            
                             # 🎯 ड्रॉपडाउन विकल्प के टेक्स्ट को कस्टमाइज़ करने का आंतरिक इंजन
                             def format_scope_label(raw_opt):
                                 raw_str = str(raw_opt).strip().lower()
@@ -1675,13 +1682,11 @@ else:
                             formatted_scope = format_scope_label(chosen_option)
                             
                             # 🔄 कुल छात्रों की संख्या के आधार पर आवश्यक कुल पेजों की गणना (Vertical Split Logic)
-                            # एक पेज के बाएं हिस्से में 35 छात्र आएंगे, इसलिए कुल पेजों की संख्या = ceil(total_students / 70)
                             import math
                             total_pages_needed = math.ceil(total_students / (chunk_size * 2))
                             if total_pages_needed == 0:
                                 total_pages_needed = 1
                                 
-                            # कुल छात्रों को वर्टिकल हाफ-स्प्लिट के अनुसार बाएं और दाएं हिस्सों के लिए अलग-अलग विभाजित करना
                             half_total_capacity = total_pages_needed * chunk_size
                             left_side_students = records_list[0:half_total_capacity]
                             right_side_students = records_list[half_total_capacity:]
@@ -1714,12 +1719,20 @@ else:
                                             roll_no = "&nbsp;"
                                             s_no = absolute_start_idx + i + 1
                                             
-                                        # 🟢 मजबूत अलाइनमेंट फ़िक्स: 'text-align: left !important;' के साथ फॉन्ट को 'Arial' किया गया है 
-                                        # ताकि जब नाम आए तो वह बिना किसी अतिरिक्त स्पेस के बिल्कुल बाईं तरफ चिपक कर दिखे।
+                                        # 🟢 डायनेमिक स्टाइलिंग इंजन: 
+                                        # यदि शुद्ध नंबर (Roll No) है, तो Center align रहेगा।
+                                        # यदि रोल नंबर गायब है और नाम आया है, तो Left align हो जाएगा।
+                                        is_numeric_roll = roll_no.isdigit() or roll_no == "&nbsp;"
+                                        
+                                        if is_numeric_roll:
+                                            td_style = "font-family: monospace; font-size: 11px; text-align: center; letter-spacing: 0.5px; padding: 4px 2px;"
+                                        else:
+                                            td_style = "font-family: Arial, sans-serif; font-size: 10px; text-align: left !important; padding: 4px 2px 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; letter-spacing: 0px;"
+                                            
                                         html_rows += f"""
                                         <tr>
                                             <td style='border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;'>{s_no}</td>
-                                            <td style='border: 1px solid #000; padding: 4px 2px 4px 6px; font-family: Arial, sans-serif; font-size: 10px; text-align: left !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; letter-spacing: 0px;'>{roll_no}</td>
+                                            <td style='border: 1px solid #000; {td_style}'>{roll_no}</td>
                                             <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
                                             <td style='border: 1px solid #000; padding: 4px;'>&nbsp;</td>
                                         </tr>
@@ -1730,13 +1743,13 @@ else:
                                 pages_html += f"""
                                 <div class='a4-page-wrapper' style='page-break-after: always; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; gap: 2%; margin-bottom: 30px; background: #fff;'>
                                     
-                                    <!-- ⬅️ लेफ्ट फॉयल ब्लॉक (वर्टिकल क्रम में 1 से 35, अगले पेज पर 36 से 70 आदि) -->
+                                    <!-- ⬅️ लेफ्ट फॉयल ब्लॉक -->
                                     <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
                                         <div class='top-meta' style='display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; text-align: right;'>
                                             <div style='margin-bottom: 2px;'>Paper Code...................</div>
                                             <div>Bundle No.....................</div>
                                         </div>
-                                        <div class='header-block' style='text-align: center; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 5px;'>
+                                        <div class='header-block' style='text-align: center; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding-top: 6px; padding-bottom: 6px; margin-top: 5px; margin-bottom: 8px;'>
                                             <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
                                             <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
                                         </div>
@@ -1761,7 +1774,7 @@ else:
                                                 </tr>
                                                 <tr>
                                                     <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 15%; padding: 2px;'>Code No.</th>
-                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No./ Student Name</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>{column_header_text}</th>
                                                     <th colspan='2' style='border: 1px solid #000; text-align: center; padding: 2px;'>Marks Obtained</th>
                                                 </tr>
                                                 <tr>
@@ -1785,14 +1798,14 @@ else:
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- ➡️ राइट फॉयल ब्लॉक (वर्टिकल क्रम में लेफ्ट साइड की पूरी सिरीज़ खत्म होने के बाद के रोल नंबर) -->
                                     <div class='foil-block' style='width: 49%; border: 1px solid #000; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column;'>
                                         <div class='top-meta' style='display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; text-align: right;'>
                                             <div style='margin-bottom: 2px;'>Paper Code...................</div>
                                             <div>Bundle No.....................</div>
                                         </div>
-                                        <div class='header-block' style='text-align: center; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 5px;'>
+                                        <div class='header-block' style='text-align: center; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding-top: 6px; padding-bottom: 6px; margin-top: 5px; margin-bottom: 8px;'>
                                             <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
                                             <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
                                         </div>
@@ -1816,9 +1829,9 @@ else:
                                                     <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>2</th>
                                                 </tr>
                                                 <tr>
-                                                    <th rowspan='2' style='text-align: center; width: 15%; padding: 2px;'>Code No.</th>
-                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No./ Student Name</th>
-                                                    <th colspan='2' style='text-align: center; padding: 2px;'>Marks Obtained</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 15%; padding: 2px;'>Code No.</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>{column_header_text}</th>
+                                                    <th colspan='2' style='border: 1px solid #000; text-align: center; padding: 2px;'>Marks Obtained</th>
                                                 </tr>
                                                 <tr>
                                                     <th style='border: 1px solid #000; text-align: center; width: 20%; padding: 2px;'>In Fig</th>
