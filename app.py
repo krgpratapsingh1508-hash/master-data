@@ -861,39 +861,34 @@ else:
                     custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
                 
                 # ==================================================================
-                # 🛠️ स्टेप 3.2: डायनेमिक कॉलम फिल्टर (दिखने वाले कॉलम यहाँ से चुनें)
+                # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
                 # ==================================================================
                 st.markdown("---")
                 st.subheader("👁️ Select Columns to Display & Print")
-                st.caption("जिन कॉलम्स को आप स्क्रीन और प्रिंट रिपोर्ट में देखना चाहते हैं, उन पर टिक (✔️) रखें। बाकी को अनटिक कर दें:")
-
-                # सभी 10 उपलब्ध कॉलम्स की लिस्ट
+                
                 all_possible_p2_cols = [
                     "Admission Application Number", "Student Name", "Father Name", 
                     "Admission Year", "Admission Session", "Subject", "Mobile Number", 
                     "Admission & Enrollment Fees", "Payment Date", "Status"
                 ]
 
-                # चेकबॉक्स को सुंदर दिखाने के लिए 4 कॉलम का ग्रिड लेआउट
-                chk_cols = st.columns(4)
-                chosen_render_cols = []
+                # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
+                chosen_render_cols = st.multiselect(
+                    "रिपोर्ट में देखने के लिए आवश्यक कॉलम्स चुनें:",
+                    options=all_possible_p2_cols,
+                    default=all_possible_p2_cols, # डिफ़ॉल्ट रूप से सभी सेलेक्ट रहेंगे
+                    key="p2_columns_multiselect_dropdown_v20"
+                )
 
-                for idx, col_name in enumerate(all_possible_p2_cols):
-                    with chk_cols[idx % 4]:
-                        # डिफ़ॉल्ट रूप से (value=True) यानी सभी कॉलम टिक रहेंगे
-                        if st.checkbox(f"📄 {col_name}", value=True, key=f"p2_col_dynamic_visible_{col_name}"):
-                            chosen_render_cols.append(col_name)
-
-                # यदि यूजर सारे बॉक्स अनटिक कर दे, तो एरर से बचने के लिए डिफ़ॉल्ट कॉलम सेट करें
+                # सुरक्षा सुरक्षा नियम: यदि सब डिलीट कर दें तो कम से कम नाम और नंबर जरूर दिखे
                 if not chosen_render_cols:
                     chosen_render_cols = ["Admission Application Number", "Student Name"]
 
                 st.markdown("---")
                 
                 # ==================================================================
-                # 📊 Data Grid Overview (अब केवल चुने हुए कॉलम ही प्रोसेस होंगे)
+                # 📊 Data Grid Overview (स्क्रीन पर दिखने वाली एकमात्र मुख्य तालिका)
                 # ==================================================================
-                # सुनिश्चित करें कि सिलेक्टेड कॉलम डेटाबेस संरचना में मौजूद हैं
                 for col in chosen_render_cols:
                     if col not in admission_display_db.columns:
                         if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
@@ -903,7 +898,6 @@ else:
                         
                 final_p2_render = admission_display_db[chosen_render_cols].copy()
                 
-                # डिस्प्ले सुंदर करने के लिए नाम छोटा करें
                 if "Admission Application Number" in final_p2_render.columns:
                     final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
                     
@@ -914,31 +908,11 @@ else:
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
                 
-                # 🌟 स्क्रीन पर दिखने वाली एकमात्र मुख्य ग्रिड तालिका
-                st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
-                
-                # सुनिश्चित करें कि सभी कॉलम मौजूद हों
-                for col in chosen_render_cols:
-                    if col not in admission_display_db.columns:
-                        if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
-                            admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
-                        else:
-                            admission_display_db[col] = ""
-                        
-                final_p2_render = admission_display_db[chosen_render_cols].copy()
-                final_p2_render = final_p2_render.rename(columns={"Admission Application Number": "Application Number"})
-                final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
-                
-                if not final_p2_render.empty:
-                    final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
-                
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
-                
-                # 🌟 स्क्रीन पर दिखने वाली एकमात्र मुख्य ग्रिड तालिका
+                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ केवल यह एक प्रिंट बटन दिखेगा, नीचे कोई एक्स्ट्रा लिस्ट नहीं आएगी
+                # 🖨️ Clean Variable-Based Iframe Print Engine (No Screen Leak Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
                     columns_list = list(final_p2_render.columns)
@@ -988,7 +962,7 @@ else:
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 🌟 शुद्ध HTML प्रिंट बटन (इसके नीचे कोई गुप्त तालिका लीक नहीं होगी)
+                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है (कोई एक्स्ट्रा लिस्ट नीचे नहीं बनाएगा)
                     components.html(
                         f"""
                         <html>
