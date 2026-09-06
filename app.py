@@ -880,7 +880,18 @@ else:
                     key="p2_columns_multiselect_dropdown_v20"
                 )
 
-                # सुरक्षा सुरक्षा नियम: यदि सब डिलीट कर दें तो कम से कम नाम और नंबर जरूर दिखे
+                # 🖨️ नया फ़ीचर: प्रिंट ओरिएंटेशन चुनने का विकल्प (Portrait / Landscape)
+                print_orientation = st.selectbox(
+                    "🖨️ प्रिंट पेज का लेआउट चुनें (Choose Print Orientation):",
+                    options=["Portrait (खड़ा पेज - कम कॉलम्स के लिए उत्तम)", "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"],
+                    index=1, # डिफ़ॉल्ट रूप से Landscape सेट रहेगा
+                    key="p2_print_orientation_selector"
+                )
+                
+                # सीएसएस के लिए वैल्यू सेट करना
+                orientation_css = "portrait" if "Portrait" in print_orientation else "landscape"
+
+                # सुरक्षा नियम: यदि सब डिलीट कर दें तो कम से कम नाम और नंबर जरूर दिखे
                 if not chosen_render_cols:
                     chosen_render_cols = ["Admission Application Number", "Student Name"]
 
@@ -912,7 +923,7 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ Clean Variable-Based Iframe Print Engine (No Screen Leak Fix)
+                # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix)
                 # ==================================================================
                 if not final_p2_render.empty:
                     columns_list = list(final_p2_render.columns)
@@ -932,7 +943,7 @@ else:
                     <html>
                     <head>
                         <style>
-                            @page {{ size: A4 landscape; margin: 8mm; }}
+                            @page {{ size: A4 {orientation_css}; margin: 8mm; }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
                             .custom-print-header {{
                                 width: 100%; border: 2px solid #1465de; background-color: #f4f8ff;
@@ -962,7 +973,7 @@ else:
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है (कोई एक्स्ट्रा लिस्ट नीचे नहीं बनाएगा)
+                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है
                     components.html(
                         f"""
                         <html>
