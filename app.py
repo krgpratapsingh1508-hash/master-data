@@ -1640,7 +1640,7 @@ else:
                                 if not left_chunk and not right_chunk:
                                     break
                                     
-                                # 🛠️ फंक्शन: सिंगल ब्लॉक (लेफ्ट या राइट) की टेबल रो रेंडर करना
+                                # 🛠️ फंक्शन: सिंगल ब्लॉक (लेफ्ट या राइट) की टेबल रो रेंडर करना (Display Code Fix)
                                 def generate_block_rows(start_no, data_subset):
                                     html_rows = ""
                                     for i in range(chunk_size):
@@ -1653,6 +1653,7 @@ else:
                                             roll_no = "&nbsp;"
                                             s_no = start_no + i
                                             
+                                        # 🚨 यहाँ ध्यान दें: हर रो <tr> से शुरू होकर </tr> पर ही समाप्त होगी, कोई एक्स्ट्रा 'tr>' नहीं बचेगा
                                         html_rows += f"""
                                         <tr>
                                             <td style='border: 1px solid #000; padding: 4px; font-weight: bold; text-align: center;'>{s_no}</td>
