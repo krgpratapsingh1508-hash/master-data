@@ -1593,13 +1593,53 @@ else:
                     }
                     target_db_year = sem_to_year_map.get(chosen_option, chosen_option)
                     
+                    # 1. पहले विषय (Subject) के आधार पर फ़िल्टर करें
                     if selected_subject != "All Subjects":
                         foil_data_df = foil_data_df[foil_data_df["Subject"].astype(str).str.strip() == selected_subject]
-                        
+                    
+                    # 🟢 2. एडवांस डायनेमिक कॉम्बो फ़िल्टर इंजन (Regular + Next Year EX-Student)
                     if chosen_option != "All Years":
-                        foil_data_df = foil_data_df[foil_data_df["Year"].astype(str).str.strip() == target_db_year]
+                        import re
+                        match = re.search(r'\d+', target_db_year)
+                        if match:
+                            current_num = int(match.group())
+                            next_num = current_num + 1
+                            
+                            reg_year_str = f"{current_num}st Year" if current_num == 1 else f"{current_num}nd Year" if current_num == 2 else f"{current_num}rd Year" if current_num == 3 else f"{current_num}th Year"
+                            ex_year_str = f"{next_num}st Year" if next_num == 1 else f"{next_num}nd Year" if next_num == 2 else f"{next_num}rd Year" if next_num == 3 else f"{next_num}th Year"
+                            
+                            # फ़िल्टर: (Current Year का Regular Student) OR (Next Year का EX-STUDENT)
+                            foil_data_df = foil_data_df[
+                                ((foil_data_df["Year"].astype(str).str.strip() == reg_year_str) & 
+                                 (foil_data_df["Status"].astype(str).str.strip().str.upper() == "REGULAR STUDENT")) |
+                                ((foil_data_df["Year"].astype(str).str.strip() == ex_year_str) & 
+                                 (foil_data_df["Status"].astype(str).str.strip().str.upper() == "EX-STUDENT"))
+                            ]
+                        else:
+                            # यदि कोई अन्य वैल्यू हो तो सामान्य मिलान
+                            foil_data_df = foil_data_df[foil_data_df["Year"].astype(str).str.strip() == target_db_year]
+                    
+                    # 🟢 3. रोल नंबर खाली होने पर स्टूडेंट नेम रिप्लेसमेंट नियम (ONLY FOR 1st YEAR FILTER)
+                    if not foil_data_df.empty and "Roll No." in foil_data_df.columns:
+                        def apply_roll_name_rule(row):
+                            roll_val = str(row.get("Roll No.", "")).strip()
+                            is_in_first_year_scope = (target_db_year == "1st Year")
+                            
+                            if is_in_first_year_scope and (roll_val == "" or roll_val.lower() == "nan"):
+                                return str(row.get("Student Name", "")).strip().upper()
+                            return roll_val
+
+                        foil_data_df["Roll No."] = foil_data_df.apply(apply_roll_name_rule, axis=1)
+
+                    # 🔢 4. शॉर्टिंग इंजन: नाम और रोल नंबर दोनों को वर्णानुक्रम/बढ़ते क्रम में व्यवस्थित रखना
+                    if not foil_data_df.empty and "Roll No." in foil_data_df.columns:
+                        foil_data_df["_sort_key"] = pd.to_numeric(foil_data_df["Roll No."], errors='coerce')
+                        foil_data_df = foil_data_df.sort_values(
+                            by=["_sort_key", "Roll No."], 
+                            ascending=[True, True]
+                        ).drop(columns=["_sort_key"]).reset_index(drop=True)
                         
-                    records_list = foil_data_df.reset_index(drop=True).to_dict(orient="records")
+                    records_list = foil_data_df.to_dict(orient="records")
 
                     if len(records_list) == 0:
                         st.warning(f"🔍 चयनित Subject और '{chosen_option}' ({target_db_year}) के आधार पर कोई डेटा नहीं मिला।")
