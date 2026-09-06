@@ -1791,7 +1791,7 @@ else:
                                         <div class='footer-sign' style='padding: 2px;font-size: 10px; line-height: 1.6; font-weight: bold;'>
                                             <div>Signature of Examiner........................................................</div>
                                             <div>Name of Examiner...........................................................</div>
-                                            <div style='display: flex; justify-content: space-between; margin-top: 3px;'>
+                                            <div style='display: flex; justify-content: space-between; margin-top: 5px;'>
                                                 <span>Place............................................</span>
                                                 <span style='padding: 2px; font-size: 9px;'>Date: ____/____/________</span>
                                             </div>
