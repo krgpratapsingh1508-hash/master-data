@@ -938,10 +938,9 @@ else:
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
-                # 🖨️ Clean Variable-Based Iframe Print Engine (No Screen Leak)
+                # 🖨️ केवल यह एक प्रिंट बटन दिखेगा, नीचे कोई एक्स्ट्रा लिस्ट नहीं आएगी
                 # ==================================================================
                 if not final_p2_render.empty:
-                    # 1. पूरे डेटा को बिना किसी स्क्रीन ऑब्जेक्ट के सीधे बैकएंड वेरिएबल में प्रोसेस करना
                     columns_list = list(final_p2_render.columns)
                     records_list = final_p2_render.to_dict(orient="records")
                     
@@ -955,7 +954,6 @@ else:
                             rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
                         rows_html += "</tr>"
                     
-                    # 2. प्रिंट होने वाला शुद्ध HTML डॉक्यूमेंट लेआउट
                     clean_table_html = f"""
                     <html>
                     <head>
@@ -988,10 +986,9 @@ else:
                     """
                     
                     safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
-                    
                     st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
                     
-                    # 3. प्रिंट बटन कंपोनेंट (यह केवल एक बटन रेंडर करेगा, नीचे कोई एक्स्ट्रा लिस्ट नहीं बनाएगा)
+                    # 🌟 शुद्ध HTML प्रिंट बटन (इसके नीचे कोई गुप्त तालिका लीक नहीं होगी)
                     components.html(
                         f"""
                         <html>
@@ -999,32 +996,21 @@ else:
                             <script>
                             function printAdmissionList() {{
                                 var iframe = window.parent.document.createElement('iframe');
-                                iframe.style.position = 'fixed';
-                                iframe.style.right = '0';
-                                iframe.style.bottom = '0';
-                                iframe.style.width = '0';
-                                iframe.style.height = '0';
-                                iframe.style.border = '0';
+                                iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
+                                iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
                                 window.parent.document.body.appendChild(iframe);
                                 
                                 var doc = iframe.contentWindow.document;
-                                doc.open();
-                                doc.write(`{safe_html_string}`);
-                                doc.close();
+                                doc.open(); doc.write(`{safe_html_string}`); doc.close();
+                                iframe.contentWindow.focus(); iframe.contentWindow.print();
                                 
-                                iframe.contentWindow.focus();
-                                iframe.contentWindow.print();
-                                
-                                setTimeout(function() {{
-                                    window.parent.document.body.removeChild(iframe);
-                                }}, 1000);
+                                setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
                             }}
                             </script>
                             <button onclick="printAdmissionList()" style="
-                                width: 100%; background-color: #1465de; color: white; 
-                                padding: 14px; border: none; border-radius: 6px; 
-                                font-weight: bold; cursor: pointer; font-size: 16px;
-                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2); width: 100%;">
+                                width: 100%; background-color: #1465de; color: white; padding: 14px; 
+                                border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
+                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
                                 🖨️ Click Here to Print Admission & Payment Report Sheet
                             </button>
                         </body>
