@@ -2862,18 +2862,25 @@ else:
                     
                     st.markdown("---")
                     
-                    # 🚨 100% फुलप्रूफ लॉक: यदि लिस्ट लॉक है, तो माउस से ड्रैग करने पर भी कॉलम का क्रम नहीं बदलेगा
-                    current_fixed_order = [get_display_name(c) for c in render_columns]
-                    
-                    edited_master_db = st.data_editor(
-                        ordered_db_display,
-                        use_container_width=True,
-                        disabled=disabled_fields,
-                        hide_index=True,
-                        num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
-                        column_order=current_fixed_order, # 🔒 यह माउस से कॉलम हिलाना पूरी तरह बंद कर देगा
-                        key="p15_supreme_master_live_editor_grid"
-                    )
+                    # 🎯 आपकी शर्त: लॉक होने पर माउस कर्सर से कॉलम हिलना बंद होगा, अनलॉक पर चालू रहेगा
+                    if st.session_state.admin_lock_state:
+                        # 🔒 लॉक मोड: यह माउस कर्सर से कॉलम को खींचना (Move करना) पूरी तरह बंद कर देगा
+                        st.dataframe(
+                            ordered_db_display, 
+                            use_container_width=True, 
+                            hide_index=True
+                        )
+                        edited_master_db = ordered_db_display
+                    else:
+                        # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
+                        edited_master_db = st.data_editor(
+                            ordered_db_display,
+                            use_container_width=True,
+                            disabled=disabled_fields,
+                            hide_index=True,
+                            num_rows="dynamic",
+                            key="p15_supreme_master_live_editor_grid"
+                        )
                     
                     if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                         try:
