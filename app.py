@@ -2861,12 +2861,17 @@ else:
                                 st.rerun()
                     
                     st.markdown("---")
+                    
+                    # 🚨 100% फुलप्रूफ लॉक: यदि लिस्ट लॉक है, तो माउस से ड्रैग करने पर भी कॉलम का क्रम नहीं बदलेगा
+                    current_fixed_order = [get_display_name(c) for c in render_columns]
+                    
                     edited_master_db = st.data_editor(
                         ordered_db_display,
                         use_container_width=True,
                         disabled=disabled_fields,
                         hide_index=True,
                         num_rows="dynamic", # डायनेमिक रो डिलीट विकल्प सक्रिय
+                        column_order=current_fixed_order, # 🔒 यह माउस से कॉलम हिलाना पूरी तरह बंद कर देगा
                         key="p15_supreme_master_live_editor_grid"
                     )
                     
