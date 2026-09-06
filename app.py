@@ -1786,7 +1786,7 @@ else:
                                                 {generate_vertical_rows(l_start, current_left_chunk)}
                                             </tbody>
                                         </table>
-                                        <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 11px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
+                                        <div class='note-box' style='border: 1px solid #000; padding: 5px; font-size: 9px; line-height: 1.2; margin-bottom: 10px; text-align: justify;'>
                                             <b>Note:</b> Roll Number and Marks awarded to the candidate may be entered under respective columns very carefully. Marks and Roll Number should be legible.
                                         </div>
                                         <div class='footer-sign' style='font-size: 10px; line-height: 1.6; font-weight: bold;'>
