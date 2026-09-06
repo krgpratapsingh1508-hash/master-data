@@ -1750,7 +1750,7 @@ else:
                                             <div>Bundle No.....................</div>
                                         </div>
                                         <div class='header-block' style='text-align: center; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding-top: 6px; padding-bottom: 6px; margin-top: 5px; margin-bottom: 8px;'>
-                                            <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style='margin: 0; font-size: 16px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
                                             <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
@@ -1806,7 +1806,7 @@ else:
                                             <div>Bundle No.....................</div>
                                         </div>
                                         <div class='header-block' style='text-align: center; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding-top: 6px; padding-bottom: 6px; margin-top: 5px; margin-bottom: 8px;'>
-                                            <h2 style='margin: 0; font-size: 11px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
+                                            <h2 style='margin: 0; font-size: 16px; font-weight: bold;'>GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE,</h2>
                                             <h2 style='margin: 2px 0 0 0; font-size: 11px; font-weight: bold;'>GWALIOR (M.P.)</h2>
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
