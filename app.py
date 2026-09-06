@@ -1760,7 +1760,7 @@ else:
                                                 </tr>
                                                 <tr>
                                                     <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 15%; padding: 2px;'>Code No.</th>
-                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No.</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No./ Student Name</th>
                                                     <th colspan='2' style='border: 1px solid #000; text-align: center; padding: 2px;'>Marks Obtained</th>
                                                 </tr>
                                                 <tr>
@@ -1816,7 +1816,7 @@ else:
                                                 </tr>
                                                 <tr>
                                                     <th rowspan='2' style='text-align: center; width: 15%; padding: 2px;'>Code No.</th>
-                                                    <th rowspan='2' style='text-align: center; width: 35%; padding: 2px;'>Roll No.</th>
+                                                    <th rowspan='2' style='border: 1px solid #000; text-align: center; width: 35%; padding: 2px;'>Roll No./ Student Name</th>
                                                     <th colspan='2' style='text-align: center; padding: 2px;'>Marks Obtained</th>
                                                 </tr>
                                                 <tr>
