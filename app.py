@@ -867,9 +867,11 @@ else:
                 st.subheader("👁️ Select Columns to Display & Print")
                 
                 all_possible_p2_cols = [
-                    "Admission Application Number", "Student Name", "Father Name", 
-                    "Admission Year", "Admission Session", "Subject", "Mobile Number", 
-                    "Admission & Enrollment Fees", "Payment Date", "Status"
+                    "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
+                    "Date Of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
+                    "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
+                    "Mobile Number", "Email", "Address", "Enrollment No", "Admssion & Enrollment Fees",
+                    "Scholarship Name", "Payment Date"
                 ]
 
                 # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
