@@ -1701,11 +1701,11 @@ else:
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Examination :- CCE</span>
-                                            <span>{formatted_scope}</span>
+                                            <span>{selected_subject.upper()}{formatted_scope}</span>
                                         </div>
                                         <div class='info-row' style='font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
-                                            <span>Subject: {selected_subject.upper()}</span>
-                                            <span>............................................</span>
+                                            <span>Subject: ..........................</span>
+                                            <span>Paper: ............................</span>                                            
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Maximum Marks: ........................</span>
@@ -1757,11 +1757,11 @@ else:
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Examination :- CCE</span>
-                                            <span>{formatted_scope}</span>
+                                            <span>{selected_subject.upper()}{formatted_scope}</span>
                                         </div>
                                         <div class='info-row' style='font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;'>
-                                            <span>Subject: {selected_subject.upper()}</span>
-                                            <span>............................................</span>
+                                            <span>Subject: ..........................</span>
+                                            <span>Paper: ............................</span>
                                         </div>
                                         <div class='info-row' style='display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;'>
                                             <span>Maximum Marks: ........................</span>
