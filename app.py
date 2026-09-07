@@ -753,7 +753,7 @@ else:
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # 🟢 सही किया गया ट्रांसलेशन मैप (Student Abc Id को Unique ID में बदलने वाला गलत नियम हटा दिया गया है)
+                # 🟢 सुधारे गए ट्रांसलेशन रूल्स (Student Abc Id को बदलने वाला गलत नियम हटा दिया गया है)
                 column_mapping_fixes = {
                     "Unique Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
