@@ -2939,8 +2939,12 @@ else:
                 search_query_text = st.text_input(f"'{search_target_col}' में प्रविष्टि खोजें:", key="p14_query_val_text_secure_v15").strip()
 
             if search_query_text != "":
+                # 🟢 डुप्लिकेट कॉलम एरर फिक्स इंजन
+                col_data = view_filtered_db[search_target_col]
+                search_series = col_data.iloc[:, 0] if isinstance(col_data, pd.DataFrame) else col_data
+                
                 view_filtered_db = view_filtered_db[
-                    view_filtered_db[search_target_col].astype(str).str.contains(search_query_text, case=False, na=False)
+                    search_series.astype(str).str.contains(search_query_text, case=False, na=False)
                 ]
 
             st.write(f"वर्तमान ग्रिड में कुल उपलब्ध स्वीकृत छात्र रिकॉर्ड संख्या: **{len(view_filtered_db)}**")
