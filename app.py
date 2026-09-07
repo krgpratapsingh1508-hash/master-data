@@ -755,7 +755,7 @@ else:
             else:
                 # 🟢 सुधारे गए ट्रांसलेशन रूल्स (Student Abc Id को बदलने वाला गलत नियम हटा दिया गया है)
                 column_mapping_fixes = {
-                    "Unique Id": "Unique ID", 
+                    "Unique Id": "Unique ID", "Student Abc Id": "Student Abc ld",
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
                     "Application Number": "Admission Application Number"
