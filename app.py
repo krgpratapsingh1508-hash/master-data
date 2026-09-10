@@ -2294,18 +2294,61 @@ else:
                     if col not in p10_authorized_db.columns: 
                         p10_authorized_db[col] = ""
                 
+                # 🟢 CCE (P7) panel jaisa hi Semester / Year scope filter — यहाँ भी वैसा ही जोड़ा गया है
+                custom_year_options_p10 = [
+                    "All Years", "1st Sem.", "2nd Sem.", "3rd Sem.", "4th Sem.", "5th Sem.", "6th Sem.",
+                    "7th Sem.", "8th Sem.", "9th Sem.", "10th Sem.", "11th Sem.", "12th Sem.",
+                    "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"
+                ]
+                chosen_option_p10 = st.selectbox(
+                    "📅 Select Semester / Year Scope:", options=custom_year_options_p10, key="p10_archive_year_filter"
+                )
+
+                # 📚 सेमेस्टर-टू-ईयर लाइव मैपिंग इंजन (CCE panel jaisa hi)
+                sem_to_year_map_p10 = {
+                    "1st Sem.": "1st Year", "2nd Sem.": "1st Year",
+                    "3rd Sem.": "2nd Year", "4th Sem.": "2nd Year",
+                    "5th Sem.": "3rd Year", "6th Sem.": "3rd Year",
+                    "7th Sem.": "4th Year", "8th Sem.": "4th Year",
+                    "9th Sem.": "5th Year", "10th Sem.": "5th Year",
+                    "11th Sem.": "6th Year", "12th Sem.": "6th Year"
+                }
+                target_db_year_p10 = sem_to_year_map_p10.get(chosen_option_p10, chosen_option_p10)
+
                 render_archive = p10_authorized_db[archive_view_cols].copy()
+
+                if chosen_option_p10 != "All Years":
+                    import re
+                    match_p10 = re.search(r'\d+', target_db_year_p10)
+                    if match_p10:
+                        current_num_p10 = int(match_p10.group())
+                        next_num_p10 = current_num_p10 + 1
+
+                        reg_year_str_p10 = f"{current_num_p10}st Year" if current_num_p10 == 1 else f"{current_num_p10}nd Year" if current_num_p10 == 2 else f"{current_num_p10}rd Year" if current_num_p10 == 3 else f"{current_num_p10}th Year"
+                        ex_year_str_p10 = f"{next_num_p10}st Year" if next_num_p10 == 1 else f"{next_num_p10}nd Year" if next_num_p10 == 2 else f"{next_num_p10}rd Year" if next_num_p10 == 3 else f"{next_num_p10}th Year"
+
+                        # फ़िल्टर: (Current Year का Regular Student) OR (Next Year का EX-STUDENT)
+                        render_archive = render_archive[
+                            ((render_archive["Current Year"].astype(str).str.strip() == reg_year_str_p10) &
+                             (render_archive["Status"].astype(str).str.strip().str.upper() == "REGULAR STUDENT")) |
+                            ((render_archive["Current Year"].astype(str).str.strip() == ex_year_str_p10) &
+                             (render_archive["Status"].astype(str).str.strip().str.upper() == "EX-STUDENT"))
+                        ]
+                    else:
+                        render_archive = render_archive[render_archive["Current Year"].astype(str).str.strip() == target_db_year_p10]
+
+                render_archive = render_archive.reset_index(drop=True)
                 render_archive.insert(0, "S. No.", range(1, len(render_archive) + 1))
                 
-                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ: **{len(render_archive)}**")
+                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ ('{chosen_option_p10}'): **{len(render_archive)}**")
                 
                 # Strict read-only dataframe display to protect long-term archived columns
                 st.dataframe(render_archive, use_container_width=True, hide_index=True)
                 
-                # Fast CSV archival download snapshot trigger
+                # Fast CSV archival download snapshot trigger (filtered scope ke sath)
                 st.download_button(
                     label="📥 Download Complete Permanent Registry Snapshot (CSV)",
-                    data=p10_authorized_db[archive_view_cols].to_csv(index=False).encode('utf-8'),
+                    data=render_archive.drop(columns=["S. No."], errors="ignore").to_csv(index=False).encode('utf-8'),
                     file_name=f"permanent_registry_snapshot_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
                     use_container_width=True,
