@@ -655,6 +655,53 @@ else:
                                         continue
 
                                     uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+
+                                    # 🧠 स्मार्ट कॉलम मैचिंग: अपलोड फ़ाइल के हेडर अलग-अलग तरीके से लिखे हो सकते हैं
+                                    # (जैसे "Enrollment No", "DOB", "Email", "Scholarship" आदि) — इन्हें सही इंटरनल
+                                    # कॉलम नाम ("Enrollment No.", "Date of Birth", "Email ID", "Scholarship Name")
+                                    # से ऑटोमैटिक मैच करके डेटा गायब होने से बचाएँ।
+                                    def _normalize_col_name(name):
+                                        return re.sub(r"[^a-z0-9]", "", str(name).strip().lower())
+
+                                    normalized_lookup = {}
+                                    for internal_col in DEFAULT_COLUMNS:
+                                        normalized_lookup[_normalize_col_name(internal_col)] = internal_col
+                                        normalized_lookup[_normalize_col_name(get_display_name(internal_col))] = internal_col
+
+                                    # आम तौर पर एक्सेल/CSV में इस्तेमाल होने वाले जाने-पहचाने वैरिएशन
+                                    manual_aliases = {
+                                        "enrollmentno": "Enrollment No.",
+                                        "enrollmentnumber": "Enrollment No.",
+                                        "enrollmentnum": "Enrollment No.",
+                                        "universityenrollmentno": "Enrollment No.",
+                                        "dob": "Date of Birth",
+                                        "dateofbirth": "Date of Birth",
+                                        "birthdate": "Date of Birth",
+                                        "email": "Email ID",
+                                        "emailid": "Email ID",
+                                        "emailaddress": "Email ID",
+                                        "mailid": "Email ID",
+                                        "scholarship": "Scholarship Name",
+                                        "scholarshipname": "Scholarship Name",
+                                        "scholarshiptitle": "Scholarship Name",
+                                    }
+                                    for _alias_key, _alias_target in manual_aliases.items():
+                                        normalized_lookup.setdefault(_alias_key, _alias_target)
+
+                                    rename_map_for_upload = {}
+                                    for col in uploaded_df.columns:
+                                        if col in DEFAULT_COLUMNS:
+                                            continue  # पहले से ही एकदम सही (exact) इंटरनल नाम है
+                                        norm_key = _normalize_col_name(col)
+                                        if norm_key in normalized_lookup:
+                                            target_internal_col = normalized_lookup[norm_key]
+                                            # अगर सही इंटरनल कॉलम पहले से ही फ़ाइल में अलग से मौजूद है, तो टकराव से बचें
+                                            if target_internal_col in uploaded_df.columns:
+                                                continue
+                                            rename_map_for_upload[col] = target_internal_col
+
+                                    if rename_map_for_upload:
+                                        uploaded_df = uploaded_df.rename(columns=rename_map_for_upload)
                                     
                                     for col in DEFAULT_COLUMNS:
                                         if col not in uploaded_df.columns: 
