@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import re
 import base64
 import json
 import io
@@ -3701,6 +3702,89 @@ else:
                             st.rerun()
                         except Exception as e:
                             st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
+
+                    # ======================================================================
+                    # 🎓 न्यू सब-सिस्टम: Degree + Branch → Subject ऑटो-जेनरेटर
+                    #    (Degree के ब्रैकेट में लिखा नंबर अपने-आप Duration कॉलम में चला जाएगा,
+                    #     ब्रैकेट/उसका डेटा Degree से हट जाएगा, फिर Degree + Branch जोड़कर
+                    #     "Degree (Branch)" फॉर्मेट में Subject कॉलम में लिख दिया जाएगा)
+                    # ======================================================================
+                    if role == "full_admin" and not st.session_state.admin_lock_state and "Degree" in live_db.columns:
+                        st.markdown("---")
+                        st.subheader("🎓 Degree + Branch → Subject Auto-Generator (Bracket → Duration)")
+                        st.info(
+                            "🔓 इस बटन को दबाने पर: Degree कॉलम में मौजूद `(...)` ब्रैकेट में अगर कोई नंबर लिखा है "
+                            "तो वह नंबर उसी रो के Duration कॉलम में सेट हो जाएगा, और Degree से ब्रैकेट + उसके अंदर "
+                            "का डेटा हटा दिया जाएगा। फिर Degree और Branch को जोड़कर Subject कॉलम में "
+                            "`Degree (Branch)` फॉर्मेट में लिख दिया जाएगा। उदाहरण: Degree = `M.Sc.`, "
+                            "Branch = `Home Science` → Subject = `M.Sc. (Home Science)`"
+                        )
+
+                        bracket_pattern = re.compile(r"\(([^)]*)\)")
+
+                        if st.button(
+                            "🚀 Process Degree/Branch → Subject & Duration (All Rows)",
+                            type="primary",
+                            use_container_width=True,
+                            key="p15_degree_branch_subject_auto_btn"
+                        ):
+                            try:
+                                processed_counter = 0
+                                duration_updated_counter = 0
+
+                                for idx in live_db.index:
+                                    degree_raw = str(live_db.at[idx, "Degree"]) if pd.notna(live_db.at[idx, "Degree"]) else ""
+                                    if degree_raw.strip().lower() == "nan":
+                                        degree_raw = ""
+
+                                    branch_raw = ""
+                                    if "Branch" in live_db.columns and pd.notna(live_db.at[idx, "Branch"]):
+                                        branch_raw = str(live_db.at[idx, "Branch"])
+                                        if branch_raw.strip().lower() == "nan":
+                                            branch_raw = ""
+
+                                    if degree_raw.strip() == "" and branch_raw.strip() == "":
+                                        continue
+
+                                    # 1️⃣ Degree में मौजूद हर ब्रैकेट ढूंढें
+                                    bracket_matches = bracket_pattern.findall(degree_raw)
+
+                                    # 2️⃣ अगर किसी ब्रैकेट के अंदर सिर्फ नंबर है तो वह Duration कॉलम में डालें
+                                    for bracket_content in bracket_matches:
+                                        num_match = re.search(r"\d+(\.\d+)?", bracket_content)
+                                        if num_match:
+                                            if "Duration" in live_db.columns:
+                                                live_db.at[idx, "Duration"] = num_match.group(0)
+                                                duration_updated_counter += 1
+                                            break  # पहला नंबर वाला ब्रैकेट मिलते ही रुक जाएँ
+
+                                    # 3️⃣ Degree से हर ब्रैकेट + उसके अंदर का डेटा हटा दें (चाहे नंबर हो या टेक्स्ट)
+                                    clean_degree = bracket_pattern.sub("", degree_raw)
+                                    clean_degree = re.sub(r"\s{2,}", " ", clean_degree).strip()
+
+                                    # 4️⃣ Degree + Branch जोड़कर Subject कॉलम बनाएँ
+                                    branch_clean = branch_raw.strip()
+                                    if clean_degree and branch_clean:
+                                        new_subject = f"{clean_degree} ({branch_clean})"
+                                    elif clean_degree:
+                                        new_subject = clean_degree
+                                    else:
+                                        new_subject = branch_clean
+
+                                    live_db.at[idx, "Degree"] = clean_degree
+                                    if "Subject" in live_db.columns:
+                                        live_db.at[idx, "Subject"] = new_subject
+                                    processed_counter += 1
+
+                                save_live_data(live_db)
+                                st.success(
+                                    f"🎉 सफलता! कुल {processed_counter} रिकॉर्ड्स प्रोसेस किए गए, जिनमें से "
+                                    f"{duration_updated_counter} रिकॉर्ड्स में ब्रैकेट वाला नंबर Duration कॉलम में अपडेट हुआ।"
+                                )
+                                st.balloons()
+                                st.rerun()
+                            except Exception as deg_err:
+                                st.error(f"Degree/Branch → Subject प्रोसेस करने में तकनीकी समस्या आई: {deg_err}")
 
                     # ======================================================================
                     # 📚 न्यू सब-सिस्टम: बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र (सिर्फ एडमिन लॉक-सिक्योर)
