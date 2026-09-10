@@ -2497,6 +2497,17 @@ else:
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
                     st.session_state.p10_reg_list_generated = True
 
+                # 🟢 Side-by-Side Layout toggle: कम columns select होने पर एक ही पेज पर
+                # दो लिस्ट (बायीं + दायीं) साथ-साथ प्रिंट होंगी ताकि पेज की खाली जगह बर्बाद न हो
+                reg_default_side_by_side = len(reg_selected_print_cols) <= 4
+                reg_side_by_side = st.checkbox(
+                    "📰 Side-by-Side लेआउट (Column कम होने पर एक Page पर 2 लिस्ट दिखाएं)",
+                    value=reg_default_side_by_side,
+                    key="p10_reg_side_by_side_toggle"
+                )
+                if reg_side_by_side:
+                    st.caption("ℹ️ ऊपर दी गई 'एक Page में कुल कितनी Row' वैल्यू अब **हर साइड (बायें/दायें) की row count** मानी जाएगी।")
+
                 if st.session_state.get("p10_reg_list_generated", False) and reg_selected_print_cols:
                     # 🟢 Fix: ab yahan upar wale Subject + Semester/Year filter se hi
                     # filtered data (render_archive) use hoga, poore DB (p10_authorized_db) se nahi
@@ -2523,50 +2534,87 @@ else:
                             st.warning(f"🔍 चयनित Subject ('{selected_subject_p10}') और '{chosen_option_p10}' scope के आधार पर रजिस्टर लिस्ट बनाने के लिए कोई रिकॉर्ड नहीं मिला।")
                         else:
                             rows_per_page_int = int(reg_rows_per_page)
-                            reg_pages = [
-                                reg_records[i:i + rows_per_page_int]
-                                for i in range(0, len(reg_records), rows_per_page_int)
-                            ]
 
                             # हर column के लिए alignment तय करें (नंबर वाले columns center में, बाकी left में)
                             reg_center_cols = {"S. No.", "Unique ID", "Roll No.", "Mobile Number"}
 
-                            pages_html_parts = []
-                            for page_no, page_rows in enumerate(reg_pages, start=1):
-                                table_rows_html = ""
-                                for idx, rec in enumerate(page_rows, start=1):
-                                    overall_sno = (page_no - 1) * rows_per_page_int + idx
+                            # 🛠️ एक block (single list table) की HTML बनाने वाला helper — Side-by-Side और Normal दोनों में इस्तेमाल होगा
+                            def build_reg_block_table(records_chunk, start_sno):
+                                block_rows_html = ""
+                                for i, rec in enumerate(records_chunk):
+                                    overall_sno = start_sno + i + 1
                                     row_cells_html = ""
                                     for col_name in reg_selected_print_cols:
                                         cell_val = overall_sno if col_name == "S. No." else rec.get(col_name, "")
                                         align = "center" if col_name in reg_center_cols else "left"
                                         row_cells_html += f'<td style="border:1px solid #000; text-align:{align}; padding:2px 6px;">{cell_val}</td>'
-                                    table_rows_html += f"""
+                                    block_rows_html += f"""
                                         <tr style="height:{reg_row_height_val}{reg_unit_css};">
                                             {row_cells_html}
                                         </tr>
                                     """
-                                header_cells_html = "".join(
+                                block_header_html = "".join(
                                     f'<th style="border:1px solid #000; width:{reg_col_widths[c]}%;">{c}</th>'
                                     for c in reg_selected_print_cols
                                 )
-                                pages_html_parts.append(f"""
-                                    <div class="a4-reg-page">
-                                        <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
-                                            PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST ({chosen_option_p10} | {selected_subject_p10}) (Page {page_no} of {len(reg_pages)})
+                                return f"""
+                                    <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
+                                        <thead>
+                                            <tr style="height:{reg_row_height_val}{reg_unit_css}; background:#f2f2f2;">
+                                                {block_header_html}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {block_rows_html}
+                                        </tbody>
+                                    </table>
+                                """
+
+                            pages_html_parts = []
+
+                            if reg_side_by_side:
+                                # 🟢 हर पेज पर बायीं + दायीं दोनों तरफ एक-एक block (row count = rows_per_page_int प्रति साइड)
+                                import math
+                                per_page_capacity = rows_per_page_int * 2
+                                total_pages_needed = math.ceil(len(reg_records) / per_page_capacity) if len(reg_records) > 0 else 1
+                                reg_total_pages_for_summary = total_pages_needed
+
+                                for page_no in range(1, total_pages_needed + 1):
+                                    page_start = (page_no - 1) * per_page_capacity
+                                    left_chunk = reg_records[page_start: page_start + rows_per_page_int]
+                                    right_chunk = reg_records[page_start + rows_per_page_int: page_start + per_page_capacity]
+
+                                    left_table_html = build_reg_block_table(left_chunk, page_start)
+                                    right_table_html = build_reg_block_table(right_chunk, page_start + rows_per_page_int)
+
+                                    pages_html_parts.append(f"""
+                                        <div class="a4-reg-page">
+                                            <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
+                                                PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST ({chosen_option_p10} | {selected_subject_p10}) (Page {page_no} of {total_pages_needed})
+                                            </div>
+                                            <div style="display:flex; justify-content:space-between; gap:3%;">
+                                                <div style="width:48.5%;">{left_table_html}</div>
+                                                <div style="width:48.5%;">{right_table_html}</div>
+                                            </div>
                                         </div>
-                                        <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
-                                            <thead>
-                                                <tr style="height:{reg_row_height_val}{reg_unit_css}; background:#f2f2f2;">
-                                                    {header_cells_html}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {table_rows_html}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                """)
+                                    """)
+                            else:
+                                # सामान्य (सिंगल कॉलम) लेआउट — पहले जैसा
+                                reg_pages = [
+                                    reg_records[i:i + rows_per_page_int]
+                                    for i in range(0, len(reg_records), rows_per_page_int)
+                                ]
+                                reg_total_pages_for_summary = len(reg_pages)
+                                for page_no, page_rows in enumerate(reg_pages, start=1):
+                                    table_html = build_reg_block_table(page_rows, (page_no - 1) * rows_per_page_int)
+                                    pages_html_parts.append(f"""
+                                        <div class="a4-reg-page">
+                                            <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
+                                                PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST ({chosen_option_p10} | {selected_subject_p10}) (Page {page_no} of {len(reg_pages)})
+                                            </div>
+                                            {table_html}
+                                        </div>
+                                    """)
 
                             reg_pages_html = "".join(pages_html_parts)
 
@@ -2600,7 +2648,7 @@ else:
                             """
 
                             reg_width_summary = " / ".join(f"{c}: {reg_col_widths[c]}%" for c in reg_selected_print_cols)
-                            st.write(f"🧾 फ़िल्टर: **{chosen_option_p10} | Subject: {selected_subject_p10}** | कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **{reg_width_summary}**")
+                            st.write(f"🧾 फ़िल्टर: **{chosen_option_p10} | Subject: {selected_subject_p10}** | कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{reg_total_pages_for_summary}** | प्रति पेज/साइड रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **{reg_width_summary}**")
 
                             st.components.v1.html(reg_print_template, height=800, scrolling=True)
 
