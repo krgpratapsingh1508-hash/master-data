@@ -3850,6 +3850,7 @@ else:
                                 if st.button("💾 Apply & Update Bulk Subject Durations", type="primary", use_container_width=True, key="p15_save_bulk_sub_duration_btn"):
                                     try:
                                         bulk_update_counter = 0
+                                        bulk_skip_counter = 0
                                         
                                         # ग्रिड की प्रत्येक रो को लूप करें और मास्टर डेटाबेस में बदलें
                                         for _, edit_row in edited_sub_mapping_df.iterrows():
@@ -3861,12 +3862,23 @@ else:
                                             
                                             if not sub_match_indices.empty:
                                                 for idx in sub_match_indices:
+                                                    # 🚨 अगर इस रो में Duration पहले से भरा हुआ है, तो उसे छोड़ दें (ignore) और अगली रो पर जाएँ
+                                                    existing_val = live_db.at[idx, "Duration"]
+                                                    existing_val_str = "" if pd.isna(existing_val) else str(existing_val).strip()
+                                                    if existing_val_str != "" and existing_val_str.lower() != "nan":
+                                                        bulk_skip_counter += 1
+                                                        continue
+
+                                                    # Duration खाली है, तभी नया मान भरेंगे
                                                     live_db.at[idx, "Duration"] = str(new_duration_to_apply)
                                                     bulk_update_counter += 1
                                                     
                                         # परिवर्तनों को स्थायी रूप से सेव करें
                                         save_live_data(live_db)
-                                        st.success(f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार एक साथ अपडेट कर दिया गया है!")
+                                        st.success(
+                                            f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार अपडेट कर दिया गया है। "
+                                            f"({bulk_skip_counter} रिकॉर्ड्स को छोड़ दिया गया क्योंकि उनमें Duration पहले से भरा हुआ था)"
+                                        )
                                         st.balloons()
                                         st.rerun()
                                     except Exception as bulk_err:
