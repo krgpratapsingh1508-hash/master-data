@@ -2431,44 +2431,73 @@ else:
                 reg_unit_css_map = {"mm": "mm", "cm": "cm", "Inch": "in"}
                 reg_unit_css = reg_unit_css_map.get(reg_row_height_unit, "mm")
 
-                # 🟢 Column Width Resize Engine (Row Height jaisa hi — column select karke uski width set karo)
-                if "p10_reg_col_widths" not in st.session_state:
-                    st.session_state.p10_reg_col_widths = {
-                        "S. No.": 12, "Roll No.": 18, "Student Name": 35, "Father Name": 35
-                    }
+                # 🟢 Column Select Engine — user jo columns select karega sirf wahi paper par print honge
+                REG_ALL_PRINT_COLS = [
+                    "S. No.", "Unique ID", "Roll No.", "Student Name", "Father Name",
+                    "Mobile Number", "Email ID", "Address"
+                ]
+                if "p10_reg_selected_cols" not in st.session_state:
+                    st.session_state.p10_reg_selected_cols = ["S. No.", "Roll No.", "Student Name", "Father Name"]
 
-                st.markdown("**📏 Column Width Resize करें (जैसे Row Height करते हैं):**")
-                col_w1, col_w2, col_w3 = st.columns([2, 2, 1])
-                with col_w1:
-                    reg_selected_col = st.selectbox(
-                        "🧱 Column चुनें जिसकी Width बदलनी है:",
-                        options=list(st.session_state.p10_reg_col_widths.keys()),
-                        key="p10_reg_col_select"
-                    )
-                with col_w2:
-                    reg_new_width_val = st.number_input(
-                        "📐 नई Width (%) दर्ज करें:",
-                        min_value=5, max_value=70,
-                        value=int(st.session_state.p10_reg_col_widths[reg_selected_col]),
-                        step=1,
-                        key=f"p10_reg_col_width_input_{reg_selected_col}"
-                    )
-                with col_w3:
-                    st.write("")
-                    st.write("")
-                    if st.button("✅ Apply Width", key="p10_reg_col_width_apply_btn", use_container_width=True):
-                        st.session_state.p10_reg_col_widths[reg_selected_col] = reg_new_width_val
-                        st.success(f"'{reg_selected_col}' की width अब {reg_new_width_val}% सेट हो गई है।")
+                st.markdown("**🧾 Print Columns चुनें (सिर्फ चुने हुए Column ही Paper पर आएंगे):**")
+                reg_chosen_cols_raw = st.multiselect(
+                    "Columns:",
+                    options=REG_ALL_PRINT_COLS,
+                    default=st.session_state.p10_reg_selected_cols,
+                    key="p10_reg_col_multiselect"
+                )
+                # Order hamesha REG_ALL_PRINT_COLS ke fixed sequence mein rahega, चाहे selection kisi bhi order mein ki ho
+                reg_selected_print_cols = [c for c in REG_ALL_PRINT_COLS if c in reg_chosen_cols_raw]
+                st.session_state.p10_reg_selected_cols = reg_selected_print_cols
+
+                if not reg_selected_print_cols:
+                    st.warning("⚠️ कृपया कम से कम एक Column select करें।")
+
+                # 🟢 Column Width Resize Engine (Row Height jaisa hi — column select karke uski width set karo)
+                REG_DEFAULT_WIDTHS = {
+                    "S. No.": 8, "Unique ID": 14, "Roll No.": 12, "Student Name": 22,
+                    "Father Name": 22, "Mobile Number": 12, "Email ID": 14, "Address": 14
+                }
+                if "p10_reg_col_widths" not in st.session_state:
+                    st.session_state.p10_reg_col_widths = dict(REG_DEFAULT_WIDTHS)
+                # Agar purane session mein koi naya column (Unique ID/Mobile/Email/Address) missing ho to default jod do
+                for _c, _w in REG_DEFAULT_WIDTHS.items():
+                    if _c not in st.session_state.p10_reg_col_widths:
+                        st.session_state.p10_reg_col_widths[_c] = _w
+
+                if reg_selected_print_cols:
+                    st.markdown("**📏 Column Width Resize करें (जैसे Row Height करते हैं):**")
+                    col_w1, col_w2, col_w3 = st.columns([2, 2, 1])
+                    with col_w1:
+                        reg_selected_col = st.selectbox(
+                            "🧱 Column चुनें जिसकी Width बदलनी है:",
+                            options=reg_selected_print_cols,
+                            key="p10_reg_col_select"
+                        )
+                    with col_w2:
+                        reg_new_width_val = st.number_input(
+                            "📐 नई Width (%) दर्ज करें:",
+                            min_value=5, max_value=70,
+                            value=int(st.session_state.p10_reg_col_widths[reg_selected_col]),
+                            step=1,
+                            key=f"p10_reg_col_width_input_{reg_selected_col}"
+                        )
+                    with col_w3:
+                        st.write("")
+                        st.write("")
+                        if st.button("✅ Apply Width", key="p10_reg_col_width_apply_btn", use_container_width=True):
+                            st.session_state.p10_reg_col_widths[reg_selected_col] = reg_new_width_val
+                            st.success(f"'{reg_selected_col}' की width अब {reg_new_width_val}% सेट हो गई है।")
 
                 reg_col_widths = st.session_state.p10_reg_col_widths
-                total_width_pct = sum(reg_col_widths.values())
-                if total_width_pct != 100:
-                    st.caption(f"ℹ️ कुल Column Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
+                total_width_pct = sum(reg_col_widths[c] for c in reg_selected_print_cols) if reg_selected_print_cols else 0
+                if reg_selected_print_cols and total_width_pct != 100:
+                    st.caption(f"ℹ️ चुने हुए Columns की कुल Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
 
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
                     st.session_state.p10_reg_list_generated = True
 
-                if st.session_state.get("p10_reg_list_generated", False):
+                if st.session_state.get("p10_reg_list_generated", False) and reg_selected_print_cols:
                     # 🟢 Fix: ab yahan upar wale Subject + Semester/Year filter se hi
                     # filtered data (render_archive) use hoga, poore DB (p10_authorized_db) se nahi
                     reg_src_df = render_archive.drop(columns=["S. No."], errors="ignore").copy()
@@ -2482,11 +2511,13 @@ else:
                             by=["_sort_key", "Roll No."], ascending=[True, True]
                         ).drop(columns=["_sort_key"]).reset_index(drop=True)
 
-                        reg_final_cols = ["Roll No.", "Student Name", "Father Name"]
-                        for c in reg_final_cols:
+                        # "S. No." data column nahi hai (wo page ke hisaab se calculate hota hai),
+                        # baaki sab actual database columns hain
+                        reg_data_cols_needed = [c for c in reg_selected_print_cols if c != "S. No."]
+                        for c in reg_data_cols_needed:
                             if c not in reg_src_df.columns:
                                 reg_src_df[c] = ""
-                        reg_records = reg_src_df[reg_final_cols].to_dict(orient="records")
+                        reg_records = reg_src_df[reg_data_cols_needed].to_dict(orient="records") if reg_data_cols_needed else [{} for _ in range(len(reg_src_df))]
 
                         if len(reg_records) == 0:
                             st.warning(f"🔍 चयनित Subject ('{selected_subject_p10}') और '{chosen_option_p10}' scope के आधार पर रजिस्टर लिस्ट बनाने के लिए कोई रिकॉर्ड नहीं मिला।")
@@ -2497,19 +2528,28 @@ else:
                                 for i in range(0, len(reg_records), rows_per_page_int)
                             ]
 
+                            # हर column के लिए alignment तय करें (नंबर वाले columns center में, बाकी left में)
+                            reg_center_cols = {"S. No.", "Unique ID", "Roll No.", "Mobile Number"}
+
                             pages_html_parts = []
                             for page_no, page_rows in enumerate(reg_pages, start=1):
                                 table_rows_html = ""
                                 for idx, rec in enumerate(page_rows, start=1):
                                     overall_sno = (page_no - 1) * rows_per_page_int + idx
+                                    row_cells_html = ""
+                                    for col_name in reg_selected_print_cols:
+                                        cell_val = overall_sno if col_name == "S. No." else rec.get(col_name, "")
+                                        align = "center" if col_name in reg_center_cols else "left"
+                                        row_cells_html += f'<td style="border:1px solid #000; text-align:{align}; padding:2px 6px;">{cell_val}</td>'
                                     table_rows_html += f"""
                                         <tr style="height:{reg_row_height_val}{reg_unit_css};">
-                                            <td style="border:1px solid #000; text-align:center; padding:2px 4px;">{overall_sno}</td>
-                                            <td style="border:1px solid #000; text-align:center; padding:2px 4px;">{rec.get('Roll No.', '')}</td>
-                                            <td style="border:1px solid #000; text-align:left; padding:2px 6px;">{rec.get('Student Name', '')}</td>
-                                            <td style="border:1px solid #000; text-align:left; padding:2px 6px;">{rec.get('Father Name', '')}</td>
+                                            {row_cells_html}
                                         </tr>
                                     """
+                                header_cells_html = "".join(
+                                    f'<th style="border:1px solid #000; width:{reg_col_widths[c]}%;">{c}</th>'
+                                    for c in reg_selected_print_cols
+                                )
                                 pages_html_parts.append(f"""
                                     <div class="a4-reg-page">
                                         <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
@@ -2518,10 +2558,7 @@ else:
                                         <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
                                             <thead>
                                                 <tr style="height:{reg_row_height_val}{reg_unit_css}; background:#f2f2f2;">
-                                                    <th style="border:1px solid #000; width:{reg_col_widths['S. No.']}%;">S. No.</th>
-                                                    <th style="border:1px solid #000; width:{reg_col_widths['Roll No.']}%;">Roll No.</th>
-                                                    <th style="border:1px solid #000; width:{reg_col_widths['Student Name']}%;">Student Name</th>
-                                                    <th style="border:1px solid #000; width:{reg_col_widths['Father Name']}%;">Father Name</th>
+                                                    {header_cells_html}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2562,7 +2599,8 @@ else:
                             </html>
                             """
 
-                            st.write(f"🧾 फ़िल्टर: **{chosen_option_p10} | Subject: {selected_subject_p10}** | कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **S.No. {reg_col_widths['S. No.']}% / Roll No. {reg_col_widths['Roll No.']}% / Student Name {reg_col_widths['Student Name']}% / Father Name {reg_col_widths['Father Name']}%**")
+                            reg_width_summary = " / ".join(f"{c}: {reg_col_widths[c]}%" for c in reg_selected_print_cols)
+                            st.write(f"🧾 फ़िल्टर: **{chosen_option_p10} | Subject: {selected_subject_p10}** | कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **{reg_width_summary}**")
 
                             st.components.v1.html(reg_print_template, height=800, scrolling=True)
 
