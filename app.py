@@ -31,7 +31,10 @@ DEFAULT_PRE_LOGIN_CONFIG = {
     "header_mantra": "ॐ श्री गुरवे नमः",
     "system_title": "Permanent Shared Live Database System",
     "notice_board_border_color": "#FF5733",
-    "notice_board_bg_color": "#f9f9f9"
+    "notice_board_bg_color": "#f9f9f9",
+    "logo_width": 110,
+    "logo_height": 110,
+    "logo_fit_mode": "contain"
 }
 
 DEFAULT_DYNAMIC_LISTS = {
@@ -228,7 +231,22 @@ def load_stage_data():
         return pd.DataFrame(columns=DEFAULT_COLUMNS + ["Uploaded File Name"])
     try:
         df = pd.read_csv(STAGE_FILE, dtype=str)
-        return df.fillna("").reset_index(drop=True)
+        df = df.fillna("").reset_index(drop=True)
+
+        # 🟢 सेफ्टी-नेट फिक्स: पुराने मैनुअल एंट्री बग की वजह से कुछ पेंडिंग रिकॉर्ड्स में
+        # "Date Of Birth" / "Email" / "Enrollment No" जैसे गलत-नाम वाले कॉलम बन गए होंगे।
+        # यहाँ उनका डेटा सही स्कीमा कॉलम ("Date of Birth" / "Email ID" / "Enrollment No.") में
+        # कॉपी करके गलत कॉलम हटा दिया जाता है, ताकि कोई डेटा गुम न हो।
+        legacy_fix_map = {"Date Of Birth": "Date of Birth", "Email": "Email ID", "Enrollment No": "Enrollment No."}
+        for bad_col, good_col in legacy_fix_map.items():
+            if bad_col in df.columns:
+                if good_col not in df.columns:
+                    df[good_col] = ""
+                mask = (df[good_col].astype(str).str.strip() == "") & (df[bad_col].astype(str).str.strip() != "")
+                df.loc[mask, good_col] = df.loc[mask, bad_col]
+                df = df.drop(columns=[bad_col])
+
+        return df.reset_index(drop=True)
     except:
         return pd.DataFrame(columns=DEFAULT_COLUMNS + ["Uploaded File Name"])
 
@@ -443,6 +461,9 @@ if st.session_state.user_role is None:
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
     logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
+    logo_w = st.session_state.pre_login_config.get("logo_width", 110)
+    logo_h = st.session_state.pre_login_config.get("logo_height", 110)
+    logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
@@ -450,8 +471,8 @@ if st.session_state.user_role is None:
         # 🎨 यहाँ लोगो पर 'box-shadow' बॉर्डर और मंत्र को 'font-weight: bold' किया गया है
         header_html = f"""
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
-            <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 110px; width: auto; display: block; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
+            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;">
+                {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 24px; letter-spacing: 0.5px;">{mantra}</h3>
@@ -518,6 +539,9 @@ else:
     mantra = st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः")
     sys_title = st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System")
     logo_file_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
+    logo_w = st.session_state.pre_login_config.get("logo_width", 110)
+    logo_h = st.session_state.pre_login_config.get("logo_height", 110)
+    logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
@@ -525,8 +549,8 @@ else:
         # 🎨 पैनल के अंदर प्रीमियम शैडो बॉर्डर और बोल्ड लुक
         panel_header_html = f"""
         <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: sans-serif;">
-            <div style="flex-shrink: 0;">
-                {"<img src='" + img_base64 + "' style='max-height: 90px; width: auto; display: block; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
+            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;">
+                {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 18px;">{mantra}</h4>
@@ -769,14 +793,20 @@ else:
                         st.warning("⚠️ Student Name और Application Number भरना अनिवार्य है।")
                     else:
                         new_row = {c: "" for c in DEFAULT_COLUMNS}
+                        # 🟢 फिक्स: पहले यहाँ "Date Of Birth", "Email", "Enrollment No" जैसे गलत-केस/नाम
+                        # वाली keys इस्तेमाल होती थीं, जो DEFAULT_COLUMNS की असली keys
+                        # ("Date of Birth", "Email ID", "Enrollment No.") से मेल नहीं खाती थीं — इसलिए
+                        # डेटा एक अलग (गलत) कॉलम में चला जाता था और असली कॉलम हमेशा खाली दिखता था।
+                        # अब सही स्कीमा नामों का उपयोग किया गया है ताकि DOB, Email और Enrollment No
+                        # हर जगह सही तरीके से दिखें।
                         new_row.update({
                             "Application Number": app_number, "Student Abc Id": abc_id, 
-                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name,                             "Gender": gender, "Date Of Birth": dob, "Category": category, 
+                            "Student Name": s_name, "Father Name": f_name, "Mother Name": m_name,                             "Gender": gender, "Date of Birth": dob, "Category": category, 
                             "Admission Category": adm_category, "Degree": degree, "Branch": branch, 
                             "Minor Subjects": minor_sub, "Vocational Subjects": vocational_sub, 
                             "MDC Subjects": mdc_sub, "PW/Ap/CE Subjects": pw_ap_ce_sub, 
-                            "Mobile Number": mobile, "Email": email, "Address": address, 
-                            "Enrollment No": enroll_no, "Admssion & Enrollment Fees": fees_paid, 
+                            "Mobile Number": mobile, "Email ID": email, "Address": address, 
+                            "Enrollment No.": enroll_no, "Admssion & Enrollment Fees": fees_paid, 
                             "Scholarship Name": scholarship_name, "Payment Date": payment_date,
                             "Admission Year": admission_year, "Admission Session": admission_session,  
                             "Status": "Regular Student", "Current Year": "1", "Target Panel Visibility": "Pending Approval"
@@ -916,12 +946,15 @@ else:
                 st.markdown("---")
                 st.subheader("👁️ Select Columns to Display & Print")
                 
-                # 🟢 इसमें 'Student Abc Id' को बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किया गया है
+                # 🟢 फिक्स: यहाँ पहले कॉलम नाम असली डेटा कॉलम्स से मेल नहीं खाते थे
+                # (जैसे "Date Of Birth" vs असली कॉलम "Date of Birth", "Email" vs "Email ID",
+                # "Enrollment No" vs "Enrollment No.") — इसी वजह से DOB, Email और Enrollment No
+                # हमेशा खाली दिखते थे। अब नाम बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किए गए हैं।
                 all_possible_p2_cols = [
                     "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
-                    "Date Of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
+                    "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
                     "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
-                    "Mobile Number", "Email", "Address", "Enrollment No", "Admssion & Enrollment Fees",
+                    "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
                     "Scholarship Name", "Payment Date"
                 ]
 
@@ -2936,6 +2969,80 @@ else:
                         save_pre_login_config(updated_config)
                         st.success("🎉 डैशबोर्ड विजुअल सेटिंग्स सफलतापूर्वक सेव हो गई हैं!")
                         st.rerun()
+
+                st.markdown("---")
+
+                # --- Part 3: Logo Upload, Size & Fit Mode Customizer ---
+                st.subheader("🖼️ Part 3: लोगो अपलोड, साइज़ और फिट मोड कंट्रोल")
+                st.caption("यहाँ से नया लोगो अपलोड करें, उसकी Width/Height अलग-अलग सेट करें और Fit Mode चुनें — Live Preview में सेव करने से पहले ही देख सकते हैं कि लोगो कैसा दिखेगा।")
+
+                current_logo_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
+                current_logo_w = int(st.session_state.pre_login_config.get("logo_width", 110))
+                current_logo_h = int(st.session_state.pre_login_config.get("logo_height", 110))
+                current_logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
+
+                new_logo_file = st.file_uploader(
+                    "नया लोगो अपलोड करें (PNG/JPG) — खाली छोड़ने पर मौजूदा लोगो बना रहेगा:",
+                    type=["png", "jpg", "jpeg"],
+                    key="p12_logo_uploader_v1"
+                )
+
+                col_logo1, col_logo2, col_logo3 = st.columns(3)
+                with col_logo1:
+                    logo_width_input = st.slider("↔️ Logo Width (px)", min_value=30, max_value=400, value=current_logo_w, key="p12_logo_width_slider_v1")
+                with col_logo2:
+                    logo_height_input = st.slider("↕️ Logo Height (px)", min_value=30, max_value=400, value=current_logo_h, key="p12_logo_height_slider_v1")
+                with col_logo3:
+                    fit_options = ["contain", "cover"]
+                    fit_index = fit_options.index(current_logo_fit) if current_logo_fit in fit_options else 0
+                    logo_fit_input = st.selectbox(
+                        "🖼️ Fit Mode",
+                        options=fit_options,
+                        index=fit_index,
+                        format_func=lambda x: "contain (पूरी image दिखेगी, कटेगी नहीं)" if x == "contain" else "cover (box भरेगा, extra हिस्सा crop हो सकता है)",
+                        key="p12_logo_fit_selector_v1"
+                    )
+
+                # 👁️ Live Preview (save karne se pehle)
+                preview_img_base64 = ""
+                if new_logo_file is not None:
+                    preview_bytes = new_logo_file.getvalue()
+                    preview_img_base64 = f"data:image/png;base64,{base64.b64encode(preview_bytes).decode()}"
+                else:
+                    preview_img_base64 = get_image_base64(current_logo_path)
+
+                st.markdown("##### 👁️ Live Preview")
+                if preview_img_base64:
+                    st.markdown(
+                        f"""
+                        <div style="width:{logo_width_input}px; height:{logo_height_input}px; display:flex; align-items:center; justify-content:center;
+                                    overflow:hidden; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:1px solid #e2e8f0; background:#fff;">
+                            <img src="{preview_img_base64}" style="width:100%; height:100%; object-fit:{logo_fit_input}; display:block;">
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.info("ℹ️ अभी कोई लोगो उपलब्ध नहीं है — प्रीव्यू देखने के लिए एक लोगो अपलोड करें।")
+
+                if st.button("📏 साइज़ & फिट सेव करें", type="primary", use_container_width=True, key="p12_logo_save_btn_v1"):
+                    saved_path = current_logo_path
+                    if new_logo_file is not None:
+                        ext = os.path.splitext(new_logo_file.name)[1] or ".png"
+                        saved_path = f"custom_logo{ext}"
+                        with open(saved_path, "wb") as f_logo:
+                            f_logo.write(new_logo_file.getvalue())
+
+                    updated_logo_config = dict(st.session_state.pre_login_config)
+                    updated_logo_config["logo_path"] = saved_path
+                    updated_logo_config["logo_width"] = logo_width_input
+                    updated_logo_config["logo_height"] = logo_height_input
+                    updated_logo_config["logo_fit_mode"] = logo_fit_input
+
+                    st.session_state.pre_login_config = updated_logo_config
+                    save_pre_login_config(updated_logo_config)
+                    st.success("🎉 लोगो साइज़, फिट मोड और (यदि अपलोड की गई हो तो) नई इमेज सफलतापूर्वक सेव हो गई!")
+                    st.rerun()
             else:
                 st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लैंडिंग पेज कॉन्फ़िगरेशन और डिजिटल सूचना पटल में बदलाव करने का अधिकार नहीं है।")
                 
