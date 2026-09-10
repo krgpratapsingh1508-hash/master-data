@@ -2181,6 +2181,25 @@ else:
                 }
                 filtered_res = filtered_res.rename(columns=column_mapping_fixes)
 
+                # 🔧 Duplicate column fix (P10 jaisa hi): rename ke baad agar same naam ke
+                # multiple columns ban jaayein, to unhe ek hi column mein merge kar do
+                # taaki data_editor / st.dataframe crash na ho.
+                if filtered_res.columns.duplicated().any():
+                    combined_cols_res = {}
+                    for col_name in filtered_res.columns.unique():
+                        matching_res = filtered_res.loc[:, filtered_res.columns == col_name]
+                        if matching_res.shape[1] > 1:
+                            merged_res = matching_res.iloc[:, 0]
+                            for i in range(1, matching_res.shape[1]):
+                                merged_res = merged_res.mask(
+                                    merged_res.astype(str).str.strip().eq(""), matching_res.iloc[:, i]
+                                )
+                                merged_res = merged_res.fillna(matching_res.iloc[:, i])
+                            combined_cols_res[col_name] = merged_res
+                        else:
+                            combined_cols_res[col_name] = matching_res.iloc[:, 0]
+                    filtered_res = pd.DataFrame(combined_cols_res)
+
                 for col in result_fixed_cols:
                     if col not in filtered_res.columns: 
                         filtered_res[col] = ""
@@ -2392,6 +2411,40 @@ else:
                 reg_unit_css_map = {"mm": "mm", "cm": "cm", "Inch": "in"}
                 reg_unit_css = reg_unit_css_map.get(reg_row_height_unit, "mm")
 
+                # 🟢 Column Width Resize Engine (Row Height jaisa hi — column select karke uski width set karo)
+                if "p10_reg_col_widths" not in st.session_state:
+                    st.session_state.p10_reg_col_widths = {
+                        "S. No.": 12, "Roll No.": 18, "Student Name": 35, "Father Name": 35
+                    }
+
+                st.markdown("**📏 Column Width Resize करें (जैसे Row Height करते हैं):**")
+                col_w1, col_w2, col_w3 = st.columns([2, 2, 1])
+                with col_w1:
+                    reg_selected_col = st.selectbox(
+                        "🧱 Column चुनें जिसकी Width बदलनी है:",
+                        options=list(st.session_state.p10_reg_col_widths.keys()),
+                        key="p10_reg_col_select"
+                    )
+                with col_w2:
+                    reg_new_width_val = st.number_input(
+                        "📐 नई Width (%) दर्ज करें:",
+                        min_value=5, max_value=70,
+                        value=int(st.session_state.p10_reg_col_widths[reg_selected_col]),
+                        step=1,
+                        key=f"p10_reg_col_width_input_{reg_selected_col}"
+                    )
+                with col_w3:
+                    st.write("")
+                    st.write("")
+                    if st.button("✅ Apply Width", key="p10_reg_col_width_apply_btn", use_container_width=True):
+                        st.session_state.p10_reg_col_widths[reg_selected_col] = reg_new_width_val
+                        st.success(f"'{reg_selected_col}' की width अब {reg_new_width_val}% सेट हो गई है।")
+
+                reg_col_widths = st.session_state.p10_reg_col_widths
+                total_width_pct = sum(reg_col_widths.values())
+                if total_width_pct != 100:
+                    st.caption(f"ℹ️ कुल Column Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
+
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
                     st.session_state.p10_reg_list_generated = True
 
@@ -2443,10 +2496,10 @@ else:
                                         <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
                                             <thead>
                                                 <tr style="height:{reg_row_height_val}{reg_unit_css}; background:#f2f2f2;">
-                                                    <th style="border:1px solid #000; width:12%;">S. No.</th>
-                                                    <th style="border:1px solid #000; width:18%;">Roll No.</th>
-                                                    <th style="border:1px solid #000; width:35%;">Student Name</th>
-                                                    <th style="border:1px solid #000; width:35%;">Father Name</th>
+                                                    <th style="border:1px solid #000; width:{reg_col_widths['S. No.']}%;">S. No.</th>
+                                                    <th style="border:1px solid #000; width:{reg_col_widths['Roll No.']}%;">Roll No.</th>
+                                                    <th style="border:1px solid #000; width:{reg_col_widths['Student Name']}%;">Student Name</th>
+                                                    <th style="border:1px solid #000; width:{reg_col_widths['Father Name']}%;">Father Name</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2487,7 +2540,7 @@ else:
                             </html>
                             """
 
-                            st.write(f"🧾 कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}**")
+                            st.write(f"🧾 कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **S.No. {reg_col_widths['S. No.']}% / Roll No. {reg_col_widths['Roll No.']}% / Student Name {reg_col_widths['Student Name']}% / Father Name {reg_col_widths['Father Name']}%**")
 
                             st.components.v1.html(reg_print_template, height=800, scrolling=True)
 
