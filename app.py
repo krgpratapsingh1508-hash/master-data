@@ -2268,6 +2268,27 @@ else:
                 }
                 p10_authorized_db = p10_authorized_db.rename(columns=column_mapping_fixes)
 
+                # 🔧 Duplicate column fix: rename se pehle agar same naam ke 2 columns
+                # already maujood the (jaise "Unique ID" aur "Unique Id" dono), to rename
+                # ke baad wahi naam duplicate ho jaata hai jisse pyarrow/streamlit error deta hai.
+                # Yahan duplicate naam wale columns ko ek hi column mein merge kar rahe hain
+                # (jahan bhi value khaali ho, wahan dusre duplicate column ki value le lo).
+                if p10_authorized_db.columns.duplicated().any():
+                    combined_cols = {}
+                    for col_name in p10_authorized_db.columns.unique():
+                        matching = p10_authorized_db.loc[:, p10_authorized_db.columns == col_name]
+                        if matching.shape[1] > 1:
+                            merged = matching.iloc[:, 0]
+                            for i in range(1, matching.shape[1]):
+                                merged = merged.mask(
+                                    merged.astype(str).str.strip().eq(""), matching.iloc[:, i]
+                                )
+                                merged = merged.fillna(matching.iloc[:, i])
+                            combined_cols[col_name] = merged
+                        else:
+                            combined_cols[col_name] = matching.iloc[:, 0]
+                    p10_authorized_db = pd.DataFrame(combined_cols)
+
                 # Ensure all target columns exist cleanly to bypass blank key runtime errors
                 for col in archive_view_cols:
                     if col not in p10_authorized_db.columns: 
