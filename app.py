@@ -2319,11 +2319,24 @@ else:
                     "7th Sem.", "8th Sem.", "9th Sem.", "10th Sem.", "11th Sem.", "12th Sem.",
                     "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"
                 ]
-                chosen_option_p10 = st.selectbox(
-                    "📅 Select Semester / Year Scope:", options=custom_year_options_p10, key="p10_archive_year_filter"
-                )
+                col_p10_f1, col_p10_f2 = st.columns(2)
+                with col_p10_f1:
+                    chosen_option_p10 = st.selectbox(
+                        "📅 Select Semester / Year Scope:", options=custom_year_options_p10, key="p10_archive_year_filter"
+                    )
+                with col_p10_f2:
+                    unique_subjects_p10 = sorted(list(set(
+                        p10_authorized_db["Subject"].dropna().astype(str).str.strip()
+                    )))
+                    selected_subject_p10 = st.selectbox(
+                        "📚 Select Subject Filter:",
+                        options=["All Subjects"] + [s for s in unique_subjects_p10 if s != ""],
+                        key="p10_archive_subject_filter"
+                    )
 
                 # 📚 सेमेस्टर-टू-ईयर लाइव मैपिंग इंजन (CCE panel jaisa hi)
+                # 🟢 ध्यान दें: 1st Sem. और 2nd Sem. दोनों 1st Year में ही मैप होते हैं,
+                # इसलिए "1 Sem" चुनने पर भी वही डेटा आएगा जो "2 Sem" या "1st Year" चुनने पर आता है।
                 sem_to_year_map_p10 = {
                     "1st Sem.": "1st Year", "2nd Sem.": "1st Year",
                     "3rd Sem.": "2nd Year", "4th Sem.": "2nd Year",
@@ -2336,6 +2349,13 @@ else:
 
                 render_archive = p10_authorized_db[archive_view_cols].copy()
 
+                # 1️⃣ पहले Subject के आधार पर फ़िल्टर करें (agar subject select kiya ho)
+                if selected_subject_p10 != "All Subjects":
+                    render_archive = render_archive[
+                        render_archive["Subject"].astype(str).str.strip() == selected_subject_p10
+                    ]
+
+                # 2️⃣ फिर Semester / Year scope के आधार पर फ़िल्टर करें
                 if chosen_option_p10 != "All Years":
                     import re
                     match_p10 = re.search(r'\d+', target_db_year_p10)
@@ -2359,7 +2379,7 @@ else:
                 render_archive = render_archive.reset_index(drop=True)
                 render_archive.insert(0, "S. No.", range(1, len(render_archive) + 1))
                 
-                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ ('{chosen_option_p10}'): **{len(render_archive)}**")
+                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ ('{chosen_option_p10}' | Subject: '{selected_subject_p10}'): **{len(render_archive)}**")
                 
                 # Strict read-only dataframe display to protect long-term archived columns
                 st.dataframe(render_archive, use_container_width=True, hide_index=True)
