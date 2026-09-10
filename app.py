@@ -298,6 +298,7 @@ if "admin_unhide_edit" not in st.session_state: st.session_state.admin_unhide_ed
 if "admin_unhide_move" not in st.session_state: st.session_state.admin_unhide_move = False
 if "admin_hide_master_data" not in st.session_state: st.session_state.admin_hide_master_data = False
 if "cce_foil_generated" not in st.session_state: st.session_state.cce_foil_generated = False
+if "p10_reg_list_generated" not in st.session_state: st.session_state.p10_reg_list_generated = False
 
 # 🆕 फ़ाइल अपलोडर को खाली करने के लिए काउंटर (P1 ऑटो-क्लियर मैकेनिज्म हेतु)
 if "uploader_key_counter" not in st.session_state:
@@ -402,8 +403,12 @@ def _hex_to_rgb(h):
         return (37, 99, 235)
 
 _pr, _pg, _pb = _hex_to_rgb(primary_color)
+_sr, _sg, _sb = _hex_to_rgb(sidebar_color)
 primary_soft = f"rgba({_pr},{_pg},{_pb},0.12)"
 primary_glow = f"rgba({_pr},{_pg},{_pb},0.35)"
+# 🟢 color-mix() सभी ब्राउज़र सपोर्ट नहीं करते, इसलिए पायथन में ही डार्क शेड precompute कर रहे हैं
+primary_dark = f"rgb({max(_pr-45,0)},{max(_pg-45,0)},{max(_pb-45,0)})"
+sidebar_dark = f"rgb({max(_sr-25,0)},{max(_sg-25,0)},{max(_sb-25,0)})"
 
 st.markdown(f"""
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -430,7 +435,7 @@ st.markdown(f"""
 
     /* 🧭 साइडबार — डार्क प्रीमियम नेविगेशन पैनल */
     [data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, var(--sidebar-bg) 0%, color-mix(in srgb, var(--sidebar-bg) 80%, black) 100%) !important;
+        background: linear-gradient(180deg, var(--sidebar-bg) 0%, {sidebar_dark} 100%) !important;
         border-right: 1px solid rgba(255,255,255,0.06);
     }}
     [data-testid="stSidebar"] * {{ color: #E6E9F2 !important; }}
@@ -480,7 +485,7 @@ st.markdown(f"""
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }}
     .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {{
-        background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, #000)) !important;
+        background: linear-gradient(135deg, var(--primary), {primary_dark}) !important;
         color: #fff !important;
     }}
     .stButton > button[kind="primary"]:hover, .stFormSubmitButton > button[kind="primary"]:hover {{
@@ -2489,6 +2494,175 @@ else:
                     use_container_width=True,
                     key="p10_download_archive_btn_new"
                 )
+
+                # ==========================================================================
+                # 🖨️ नया सब-मॉड्यूल: Roll-No Wise Printable Register List
+                #    (CCE Foil जैसा Roll No. सॉर्ट इंजन, कस्टम रो-हाइट और पेज साइज़ के साथ)
+                # ==========================================================================
+                st.markdown("---")
+                st.subheader("🖨️ Roll No. वाइज़ प्रिंट-योग्य रजिस्टर लिस्ट (S.No. / Roll No. / Student Name / Father Name)")
+                st.markdown(
+                    '<div style="background-color: #eef6ff; border-left: 5px solid #2563EB; padding: 10px; '
+                    'border-radius: 4px; margin-bottom: 15px;">📌 यह लिस्ट Roll No. के अनुसार क्रम में (CCE Foil जैसे) '
+                    'सॉर्ट होकर बनती है। आप यहाँ से तय कर सकते हैं कि एक पेज पर कितनी रो (Row) आएँगी और हर रो की ऊँचाई '
+                    'कितनी mm, cm या inch होगी — फिर सीधा A4 पेज पर प्रिंट कर सकते हैं।</div>',
+                    unsafe_allow_html=True
+                )
+
+                col_reg_c1, col_reg_c2, col_reg_c3 = st.columns(3)
+                with col_reg_c1:
+                    reg_rows_per_page = st.number_input(
+                        "📄 एक पेज में कुल कितनी Row चाहिए:",
+                        min_value=5, max_value=100, value=40, step=1,
+                        key="p10_reg_rows_per_page"
+                    )
+                with col_reg_c2:
+                    reg_row_height_val = st.number_input(
+                        "📏 हर Row की ऊँचाई (वैल्यू दर्ज करें):",
+                        min_value=1.0, value=8.0, step=0.5,
+                        key="p10_reg_row_height_val"
+                    )
+                with col_reg_c3:
+                    reg_row_height_unit = st.selectbox(
+                        "📐 ऊँचाई की यूनिट चुनें:",
+                        options=["mm", "cm", "Inch"],
+                        key="p10_reg_row_height_unit"
+                    )
+
+                reg_unit_css_map = {"mm": "mm", "cm": "cm", "Inch": "in"}
+                reg_unit_css = reg_unit_css_map.get(reg_row_height_unit, "mm")
+
+                if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
+                    st.session_state.p10_reg_list_generated = True
+
+                if st.session_state.get("p10_reg_list_generated", False):
+                    reg_src_df = p10_authorized_db.copy()
+
+                    if "Roll No." not in reg_src_df.columns:
+                        st.warning("⚠️ डेटाबेस में 'Roll No.' कॉलम नहीं मिला।")
+                    else:
+                        # 🔢 CCE Foil जैसा ही Roll No. सॉर्ट इंजन (न्यूमेरिक क्रम में)
+                        reg_src_df["_sort_key"] = pd.to_numeric(reg_src_df["Roll No."], errors="coerce")
+                        reg_src_df = reg_src_df.sort_values(
+                            by=["_sort_key", "Roll No."], ascending=[True, True]
+                        ).drop(columns=["_sort_key"]).reset_index(drop=True)
+
+                        reg_final_cols = ["Roll No.", "Student Name", "Father Name"]
+                        for c in reg_final_cols:
+                            if c not in reg_src_df.columns:
+                                reg_src_df[c] = ""
+                        reg_records = reg_src_df[reg_final_cols].to_dict(orient="records")
+
+                        if len(reg_records) == 0:
+                            st.warning("🔍 रजिस्टर लिस्ट बनाने के लिए डेटाबेस में कोई रिकॉर्ड नहीं मिला।")
+                        else:
+                            rows_per_page_int = int(reg_rows_per_page)
+                            reg_pages = [
+                                reg_records[i:i + rows_per_page_int]
+                                for i in range(0, len(reg_records), rows_per_page_int)
+                            ]
+
+                            pages_html_parts = []
+                            for page_no, page_rows in enumerate(reg_pages, start=1):
+                                table_rows_html = ""
+                                for idx, rec in enumerate(page_rows, start=1):
+                                    overall_sno = (page_no - 1) * rows_per_page_int + idx
+                                    table_rows_html += f"""
+                                        <tr style="height:{reg_row_height_val}{reg_unit_css};">
+                                            <td style="border:1px solid #000; text-align:center; padding:2px 4px;">{overall_sno}</td>
+                                            <td style="border:1px solid #000; text-align:center; padding:2px 4px;">{rec.get('Roll No.', '')}</td>
+                                            <td style="border:1px solid #000; text-align:left; padding:2px 6px;">{rec.get('Student Name', '')}</td>
+                                            <td style="border:1px solid #000; text-align:left; padding:2px 6px;">{rec.get('Father Name', '')}</td>
+                                        </tr>
+                                    """
+                                pages_html_parts.append(f"""
+                                    <div class="a4-reg-page">
+                                        <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
+                                            PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST (Page {page_no} of {len(reg_pages)})
+                                        </div>
+                                        <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
+                                            <thead>
+                                                <tr style="height:{reg_row_height_val}{reg_unit_css}; background:#f2f2f2;">
+                                                    <th style="border:1px solid #000; width:12%;">S. No.</th>
+                                                    <th style="border:1px solid #000; width:18%;">Roll No.</th>
+                                                    <th style="border:1px solid #000; width:35%;">Student Name</th>
+                                                    <th style="border:1px solid #000; width:35%;">Father Name</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {table_rows_html}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                """)
+
+                            reg_pages_html = "".join(pages_html_parts)
+
+                            reg_print_template = f"""
+                            <html>
+                            <head>
+                                <style>
+                                    @page {{ size: A4 portrait; margin: 10mm; }}
+                                    body {{
+                                        font-family: Arial, sans-serif; margin: 0; padding: 20px;
+                                        background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center;
+                                    }}
+                                    .a4-reg-page {{
+                                        box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 15mm;
+                                        margin-bottom: 30px; background: #ffffff !important;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.15); page-break-after: always;
+                                    }}
+                                    @media print {{
+                                        body {{ background-color: #fff; padding: 0; }}
+                                        .a4-reg-page {{
+                                            width: 100%; min-height: auto; padding: 0; margin-bottom: 0;
+                                            box-shadow: none; page-break-after: always !important;
+                                        }}
+                                    }}
+                                </style>
+                            </head>
+                            <body>
+                                {reg_pages_html}
+                            </body>
+                            </html>
+                            """
+
+                            st.write(f"🧾 कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}**")
+
+                            st.components.v1.html(reg_print_template, height=800, scrolling=True)
+
+                            reg_safe_html_string = reg_print_template.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
+
+                            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+                            components.html(
+                                f"""
+                                <html>
+                                <body>
+                                    <script>
+                                    function printRegisterList() {{
+                                        var iframe = window.parent.document.createElement('iframe');
+                                        iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
+                                        iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
+                                        window.parent.document.body.appendChild(iframe);
+
+                                        var doc = iframe.contentWindow.document;
+                                        doc.open(); doc.write(`{reg_safe_html_string}`); doc.close();
+                                        iframe.contentWindow.focus(); iframe.contentWindow.print();
+
+                                        setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
+                                    }}
+                                    </script>
+                                    <button onclick="printRegisterList()" style="
+                                        width: 100%; background-color: #28a745; color: white; padding: 14px;
+                                        border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
+                                        font-family: sans-serif; box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);">
+                                        🖨️ Click Here to Print Roll-Wise Register List (A4 Size)
+                                    </button>
+                                </body>
+                                </html>
+                                """,
+                                height=60
+                            )
 
         # ----------------------------------------------------------------------
         # P11: ADVANCED PANEL-WISE COLUMN TWIN MAPPING SYSTEM (Fixed Core Sync)
