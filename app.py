@@ -2469,7 +2469,9 @@ else:
                     st.session_state.p10_reg_list_generated = True
 
                 if st.session_state.get("p10_reg_list_generated", False):
-                    reg_src_df = p10_authorized_db.copy()
+                    # 🟢 Fix: ab yahan upar wale Subject + Semester/Year filter se hi
+                    # filtered data (render_archive) use hoga, poore DB (p10_authorized_db) se nahi
+                    reg_src_df = render_archive.drop(columns=["S. No."], errors="ignore").copy()
 
                     if "Roll No." not in reg_src_df.columns:
                         st.warning("⚠️ डेटाबेस में 'Roll No.' कॉलम नहीं मिला।")
@@ -2487,7 +2489,7 @@ else:
                         reg_records = reg_src_df[reg_final_cols].to_dict(orient="records")
 
                         if len(reg_records) == 0:
-                            st.warning("🔍 रजिस्टर लिस्ट बनाने के लिए डेटाबेस में कोई रिकॉर्ड नहीं मिला।")
+                            st.warning(f"🔍 चयनित Subject ('{selected_subject_p10}') और '{chosen_option_p10}' scope के आधार पर रजिस्टर लिस्ट बनाने के लिए कोई रिकॉर्ड नहीं मिला।")
                         else:
                             rows_per_page_int = int(reg_rows_per_page)
                             reg_pages = [
@@ -2511,7 +2513,7 @@ else:
                                 pages_html_parts.append(f"""
                                     <div class="a4-reg-page">
                                         <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
-                                            PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST (Page {page_no} of {len(reg_pages)})
+                                            PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST ({chosen_option_p10} | {selected_subject_p10}) (Page {page_no} of {len(reg_pages)})
                                         </div>
                                         <table style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:Arial, sans-serif; font-size:11px;">
                                             <thead>
@@ -2560,7 +2562,7 @@ else:
                             </html>
                             """
 
-                            st.write(f"🧾 कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **S.No. {reg_col_widths['S. No.']}% / Roll No. {reg_col_widths['Roll No.']}% / Student Name {reg_col_widths['Student Name']}% / Father Name {reg_col_widths['Father Name']}%**")
+                            st.write(f"🧾 फ़िल्टर: **{chosen_option_p10} | Subject: {selected_subject_p10}** | कुल स्टूडेंट: **{len(reg_records)}** | कुल पेज बनेंगे: **{len(reg_pages)}** | प्रति पेज रो: **{rows_per_page_int}** | रो हाइट: **{reg_row_height_val} {reg_row_height_unit}** | कॉलम विड्थ: **S.No. {reg_col_widths['S. No.']}% / Roll No. {reg_col_widths['Roll No.']}% / Student Name {reg_col_widths['Student Name']}% / Father Name {reg_col_widths['Father Name']}%**")
 
                             st.components.v1.html(reg_print_template, height=800, scrolling=True)
 
