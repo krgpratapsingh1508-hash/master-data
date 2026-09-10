@@ -3018,7 +3018,7 @@ else:
                                 
                                 # Remap layout variables to protect 22 column structural norms
                                 column_mapping_fixes = {
-                                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                    "Unique Id": "Unique ID", 
                                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                                     "Email Id": "Email ID", "Year": "Current Year"
                                 }
@@ -3178,7 +3178,7 @@ else:
                                         
                                         # 2. पुराने कॉलम नामों को प्रमाणित स्कीमों में बदलें
                                         column_mapping_fixes = {
-                                            "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                            "Unique Id": "Unique ID", 
                                             "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                                             "Email Id": "Email ID", "Year": "Current Year"
                                         }
@@ -3231,7 +3231,7 @@ else:
                                     
                                     # Normalize alternate key names to standardized core database headers before final commit
                                     column_mapping_fixes = {
-                                        "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                                        "Unique Id": "Unique ID", 
                                         "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                                         "Email Id": "Email ID", "Year": "Current Year",
                                         "Application Number": "Admission Application Number"
