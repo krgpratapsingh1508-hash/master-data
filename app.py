@@ -754,9 +754,10 @@ else:
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # 🟢 सुधारे गए ट्रांसलेशन रूल्स (Student Abc Id को बदलने वाला गलत नियम हटा दिया गया है)
+                # 🟢 Fix: "Student Abc Id" ko galti se "Student Abc ld" (typo) mein rename kar diya jaata tha,
+                # jisse yeh column aage 'Student Abc Id' naam se dhoondhne par nahi milta tha aur khaali dikhta tha.
                 column_mapping_fixes = {
-                    "Unique Id": "Unique ID", "Student Abc Id": "Student Abc ld",
+                    "Unique Id": "Unique ID",
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
                     "Application Number": "Admission Application Number"
