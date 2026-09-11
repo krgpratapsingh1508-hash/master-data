@@ -5,6 +5,7 @@ import re
 import base64
 import json
 import io
+import time
 import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
 # 🟢 P10 प्रिंट ट्रांसलेशन फीचर के लिए लाइब्रेरी (अगर इंस्टॉल नहीं है तो feature अपने आप डिसेबल हो जाएगा)
@@ -2739,7 +2740,14 @@ else:
                 # चुनी हुई भाषा में दिखेगी/प्रिंट होगी)
                 # ======================================================================
                 st.markdown("---")
-                st.subheader("🌐 प्रिंट ट्रांसलेशन (वैकल्पिक)")
+                tr_hdr_col1, tr_hdr_col2 = st.columns([5, 2])
+                with tr_hdr_col1:
+                    st.subheader("🌐 प्रिंट ट्रांसलेशन (वैकल्पिक)")
+                with tr_hdr_col2:
+                    st.write("")
+                    if st.button("🧹 Clear Translation Cache", key="p10_clear_translation_cache_btn", use_container_width=True):
+                        st.session_state.p10_reg_translation_cache = {}
+                        st.success("✅ Translation cache साफ़ हो गई। अगली बार सभी values फिर से नई सिरे से ट्रांसलेट होंगी।")
 
                 if not TRANSLATOR_AVAILABLE:
                     st.warning(
@@ -2807,8 +2815,28 @@ else:
                 if "p10_reg_translation_cache" not in st.session_state:
                     st.session_state.p10_reg_translation_cache = {}
 
-                def reg_translate_value(text_val, lang_code):
-                    """Ek single cell value ko chuni hui bhasha me translate karta hai, cache ke sath."""
+                # 🚨 Google कभी-कभी बहुत सारी requests एक साथ आने पर rate-limit/error-page
+                # (जैसे "Error 500 (Server Error)!!1500...") वापस भेज देता है, और वो error-page
+                # text galti se translation jaisa dikh sakta hai. Isliye har result ko validate
+                # karte hain — agar usme ye error patterns dikhein to use turant reject kar dete hain.
+                REG_TRANSLATE_ERROR_MARKERS = [
+                    "error 500", "server error", "that's an error", "that's all we know",
+                    "please try again later", "1500."
+                ]
+
+                def reg_is_bad_translation(result_text, original_text):
+                    if not result_text:
+                        return True
+                    low = result_text.lower()
+                    if any(marker in low for marker in REG_TRANSLATE_ERROR_MARKERS):
+                        return True
+                    # Google ka error-page result asli text se kaafi lamba hota hai (HTML/message)
+                    if len(result_text) > (len(original_text) * 6 + 40):
+                        return True
+                    return False
+
+                def reg_translate_value(text_val, lang_code, max_retries=3):
+                    """Ek single cell value ko chuni hui bhasha me translate karta hai, retry + cache ke sath."""
                     text_str = "" if text_val is None else str(text_val).strip()
                     if lang_code == "none" or text_str == "" or text_str.lower() == "nan":
                         return text_val
@@ -2816,13 +2844,27 @@ else:
                     cache = st.session_state.p10_reg_translation_cache
                     if cache_key in cache:
                         return cache[cache_key]
-                    try:
-                        translated = GoogleTranslator(source="auto", target=lang_code).translate(text_str)
-                        if not translated:
-                            translated = text_str
-                    except Exception:
-                        translated = text_str  # Internet/API na chalne par original value hi dikhega
+
+                    translated = text_str  # fallback: kuch bhi kaam na kare to original text hi rahega
+                    for attempt in range(max_retries):
+                        try:
+                            result = GoogleTranslator(source="auto", target=lang_code).translate(text_str)
+                            if result and not reg_is_bad_translation(result, text_str):
+                                translated = result
+                                break
+                            # Bad/error-page result mila — thoda ruk kar dobara koshish karo
+                            time.sleep(0.8 * (attempt + 1))
+                        except Exception:
+                            time.sleep(0.8 * (attempt + 1))
+                    else:
+                        pass  # sabhi retries fail — translated original text hi rahega (upar set hai)
+
+                    # 🚨 Safety net: agar phir bhi galti se error-page text aa gaya ho to use kabhi cache/print na karein
+                    if reg_is_bad_translation(translated, text_str):
+                        translated = text_str
+
                     cache[cache_key] = translated
+                    time.sleep(0.15)  # har request ke beech chhota sa gap — Google ko rate-limit se bachane ke liye
                     return translated
 
                 # 🔤 List Order Selector — Roll No. के क्रम में, Student Name के अल्फाबेटिकल (A-Z) क्रम में,
