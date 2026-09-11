@@ -2684,6 +2684,13 @@ else:
                 if reg_selected_print_cols and total_width_pct != 100:
                     st.caption(f"ℹ️ चुने हुए Columns की कुल Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
 
+                # 🔤 List Order Selector — Roll No. के क्रम में या Student Name के अल्फाबेटिकल (A-Z) क्रम में
+                reg_sort_order_choice = st.selectbox(
+                    "🔀 लिस्ट किस क्रम में प्रिंट करें (Sort Order):",
+                    options=["Roll No. (संख्या क्रम में)", "Student Name (अल्फाबेटिक A-Z क्रम में)"],
+                    key="p10_reg_sort_order_choice"
+                )
+
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
                     st.session_state.p10_reg_list_generated = True
 
@@ -2716,11 +2723,18 @@ else:
                     if "Roll No." not in reg_src_df.columns:
                         st.warning("⚠️ डेटाबेस में 'Roll No.' कॉलम नहीं मिला।")
                     else:
-                        # 🔢 CCE Foil जैसा ही Roll No. सॉर्ट इंजन (न्यूमेरिक क्रम में)
-                        reg_src_df["_sort_key"] = pd.to_numeric(reg_src_df["Roll No."], errors="coerce")
-                        reg_src_df = reg_src_df.sort_values(
-                            by=["_sort_key", "Roll No."], ascending=[True, True]
-                        ).drop(columns=["_sort_key"]).reset_index(drop=True)
+                        if reg_sort_order_choice.startswith("Student Name"):
+                            # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
+                            reg_src_df["_sort_key"] = reg_src_df.get("Student Name", "").astype(str).str.strip().str.upper()
+                            reg_src_df = reg_src_df.sort_values(
+                                by=["_sort_key"], ascending=[True]
+                            ).drop(columns=["_sort_key"]).reset_index(drop=True)
+                        else:
+                            # 🔢 CCE Foil जैसा ही Roll No. सॉर्ट इंजन (न्यूमेरिक क्रम में)
+                            reg_src_df["_sort_key"] = pd.to_numeric(reg_src_df["Roll No."], errors="coerce")
+                            reg_src_df = reg_src_df.sort_values(
+                                by=["_sort_key", "Roll No."], ascending=[True, True]
+                            ).drop(columns=["_sort_key"]).reset_index(drop=True)
 
                         # "S. No." data column nahi hai (wo page ke hisaab se calculate hota hai),
                         # baaki sab actual database columns hain
