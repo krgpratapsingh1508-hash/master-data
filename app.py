@@ -962,23 +962,45 @@ else:
                                  key="p2_toggle_header_customizer_section", use_container_width=True):
                         st.session_state.p2_show_header_customizer_section = not st.session_state.p2_show_header_customizer_section
 
+                # 🔄 Header 3 & Header 4 ऑटो-सिंक इंजन — जब भी ऊपर "Advanced Matrix Filters System" में
+                # Year/Subject (बॉक्स 3 के लिए) या Column Filter Target/Filter Value (बॉक्स 4 के लिए) बदलें,
+                # ये टेक्स्ट बॉक्स अपने आप नई चुनी हुई वैल्यू के हिसाब से रीफ़्रेश हो जाएंगे।
+                # (पहले सिर्फ पहली बार वाली default value सेट होती थी, बाद में year/subject बदलने पर भी
+                # बॉक्स पुरानी वैल्यू पर ही अटका रहता था — यही bug अब ठीक कर दिया गया है)
                 default_header_3 = f"Session: {p2_filter_year} | Subject: {p2_filter_subject}"
-                if st.session_state.p2_show_header_customizer_section:
-                    st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
+                default_header_4 = f"{p2_selected_col}: {p2_selected_val}" if p2_selected_val != "All Values" else ""
 
-                    col_tb1, col_tb2, col_tb3 = st.columns(3)
+                _h3_track_key = "_p2_h3_last_filters"
+                if st.session_state.get(_h3_track_key) != (p2_filter_year, p2_filter_subject):
+                    st.session_state["p2_custom_head_line_3_final_fixed"] = default_header_3
+                    st.session_state[_h3_track_key] = (p2_filter_year, p2_filter_subject)
+
+                _h4_track_key = "_p2_h4_last_filters"
+                if st.session_state.get(_h4_track_key) != (p2_selected_col, p2_selected_val):
+                    st.session_state["p2_custom_head_line_4_final_fixed"] = default_header_4
+                    st.session_state[_h4_track_key] = (p2_selected_col, p2_selected_val)
+
+                if st.session_state.p2_show_header_customizer_section:
+                    st.caption("नीचे दिए गए बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा। "
+                                "बॉक्स 3 और 4 अपने आप ऊपर चुने गए Year/Subject और Column Filter Target/Filter Value के हिसाब से अपडेट होते हैं "
+                                "(बॉक्स 4 सिर्फ तभी दिखेगा जब 'Filter Value for...' में 'All Values' के अलावा कोई खास वैल्यू चुनी गई हो — जरूरत न हो तो यह खाली/print में गायब रहेगा)।")
+
+                    col_tb1, col_tb2, col_tb3, col_tb4 = st.columns(4)
                     with col_tb1:
                         custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
                     with col_tb2:
                         custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
                     with col_tb3:
                         custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
+                    with col_tb4:
+                        custom_header_4 = st.text_input(f"4. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
                 else:
                     st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
 
                 custom_header_1 = st.session_state.get("p2_custom_head_line_1_final_fixed", "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)")
                 custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
                 custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
+                custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
                 
                 # ==================================================================
                 # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
@@ -1101,6 +1123,7 @@ else:
                             .h-line-1 {{ font-size: 16px; font-weight: bold; color: #1465de; margin-bottom: 5px; }}
                             .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
                             .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
+                            .h-line-4 {{ font-size: 12px; font-style: italic; color: #1465de; margin-top: 3px; }}
                             table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
                         </style>
                     </head>
@@ -1109,6 +1132,7 @@ else:
                             <div class="h-line-1">{custom_header_1}</div>
                             <div class="h-line-2">{custom_header_2}</div>
                             <div class="h-line-3">{custom_header_3}</div>
+                            {f'<div class="h-line-4">{custom_header_4}</div>' if custom_header_4 and custom_header_4.strip() else ''}
                         </div>
                         <table>
                             <thead><tr>{headers_html}</tr></thead>
