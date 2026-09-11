@@ -6,6 +6,7 @@ import base64
 import json
 import io
 import time
+import requests  # 🟢 P10 naam-transliteration (Google Input Tools) ke liye
 import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
 # 🟢 P10 प्रिंट ट्रांसलेशन फीचर के लिए लाइब्रेरी (अगर इंस्टॉल नहीं है तो feature अपने आप डिसेबल हो जाएगा)
@@ -2835,37 +2836,124 @@ else:
                         return True
                     return False
 
-                def reg_translate_value(text_val, lang_code, max_retries=3):
-                    """Ek single cell value ko chuni hui bhasha me translate karta hai, retry + cache ke sath."""
+                # 🟢 P10 FIX: naam wale columns (Student Name / Father Name / Mother Name) ko
+                # kabhi "translate" nahi karna chahiye — translation ek meaning-based process hai
+                # aur naam ka koi "meaning" translate nahi hota, isse ulti-seedhi cheez (jaise
+                # "Manoj" ka "Your assessment" ban jaana) print ho jaati hai. Naamon ke liye humesha
+                # TRANSLITERATION (sirf spelling ko Devanagari/target script me badalna) chahiye.
+                REG_TRANSLIT_COLUMNS = NAME_CASE_COLUMNS  # ["Student Name", "Father Name", "Mother Name"]
+
+                # Google Input Tools ka wahi transliteration engine jo online Hindi typing tools
+                # use karte hain — ye naam ko translate nahi karta, sirf sahi spelling deta hai.
+                REG_TRANSLIT_LANG_MAP = {
+                    "hi": "hi-t-i0-und", "mr": "mr-t-i0-und", "gu": "gu-t-i0-und",
+                    "pa": "pa-t-i0-und", "bn": "bn-t-i0-und", "ta": "ta-t-i0-und",
+                    "te": "te-t-i0-und", "kn": "kn-t-i0-und", "ml": "ml-t-i0-und",
+                    "or": "or-t-i0-und", "ur": "ur-t-i0-und", "ne": "ne-t-i0-und",
+                    "as": "as-t-i0-und", "sa": "sa-t-i0-und",
+                }
+
+                def reg_translate_value(text_val, lang_code, max_retries=5):
+                    """Ek single cell value ko chuni hui bhasha me translate karta hai, retry + cache ke sath.
+                    max_retries badhaya gaya hai (3 -> 5) aur backoff lamba kiya gaya hai taaki
+                    Google ke temporary rate-limit/error se translation beech me na ruke."""
                     text_str = "" if text_val is None else str(text_val).strip()
                     if lang_code == "none" or text_str == "" or text_str.lower() == "nan":
-                        return text_val
+                        return text_val, True
                     cache_key = f"{lang_code}::{text_str}"
                     cache = st.session_state.p10_reg_translation_cache
                     if cache_key in cache:
-                        return cache[cache_key]
+                        return cache[cache_key], True
 
                     translated = text_str  # fallback: kuch bhi kaam na kare to original text hi rahega
+                    success = False
                     for attempt in range(max_retries):
                         try:
                             result = GoogleTranslator(source="auto", target=lang_code).translate(text_str)
                             if result and not reg_is_bad_translation(result, text_str):
                                 translated = result
+                                success = True
                                 break
                             # Bad/error-page result mila — thoda ruk kar dobara koshish karo
-                            time.sleep(0.8 * (attempt + 1))
+                            time.sleep(1.0 * (attempt + 1))
                         except Exception:
-                            time.sleep(0.8 * (attempt + 1))
-                    else:
-                        pass  # sabhi retries fail — translated original text hi rahega (upar set hai)
+                            time.sleep(1.0 * (attempt + 1))
 
                     # 🚨 Safety net: agar phir bhi galti se error-page text aa gaya ho to use kabhi cache/print na karein
                     if reg_is_bad_translation(translated, text_str):
                         translated = text_str
+                        success = False
 
                     cache[cache_key] = translated
-                    time.sleep(0.15)  # har request ke beech chhota sa gap — Google ko rate-limit se bachane ke liye
-                    return translated
+                    time.sleep(0.2)  # har request ke beech chhota sa gap — Google ko rate-limit se bachane ke liye
+                    return translated, success
+
+                def reg_transliterate_name(text_val, lang_code, max_retries=4):
+                    """Naam ko TRANSLATE nahi karta — sirf uski sahi spelling (transliteration)
+                    target script me deta hai, jaise 'Manoj' -> 'मनोज'. Google Input Tools ke
+                    transliteration engine se, har shabd (word) alag se bhejkar (taaki spacing na
+                    bigde). Agar transliteration na ho paye (unsupported language ya network issue)
+                    to seedhe translation API par fallback ho jaata hai."""
+                    text_str = "" if text_val is None else str(text_val).strip()
+                    if lang_code == "none" or text_str == "" or text_str.lower() == "nan":
+                        return text_val, True
+
+                    cache_key = f"translit::{lang_code}::{text_str}"
+                    cache = st.session_state.p10_reg_translation_cache
+                    if cache_key in cache:
+                        return cache[cache_key], True
+
+                    itc_code = REG_TRANSLIT_LANG_MAP.get(lang_code)
+                    if not itc_code:
+                        # Is language ke liye transliteration support nahi hai — seedha translate use karo
+                        result_text, ok = reg_translate_value(text_str, lang_code)
+                        cache[cache_key] = result_text
+                        return result_text, ok
+
+                    words = [w for w in text_str.split(" ") if w.strip() != ""]
+                    translit_words = []
+                    all_words_ok = True
+                    for w_clean in words:
+                        word_result = w_clean
+                        word_ok = False
+                        for attempt in range(max_retries):
+                            try:
+                                resp = requests.get(
+                                    "https://inputtools.google.com/request",
+                                    params={
+                                        "text": w_clean, "itc": itc_code, "num": 1,
+                                        "cp": 0, "cs": 1, "ie": "utf-8", "oe": "utf-8"
+                                    },
+                                    timeout=6
+                                )
+                                data = resp.json()
+                                if (
+                                    isinstance(data, list) and len(data) > 1 and data[0] == "SUCCESS"
+                                    and data[1] and data[1][0][1]
+                                ):
+                                    word_result = data[1][0][1][0]
+                                    word_ok = True
+                                    break
+                                time.sleep(0.5 * (attempt + 1))
+                            except Exception:
+                                time.sleep(0.5 * (attempt + 1))
+                        translit_words.append(word_result)
+                        if not word_ok:
+                            all_words_ok = False
+                        time.sleep(0.1)
+
+                    result_text = " ".join(translit_words) if translit_words else text_str
+
+                    if not all_words_ok:
+                        # Kuch/sabhi shabd transliterate nahi ho paaye — translation API se poora naam
+                        # dobara try karo taaki result khaali/adhoora na rahe
+                        fallback_text, fallback_ok = reg_translate_value(text_str, lang_code)
+                        if fallback_ok:
+                            result_text = fallback_text
+                            all_words_ok = True
+
+                    cache[cache_key] = result_text
+                    return result_text, all_words_ok
 
                 # 🔤 List Order Selector — Roll No. के क्रम में, Student Name के अल्फाबेटिकल (A-Z) क्रम में,
                 # या पहले Subject फिर उसके अंदर Student Name के अल्फाबेटिकल क्रम में
@@ -2944,19 +3032,46 @@ else:
                         if TRANSLATOR_AVAILABLE and reg_translate_lang_code != "none" and reg_translate_cols_selected:
                             translate_progress_bar = st.progress(0.0, text="🌐 चुने गए Columns ट्रांसलेट किए जा रहे हैं...")
                             total_translate_steps = max(len(reg_translate_cols_selected), 1)
+                            reg_translate_fail_report = {}  # column -> list of values jo translate/transliterate nahi ho paaye
                             for step_i, t_col in enumerate(reg_translate_cols_selected):
                                 if t_col in reg_data_cols_needed:
                                     # पहले उस column की सिर्फ unique values निकालें ताकि बार-बार एक ही
                                     # value को translate करने पर API कॉल्स waste न हों
                                     unique_vals = sorted(set(str(r.get(t_col, "")) for r in reg_records))
-                                    value_translation_map = {
-                                        uv: reg_translate_value(uv, reg_translate_lang_code) for uv in unique_vals
-                                    }
+                                    value_translation_map = {}
+                                    failed_vals = []
+                                    for uv in unique_vals:
+                                        # 🟢 FIX: naam wale columns (Student Name/Father Name/Mother Name)
+                                        # ko TRANSLATE nahi, TRANSLITERATE karte hain — isse "Manoj" jaisa
+                                        # naam "मनोज" bane, na ki koi ulta-seedha translated phrase.
+                                        if t_col in REG_TRANSLIT_COLUMNS:
+                                            result_val, was_ok = reg_transliterate_name(uv, reg_translate_lang_code)
+                                        else:
+                                            result_val, was_ok = reg_translate_value(uv, reg_translate_lang_code)
+                                        value_translation_map[uv] = result_val
+                                        if not was_ok and uv.strip() != "":
+                                            failed_vals.append(uv)
+                                    if failed_vals:
+                                        reg_translate_fail_report[t_col] = failed_vals
                                     for rec in reg_records:
                                         original_val = str(rec.get(t_col, ""))
                                         rec[t_col] = value_translation_map.get(original_val, original_val)
                                 translate_progress_bar.progress((step_i + 1) / total_translate_steps)
                             translate_progress_bar.empty()
+
+                            # 🟢 FIX: pehle translation fail hone par chup-chaap original English reh jaata
+                            # tha aur user ko pata hi nahi chalta tha ki kaunsi values reh gayin. Ab saaf-saaf
+                            # dikha denge ki kaunsi values translate/transliterate nahi ho paayin (agar koi hui to).
+                            if reg_translate_fail_report:
+                                fail_lines = [
+                                    f"**{col}**: {', '.join(vals[:15])}" + (f" ... (+{len(vals)-15} और)" if len(vals) > 15 else "")
+                                    for col, vals in reg_translate_fail_report.items()
+                                ]
+                                st.warning(
+                                    "⚠️ इंटरनेट/Google सर्विस की अस्थायी समस्या की वजह से नीचे दी गई values पूरी तरह "
+                                    "ट्रांसलेट/ट्रांसलिटरेट नहीं हो पाईं और अंग्रेज़ी में ही रह गई हैं। दोबारा 'Generate' बटन दबाएँ, "
+                                    "आमतौर पर दूसरी कोशिश में ये ठीक हो जाती हैं:\n\n" + "\n\n".join(fail_lines)
+                                )
 
                         if len(reg_records) == 0:
                             st.warning(f"🔍 चयनित Subject ('{selected_subject_p10}') और '{chosen_option_p10}' scope के आधार पर रजिस्टर लिस्ट बनाने के लिए कोई रिकॉर्ड नहीं मिला।")
