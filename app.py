@@ -92,6 +92,26 @@ DEFAULT_COLUMNS = [
 # ==========================================================
 # 📁 स्टेप 2: डेटा सहेजने और लोड करने वाले कोर फंक्शन्स
 # ==========================================================
+
+# 🟢 नया यूटिलिटी फंक्शन: Student Name / Father Name / Mother Name जैसे नाम वाले
+# कॉलम्स को हमेशा "Riya Sharma" जैसे Proper Case (हर शब्द का पहला अक्षर Capital) में
+# दिखाने के लिए। यह load_live_data और load_stage_data दोनों में लगाया गया है, इसलिए
+# चाहे कोई भी बड़े/छोटे अक्षरों में डेटा अपलोड/एंटर करे, हर पैनल में (स्क्रीन पर देखने से
+# लेकर प्रिंट तक) यह हमेशा Proper Case में ही दिखेगा — क्योंकि सभी पैनल इसी live_db से डेटा लेते हैं।
+NAME_CASE_COLUMNS = ["Student Name", "Father Name", "Mother Name"]
+
+def to_proper_name_case(name_val):
+    s = str(name_val).strip()
+    if not s or s.lower() == "nan":
+        return s
+    return " ".join(word.capitalize() for word in s.split(" "))
+
+def apply_name_proper_case(df):
+    for name_col in NAME_CASE_COLUMNS:
+        if name_col in df.columns:
+            df[name_col] = df[name_col].apply(to_proper_name_case)
+    return df
+
 def load_pre_login_config():
     if os.path.exists(PRE_LOGIN_CONFIG_FILE):
         try:
@@ -184,6 +204,7 @@ def load_live_data():
         for col in DEFAULT_COLUMNS:
             if col not in df.columns: df[col] = ""
         df = df.fillna("").reset_index(drop=True)
+        df = apply_name_proper_case(df)
         
         # 🔄 P11 डायनेमिक लोड-टाइम सिंक इंजन (Twin Sync)
         twin_maps = load_twin_mappings()
@@ -232,6 +253,7 @@ def load_stage_data():
     try:
         df = pd.read_csv(STAGE_FILE, dtype=str)
         df = df.fillna("").reset_index(drop=True)
+        df = apply_name_proper_case(df)
 
         # 🟢 सेफ्टी-नेट फिक्स: पुराने मैनुअल एंट्री बग की वजह से कुछ पेंडिंग रिकॉर्ड्स में
         # "Date Of Birth" / "Email" / "Enrollment No" जैसे गलत-नाम वाले कॉलम बन गए होंगे।
