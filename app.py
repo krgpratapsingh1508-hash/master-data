@@ -1083,6 +1083,31 @@ else:
                 if not chosen_render_cols:
                     chosen_render_cols = ["Admission Application Number", "Student Name"]
 
+                # 🔀 List Order Selector — P10 जैसा ही Sort Order सिस्टम अब P2 में भी
+                p2_sort_order_choice = st.selectbox(
+                    "🔀 लिस्ट किस क्रम में प्रिंट करें (Sort Order):",
+                    options=[
+                        "डिफ़ॉल्ट क्रम (जैसा डेटा है)",
+                        "Student Name (अल्फाबेटिक A-Z क्रम में)",
+                        "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
+                    ],
+                    key="p2_sort_order_choice"
+                )
+                if p2_sort_order_choice.startswith("Subject"):
+                    # 🔤 पहले Subject के अल्फाबेटिक क्रम में, फिर उसी Subject के अंदर Student Name A-Z
+                    admission_display_db["_sort_key_1"] = admission_display_db.get("Subject", "").astype(str).str.strip().str.upper()
+                    admission_display_db["_sort_key_2"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
+                    admission_display_db = admission_display_db.sort_values(
+                        by=["_sort_key_1", "_sort_key_2"], ascending=[True, True]
+                    ).drop(columns=["_sort_key_1", "_sort_key_2"]).reset_index(drop=True)
+                elif p2_sort_order_choice.startswith("Student Name"):
+                    # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
+                    admission_display_db["_sort_key"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
+                    admission_display_db = admission_display_db.sort_values(
+                        by=["_sort_key"], ascending=[True]
+                    ).drop(columns=["_sort_key"]).reset_index(drop=True)
+                # "डिफ़ॉल्ट क्रम" चुनने पर कोई sort नहीं होगा — डेटा जैसा है वैसा ही क्रम रहेगा
+
                 st.markdown("---")
                 
                 # ==================================================================
