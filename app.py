@@ -868,7 +868,12 @@ else:
                     p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
                 
                 with col_p2_3:
-                    ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type"]
+                    # 🟢 Fix: "Subject" ko yahan se hata diya gaya hai kyunki uska apna dedicated
+                    # dropdown (2. Select Subject) upar hi maujood hai — dono jagah Subject rakhne se
+                    # confusing double-filtering hoti thi. Ab "Subject" ki jagah is dropdown mein
+                    # nahi dikhega (jab bhi "All Subjects" ho ya na ho, "Column Filter Target" hamesha
+                    # baaki dusre columns hi dikhayega).
+                    ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type", "Subject"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
                     p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
                 
@@ -885,18 +890,35 @@ else:
                 
                 # Payment Date Range Filter
                 st.markdown("---")
-                st.subheader("📆 Filter Records By Payment Date Range")
-                use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
-                
+                if "p2_show_date_filter_section" not in st.session_state:
+                    st.session_state.p2_show_date_filter_section = True
+                hdr_dt_1, hdr_dt_2 = st.columns([6, 1])
+                with hdr_dt_1:
+                    st.subheader("📆 Filter Records By Payment Date Range")
+                with hdr_dt_2:
+                    st.write("")
+                    if st.button("🙈 Hide" if st.session_state.p2_show_date_filter_section else "👁️ Unhide",
+                                 key="p2_toggle_date_filter_section", use_container_width=True):
+                        st.session_state.p2_show_date_filter_section = not st.session_state.p2_show_date_filter_section
+
                 start_date = pd.to_datetime("2024-01-01")
                 end_date = pd.to_datetime("2026-12-31")
-                
-                if use_date_filter:
-                    col_dt1, col_dt2 = st.columns(2)
-                    with col_dt1:
-                        start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
-                    with col_dt2:
-                        end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
+
+                if st.session_state.p2_show_date_filter_section:
+                    use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
+
+                    if use_date_filter:
+                        col_dt1, col_dt2 = st.columns(2)
+                        with col_dt1:
+                            start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
+                        with col_dt2:
+                            end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
+                else:
+                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                use_date_filter = st.session_state.get("p2_enable_date_filter_secure_v18", False)
+                start_date = st.session_state.get("p2_start_date_secure_v18", pd.to_datetime("2024-01-01"))
+                end_date = st.session_state.get("p2_end_date_secure_v18", pd.to_datetime("2026-12-31"))
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -929,23 +951,50 @@ else:
                 # ✍️ Print Header Text Boxes Customizer
                 # ==================================================================
                 st.markdown("---")
-                st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
-                st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
-                
-                col_tb1, col_tb2, col_tb3 = st.columns(3)
-                with col_tb1:
-                    custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
-                with col_tb2:
-                    custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
-                with col_tb3:
-                    custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=f"Session: {p2_filter_year} | Subject: {p2_filter_subject}", key="p2_custom_head_line_3_final_fixed")
+                if "p2_show_header_customizer_section" not in st.session_state:
+                    st.session_state.p2_show_header_customizer_section = True
+                hdr_pc_1, hdr_pc_2 = st.columns([6, 1])
+                with hdr_pc_1:
+                    st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
+                with hdr_pc_2:
+                    st.write("")
+                    if st.button("🙈 Hide" if st.session_state.p2_show_header_customizer_section else "👁️ Unhide",
+                                 key="p2_toggle_header_customizer_section", use_container_width=True):
+                        st.session_state.p2_show_header_customizer_section = not st.session_state.p2_show_header_customizer_section
+
+                default_header_3 = f"Session: {p2_filter_year} | Subject: {p2_filter_subject}"
+                if st.session_state.p2_show_header_customizer_section:
+                    st.caption("नीचे दिए गए तीनों बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा:")
+
+                    col_tb1, col_tb2, col_tb3 = st.columns(3)
+                    with col_tb1:
+                        custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
+                    with col_tb2:
+                        custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
+                    with col_tb3:
+                        custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
+                else:
+                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                custom_header_1 = st.session_state.get("p2_custom_head_line_1_final_fixed", "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)")
+                custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
+                custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
                 
                 # ==================================================================
                 # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
                 # ==================================================================
                 st.markdown("---")
-                st.subheader("👁️ Select Columns to Display & Print")
-                
+                if "p2_show_columns_section" not in st.session_state:
+                    st.session_state.p2_show_columns_section = True
+                hdr_cs_1, hdr_cs_2 = st.columns([6, 1])
+                with hdr_cs_1:
+                    st.subheader("👁️ Select Columns to Display & Print")
+                with hdr_cs_2:
+                    st.write("")
+                    if st.button("🙈 Hide" if st.session_state.p2_show_columns_section else "👁️ Unhide",
+                                 key="p2_toggle_columns_section", use_container_width=True):
+                        st.session_state.p2_show_columns_section = not st.session_state.p2_show_columns_section
+
                 # 🟢 फिक्स: यहाँ पहले कॉलम नाम असली डेटा कॉलम्स से मेल नहीं खाते थे
                 # (जैसे "Date Of Birth" vs असली कॉलम "Date of Birth", "Email" vs "Email ID",
                 # "Enrollment No" vs "Enrollment No.") — इसी वजह से DOB, Email और Enrollment No
@@ -958,22 +1007,31 @@ else:
                     "Scholarship Name", "Payment Date"
                 ]
 
-                # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
-                chosen_render_cols = st.multiselect(
-                    "रिपोर्ट में देखने के लिए आवश्यक कॉलम्स चुनें:",
-                    options=all_possible_p2_cols,
-                    default=all_possible_p2_cols, # डिफ़ॉल्ट रूप से सभी सेलेक्ट रहेंगे
-                    key="p2_columns_multiselect_dropdown_v20"
+                if st.session_state.p2_show_columns_section:
+                    # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
+                    chosen_render_cols = st.multiselect(
+                        "रिपोर्ट में देखने के लिए आवश्यक कॉलम्स चुनें:",
+                        options=all_possible_p2_cols,
+                        default=all_possible_p2_cols, # डिफ़ॉल्ट रूप से सभी सेलेक्ट रहेंगे
+                        key="p2_columns_multiselect_dropdown_v20"
+                    )
+
+                    # 🖨️ नया फ़ीचर: प्रिंट ओरिएंटेशन चुनने का विकल्प (Portrait / Landscape)
+                    print_orientation = st.selectbox(
+                        "🖨️ प्रिंट पेज का लेआउट चुनें (Choose Print Orientation):",
+                        options=["Portrait (खड़ा पेज - कम कॉलम्स के लिए उत्तम)", "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"],
+                        index=1, # डिफ़ॉल्ट रूप से Landscape सेट रहेगा
+                        key="p2_print_orientation_selector"
+                    )
+                else:
+                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                chosen_render_cols = st.session_state.get("p2_columns_multiselect_dropdown_v20", all_possible_p2_cols)
+                print_orientation = st.session_state.get(
+                    "p2_print_orientation_selector",
+                    "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"
                 )
 
-                # 🖨️ नया फ़ीचर: प्रिंट ओरिएंटेशन चुनने का विकल्प (Portrait / Landscape)
-                print_orientation = st.selectbox(
-                    "🖨️ प्रिंट पेज का लेआउट चुनें (Choose Print Orientation):",
-                    options=["Portrait (खड़ा पेज - कम कॉलम्स के लिए उत्तम)", "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"],
-                    index=1, # डिफ़ॉल्ट रूप से Landscape सेट रहेगा
-                    key="p2_print_orientation_selector"
-                )
-                
                 # सीएसएस के लिए वैल्यू सेट करना
                 orientation_css = "portrait" if "Portrait" in print_orientation else "landscape"
 
@@ -2521,16 +2579,29 @@ else:
                 if "p10_reg_selected_cols" not in st.session_state:
                     st.session_state.p10_reg_selected_cols = ["S. No.", "Roll No.", "Student Name", "Father Name"]
 
-                st.markdown("**🧾 Print Columns चुनें (सिर्फ चुने हुए Column ही Paper पर आएंगे):**")
-                reg_chosen_cols_raw = st.multiselect(
-                    "Columns:",
-                    options=REG_ALL_PRINT_COLS,
-                    default=st.session_state.p10_reg_selected_cols,
-                    key="p10_reg_col_multiselect"
-                )
-                # Order hamesha REG_ALL_PRINT_COLS ke fixed sequence mein rahega, चाहे selection kisi bhi order mein ki ho
-                reg_selected_print_cols = [c for c in REG_ALL_PRINT_COLS if c in reg_chosen_cols_raw]
-                st.session_state.p10_reg_selected_cols = reg_selected_print_cols
+                if "p10_show_print_cols_section" not in st.session_state:
+                    st.session_state.p10_show_print_cols_section = True
+                hdr_pcols_1, hdr_pcols_2 = st.columns([6, 1])
+                with hdr_pcols_1:
+                    st.markdown("**🧾 Print Columns चुनें (सिर्फ चुने हुए Column ही Paper पर आएंगे):**")
+                with hdr_pcols_2:
+                    if st.button("🙈 Hide" if st.session_state.p10_show_print_cols_section else "👁️ Unhide",
+                                 key="p10_toggle_print_cols_section", use_container_width=True):
+                        st.session_state.p10_show_print_cols_section = not st.session_state.p10_show_print_cols_section
+
+                if st.session_state.p10_show_print_cols_section:
+                    reg_chosen_cols_raw = st.multiselect(
+                        "Columns:",
+                        options=REG_ALL_PRINT_COLS,
+                        default=st.session_state.p10_reg_selected_cols,
+                        key="p10_reg_col_multiselect"
+                    )
+                    # Order hamesha REG_ALL_PRINT_COLS ke fixed sequence mein rahega, चाहे selection kisi bhi order mein ki ho
+                    reg_selected_print_cols = [c for c in REG_ALL_PRINT_COLS if c in reg_chosen_cols_raw]
+                    st.session_state.p10_reg_selected_cols = reg_selected_print_cols
+                else:
+                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+                    reg_selected_print_cols = st.session_state.p10_reg_selected_cols
 
                 if not reg_selected_print_cols:
                     st.warning("⚠️ कृपया कम से कम एक Column select करें।")
@@ -2547,29 +2618,42 @@ else:
                     if _c not in st.session_state.p10_reg_col_widths:
                         st.session_state.p10_reg_col_widths[_c] = _w
 
+                if "p10_show_col_width_section" not in st.session_state:
+                    st.session_state.p10_show_col_width_section = True
+
                 if reg_selected_print_cols:
-                    st.markdown("**📏 Column Width Resize करें (जैसे Row Height करते हैं):**")
-                    col_w1, col_w2, col_w3 = st.columns([2, 2, 1])
-                    with col_w1:
-                        reg_selected_col = st.selectbox(
-                            "🧱 Column चुनें जिसकी Width बदलनी है:",
-                            options=reg_selected_print_cols,
-                            key="p10_reg_col_select"
-                        )
-                    with col_w2:
-                        reg_new_width_val = st.number_input(
-                            "📐 नई Width (%) दर्ज करें:",
-                            min_value=5, max_value=70,
-                            value=int(st.session_state.p10_reg_col_widths[reg_selected_col]),
-                            step=1,
-                            key=f"p10_reg_col_width_input_{reg_selected_col}"
-                        )
-                    with col_w3:
-                        st.write("")
-                        st.write("")
-                        if st.button("✅ Apply Width", key="p10_reg_col_width_apply_btn", use_container_width=True):
-                            st.session_state.p10_reg_col_widths[reg_selected_col] = reg_new_width_val
-                            st.success(f"'{reg_selected_col}' की width अब {reg_new_width_val}% सेट हो गई है।")
+                    hdr_cw_1, hdr_cw_2 = st.columns([6, 1])
+                    with hdr_cw_1:
+                        st.markdown("**📏 Column Width Resize करें (जैसे Row Height करते हैं):**")
+                    with hdr_cw_2:
+                        if st.button("🙈 Hide" if st.session_state.p10_show_col_width_section else "👁️ Unhide",
+                                     key="p10_toggle_col_width_section", use_container_width=True):
+                            st.session_state.p10_show_col_width_section = not st.session_state.p10_show_col_width_section
+
+                    if st.session_state.p10_show_col_width_section:
+                        col_w1, col_w2, col_w3 = st.columns([2, 2, 1])
+                        with col_w1:
+                            reg_selected_col = st.selectbox(
+                                "🧱 Column चुनें जिसकी Width बदलनी है:",
+                                options=reg_selected_print_cols,
+                                key="p10_reg_col_select"
+                            )
+                        with col_w2:
+                            reg_new_width_val = st.number_input(
+                                "📐 नई Width (%) दर्ज करें:",
+                                min_value=5, max_value=70,
+                                value=int(st.session_state.p10_reg_col_widths[reg_selected_col]),
+                                step=1,
+                                key=f"p10_reg_col_width_input_{reg_selected_col}"
+                            )
+                        with col_w3:
+                            st.write("")
+                            st.write("")
+                            if st.button("✅ Apply Width", key="p10_reg_col_width_apply_btn", use_container_width=True):
+                                st.session_state.p10_reg_col_widths[reg_selected_col] = reg_new_width_val
+                                st.success(f"'{reg_selected_col}' की width अब {reg_new_width_val}% सेट हो गई है।")
+                    else:
+                        st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
 
                 reg_col_widths = st.session_state.p10_reg_col_widths
                 total_width_pct = sum(reg_col_widths[c] for c in reg_selected_print_cols) if reg_selected_print_cols else 0
@@ -2579,16 +2663,26 @@ else:
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
                     st.session_state.p10_reg_list_generated = True
 
-                # 🟢 Side-by-Side Layout toggle: कम columns select होने पर एक ही पेज पर
-                # दो लिस्ट (बायीं + दायीं) साथ-साथ प्रिंट होंगी ताकि पेज की खाली जगह बर्बाद न हो
-                reg_default_side_by_side = len(reg_selected_print_cols) <= 4
-                reg_side_by_side = st.checkbox(
-                    "📰 Side-by-Side लेआउट (Column कम होने पर एक Page पर 2 लिस्ट दिखाएं)",
-                    value=reg_default_side_by_side,
-                    key="p10_reg_side_by_side_toggle"
+                # 🟢 Side-by-Side Layout selector: कम columns select होने पर एक ही पेज पर
+                # 2 या 3 लिस्ट (एक साथ पास-पास) प्रिंट होंगी ताकि पेज की खाली जगह बर्बाद न हो।
+                # अब यह सिर्फ ON/OFF checkbox नहीं, बल्कि user khud decide kar sakta hai ki
+                # 1 (Normal), 2 (Side-by-Side) ya 3 (Triple) list ek page par chahiye.
+                reg_default_layout_count = 2 if len(reg_selected_print_cols) <= 4 else 1
+                reg_layout_options = [
+                    "1 (Normal — एक ही लिस्ट)",
+                    "2 (Side-by-Side — दो लिस्ट)",
+                    "3 (Triple — तीन लिस्ट)"
+                ]
+                reg_layout_choice = st.selectbox(
+                    "📰 एक Page पर कितनी लिस्ट दिखाएं (Side-by-Side Layout):",
+                    options=reg_layout_options,
+                    index=(reg_default_layout_count - 1),
+                    key="p10_reg_side_by_side_layout_count"
                 )
+                reg_layout_count = int(reg_layout_choice.split(" ")[0])
+                reg_side_by_side = reg_layout_count > 1
                 if reg_side_by_side:
-                    st.caption("ℹ️ ऊपर दी गई 'एक Page में कुल कितनी Row' वैल्यू अब **हर साइड (बायें/दायें) की row count** मानी जाएगी।")
+                    st.caption(f"ℹ️ ऊपर दी गई 'एक Page में कुल कितनी Row' वैल्यू अब **हर लिस्ट (हर हिस्से) की row count** मानी जाएगी (कुल {reg_layout_count} लिस्ट एक Page पर)।")
 
                 if st.session_state.get("p10_reg_list_generated", False) and reg_selected_print_cols:
                     # 🟢 Fix: ab yahan upar wale Subject + Semester/Year filter se hi
@@ -2655,28 +2749,34 @@ else:
                             pages_html_parts = []
 
                             if reg_side_by_side:
-                                # 🟢 हर पेज पर बायीं + दायीं दोनों तरफ एक-एक block (row count = rows_per_page_int प्रति साइड)
+                                # 🟢 हर पेज पर reg_layout_count (2 या 3) blocks पास-पास दिखेंगे
+                                # (row count = rows_per_page_int प्रति block/लिस्ट)
                                 import math
-                                per_page_capacity = rows_per_page_int * 2
+                                blocks_per_page = reg_layout_count
+                                per_page_capacity = rows_per_page_int * blocks_per_page
                                 total_pages_needed = math.ceil(len(reg_records) / per_page_capacity) if len(reg_records) > 0 else 1
                                 reg_total_pages_for_summary = total_pages_needed
 
+                                # हर block की width % (छोटे gaps छोड़कर) — 2 blocks ke liye ~48.5%, 3 ke liye ~32%
+                                block_gap_pct = 3
+                                block_width_pct = (100 - (block_gap_pct * (blocks_per_page - 1))) / blocks_per_page
+
                                 for page_no in range(1, total_pages_needed + 1):
                                     page_start = (page_no - 1) * per_page_capacity
-                                    left_chunk = reg_records[page_start: page_start + rows_per_page_int]
-                                    right_chunk = reg_records[page_start + rows_per_page_int: page_start + per_page_capacity]
-
-                                    left_table_html = build_reg_block_table(left_chunk, page_start)
-                                    right_table_html = build_reg_block_table(right_chunk, page_start + rows_per_page_int)
+                                    block_divs_html = ""
+                                    for b_idx in range(blocks_per_page):
+                                        b_start = page_start + (b_idx * rows_per_page_int)
+                                        b_chunk = reg_records[b_start: b_start + rows_per_page_int]
+                                        b_table_html = build_reg_block_table(b_chunk, b_start)
+                                        block_divs_html += f'<div style="width:{block_width_pct}%;">{b_table_html}</div>'
 
                                     pages_html_parts.append(f"""
                                         <div class="a4-reg-page">
                                             <div style="text-align:center; font-weight:bold; font-size:15px; margin-bottom:8px; letter-spacing:1px;">
                                                 PERMANENT REGISTER — ROLL NO. WISE STUDENT LIST ({chosen_option_p10} | {selected_subject_p10}) (Page {page_no} of {total_pages_needed})
                                             </div>
-                                            <div style="display:flex; justify-content:space-between; gap:3%;">
-                                                <div style="width:48.5%;">{left_table_html}</div>
-                                                <div style="width:48.5%;">{right_table_html}</div>
+                                            <div style="display:flex; justify-content:space-between; gap:{block_gap_pct}%;">
+                                                {block_divs_html}
                                             </div>
                                         </div>
                                     """)
