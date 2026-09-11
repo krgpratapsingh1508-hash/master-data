@@ -2436,15 +2436,18 @@ else:
                 )
                 
                 # Perfect 22 core fields layout mapping for P10
+                # 🟢 Fix: "Student Abc Id" ab apne alag column mein dikhega — pehle ise "Unique ID"
+                # mein hi merge/rename kar diya jaata tha, jisse Unique ID column mein Student Abc Id
+                # ka data aa jaata tha. Ab dono alag-alag columns hain.
                 archive_view_cols = [
                     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-                    "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
+                    "Admission Date", "Unique ID", "Student Abc Id", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
                     "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
                     "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
                 ]
                 
                 column_mapping_fixes = {
-                    "Unique Id": "Unique ID", "Student Abc Id": "Unique ID", 
+                    "Unique Id": "Unique ID", 
                     "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
                     "Email Id": "Email ID", "Year": "Current Year",
                     "Application Number": "Admission Application Number"
@@ -2520,25 +2523,17 @@ else:
                     ]
 
                 # 2️⃣ फिर Semester / Year scope के आधार पर फ़िल्टर करें
+                # 🟢 Fix: पहले यहाँ "Current Year == साल" के साथ-साथ "Status == 'Regular Student'"
+                # (हूबहू यही टेक्स्ट) की भी जरूरत पड़ती थी, और EX-STUDENT वाली condition कभी सही मैच
+                # ही नहीं करती थी (क्योंकि EX-STUDENT का Current Year हमेशा सीधा "EX-STUDENT" ही सेट
+                # होता है, "2nd Year" जैसा कुछ नहीं) — इसी वजह से पूरा Select Semester / Year Scope
+                # सिस्टम काम नहीं कर रहा था। अब सीधा सिर्फ "Current Year" कॉलम से मैच किया जाता है,
+                # जो असल डेटा के साथ सही तरीके से काम करता है।
                 if chosen_option_p10 != "All Years":
-                    import re
-                    match_p10 = re.search(r'\d+', target_db_year_p10)
-                    if match_p10:
-                        current_num_p10 = int(match_p10.group())
-                        next_num_p10 = current_num_p10 + 1
-
-                        reg_year_str_p10 = f"{current_num_p10}st Year" if current_num_p10 == 1 else f"{current_num_p10}nd Year" if current_num_p10 == 2 else f"{current_num_p10}rd Year" if current_num_p10 == 3 else f"{current_num_p10}th Year"
-                        ex_year_str_p10 = f"{next_num_p10}st Year" if next_num_p10 == 1 else f"{next_num_p10}nd Year" if next_num_p10 == 2 else f"{next_num_p10}rd Year" if next_num_p10 == 3 else f"{next_num_p10}th Year"
-
-                        # फ़िल्टर: (Current Year का Regular Student) OR (Next Year का EX-STUDENT)
-                        render_archive = render_archive[
-                            ((render_archive["Current Year"].astype(str).str.strip() == reg_year_str_p10) &
-                             (render_archive["Status"].astype(str).str.strip().str.upper() == "REGULAR STUDENT")) |
-                            ((render_archive["Current Year"].astype(str).str.strip() == ex_year_str_p10) &
-                             (render_archive["Status"].astype(str).str.strip().str.upper() == "EX-STUDENT"))
-                        ]
-                    else:
-                        render_archive = render_archive[render_archive["Current Year"].astype(str).str.strip() == target_db_year_p10]
+                    render_archive = render_archive[
+                        render_archive["Current Year"].astype(str).str.strip().str.upper() ==
+                        str(target_db_year_p10).strip().upper()
+                    ]
 
                 render_archive = render_archive.reset_index(drop=True)
                 render_archive.insert(0, "S. No.", range(1, len(render_archive) + 1))
@@ -2596,12 +2591,17 @@ else:
                 reg_unit_css = reg_unit_css_map.get(reg_row_height_unit, "mm")
 
                 # 🟢 Column Select Engine — user jo columns select karega sirf wahi paper par print honge
-                REG_ALL_PRINT_COLS = [
-                    "S. No.", "Unique ID", "Roll No.", "Student Name", "Father Name",
-                    "Mobile Number", "Email ID", "Address"
-                ]
+                # 🟢 Fix: पहले सिर्फ 8 columns ही list में थे, अब सभी उपलब्ध columns (जो ऊपर register
+                # ग्रिड में दिखते हैं) यहाँ भी दिख रहे हैं ताकि जो भी column चाहिए वो select किया जा सके।
+                REG_ALL_PRINT_COLS = ["S. No."] + archive_view_cols
                 if "p10_reg_selected_cols" not in st.session_state:
                     st.session_state.p10_reg_selected_cols = ["S. No.", "Roll No.", "Student Name", "Father Name"]
+                else:
+                    # पुराने session में सिर्फ पुरानी (सीमित) columns की selection saved थी — safety ke liye
+                    # सिर्फ वही values रखें जो अब भी REG_ALL_PRINT_COLS में valid हैं
+                    st.session_state.p10_reg_selected_cols = [
+                        c for c in st.session_state.p10_reg_selected_cols if c in REG_ALL_PRINT_COLS
+                    ]
 
                 if "p10_show_print_cols_section" not in st.session_state:
                     st.session_state.p10_show_print_cols_section = True
@@ -2631,13 +2631,18 @@ else:
                     st.warning("⚠️ कृपया कम से कम एक Column select करें।")
 
                 # 🟢 Column Width Resize Engine (Row Height jaisa hi — column select karke uski width set karo)
-                REG_DEFAULT_WIDTHS = {
-                    "S. No.": 8, "Unique ID": 14, "Roll No.": 12, "Student Name": 22,
-                    "Father Name": 22, "Mobile Number": 12, "Email ID": 14, "Address": 14
-                }
+                # 🟢 Fix: अब हर column (नई जोड़ी गई सभी columns सहित) के लिए default width मौजूद है,
+                # ताकि कोई भी नया column select करने पर error न आए।
+                REG_DEFAULT_WIDTHS = {c: 12 for c in REG_ALL_PRINT_COLS}
+                REG_DEFAULT_WIDTHS.update({
+                    "S. No.": 8, "Roll No.": 10, "Duration": 8, "Category": 10, "Current Year": 10,
+                    "Student Name": 20, "Father Name": 20, "Mother Name": 18, "Status": 10,
+                    "Subject": 16, "Address": 16, "Eligibility Name": 14, "Admission Date": 10,
+                    "Admission Year": 10, "Admission Session": 10
+                })
                 if "p10_reg_col_widths" not in st.session_state:
                     st.session_state.p10_reg_col_widths = dict(REG_DEFAULT_WIDTHS)
-                # Agar purane session mein koi naya column (Unique ID/Mobile/Email/Address) missing ho to default jod do
+                # Agar purane session mein koi naya column missing ho to default jod do
                 for _c, _w in REG_DEFAULT_WIDTHS.items():
                     if _c not in st.session_state.p10_reg_col_widths:
                         st.session_state.p10_reg_col_widths[_c] = _w
@@ -2750,7 +2755,7 @@ else:
                             rows_per_page_int = int(reg_rows_per_page)
 
                             # हर column के लिए alignment तय करें (नंबर वाले columns center में, बाकी left में)
-                            reg_center_cols = {"S. No.", "Unique ID", "Roll No.", "Mobile Number"}
+                            reg_center_cols = {"S. No.", "Unique ID", "Student Abc Id", "Roll No.", "Mobile Number", "Current Year", "Duration", "Admission Year"}
 
                             # 🛠️ एक block (single list table) की HTML बनाने वाला helper — Side-by-Side और Normal दोनों में इस्तेमाल होगा
                             def build_reg_block_table(records_chunk, start_sno):
