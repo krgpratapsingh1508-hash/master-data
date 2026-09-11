@@ -2701,10 +2701,15 @@ else:
                 if reg_selected_print_cols and total_width_pct != 100:
                     st.caption(f"ℹ️ चुने हुए Columns की कुल Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
 
-                # 🔤 List Order Selector — Roll No. के क्रम में या Student Name के अल्फाबेटिकल (A-Z) क्रम में
+                # 🔤 List Order Selector — Roll No. के क्रम में, Student Name के अल्फाबेटिकल (A-Z) क्रम में,
+                # या पहले Subject फिर उसके अंदर Student Name के अल्फाबेटिकल क्रम में
                 reg_sort_order_choice = st.selectbox(
                     "🔀 लिस्ट किस क्रम में प्रिंट करें (Sort Order):",
-                    options=["Roll No. (संख्या क्रम में)", "Student Name (अल्फाबेटिक A-Z क्रम में)"],
+                    options=[
+                        "Roll No. (संख्या क्रम में)",
+                        "Student Name (अल्फाबेटिक A-Z क्रम में)",
+                        "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
+                    ],
                     key="p10_reg_sort_order_choice"
                 )
 
@@ -2740,7 +2745,14 @@ else:
                     if "Roll No." not in reg_src_df.columns:
                         st.warning("⚠️ डेटाबेस में 'Roll No.' कॉलम नहीं मिला।")
                     else:
-                        if reg_sort_order_choice.startswith("Student Name"):
+                        if reg_sort_order_choice.startswith("Subject"):
+                            # 🔤 पहले Subject के अल्फाबेटिक क्रम में, फिर उसी Subject के अंदर Student Name A-Z
+                            reg_src_df["_sort_key_1"] = reg_src_df.get("Subject", "").astype(str).str.strip().str.upper()
+                            reg_src_df["_sort_key_2"] = reg_src_df.get("Student Name", "").astype(str).str.strip().str.upper()
+                            reg_src_df = reg_src_df.sort_values(
+                                by=["_sort_key_1", "_sort_key_2"], ascending=[True, True]
+                            ).drop(columns=["_sort_key_1", "_sort_key_2"]).reset_index(drop=True)
+                        elif reg_sort_order_choice.startswith("Student Name"):
                             # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
                             reg_src_df["_sort_key"] = reg_src_df.get("Student Name", "").astype(str).str.strip().str.upper()
                             reg_src_df = reg_src_df.sort_values(
