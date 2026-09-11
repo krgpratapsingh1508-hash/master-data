@@ -7,6 +7,13 @@ import json
 import io
 import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
+# 🟢 P10 प्रिंट ट्रांसलेशन फीचर के लिए लाइब्रेरी (अगर इंस्टॉल नहीं है तो feature अपने आप डिसेबल हो जाएगा)
+try:
+    from deep_translator import GoogleTranslator
+    TRANSLATOR_AVAILABLE = True
+except Exception:
+    TRANSLATOR_AVAILABLE = False
+
 # ==========================================================
 # ⚙️ स्टेप 1: पेज का लेआउट सेट करें और डिफ़ॉल्ट थीम्स बनाएं
 # ==========================================================
@@ -2726,6 +2733,98 @@ else:
                 if reg_selected_print_cols and total_width_pct != 100:
                     st.caption(f"ℹ️ चुने हुए Columns की कुल Width अभी **{total_width_pct}%** है (आदर्श रूप से 100% होनी चाहिए, लेकिन टेबल फिर भी सही दिखेगी)।")
 
+                # ======================================================================
+                # 🌐 नया सब-मॉड्यूल: प्रिंट कॉलम ट्रांसलेशन इंजन (सिर्फ प्रिंट के लिए,
+                # असली डेटाबेस में कोई बदलाव नहीं होगा — सिर्फ यह वाली रजिस्टर लिस्ट
+                # चुनी हुई भाषा में दिखेगी/प्रिंट होगी)
+                # ======================================================================
+                st.markdown("---")
+                st.subheader("🌐 प्रिंट ट्रांसलेशन (वैकल्पिक)")
+
+                if not TRANSLATOR_AVAILABLE:
+                    st.warning(
+                        "⚠️ ट्रांसलेशन लाइब्रेरी इंस्टॉल नहीं है। इसे चालू करने के लिए टर्मिनल में "
+                        "यह कमांड चलाएँ: `pip install deep-translator` — फिर ऐप को दोबारा शुरू करें।"
+                    )
+                    reg_translate_lang_code = "none"
+                    reg_translate_cols_selected = []
+                else:
+                    # 🗣️ भाषाओं की स्क्रॉल लिस्ट — नाम + Google Translate कोड
+                    REG_LANGUAGE_OPTIONS = {
+                        "🚫 No Translation (जैसा है वैसा रखें)": "none",
+                        "🇮🇳 Hindi (हिन्दी)": "hi",
+                        "🇬🇧 English (अंग्रेज़ी)": "en",
+                        "मराठी (Marathi)": "mr",
+                        "ગુજરાતી (Gujarati)": "gu",
+                        "ਪੰਜਾਬੀ (Punjabi)": "pa",
+                        "বাংলা (Bengali)": "bn",
+                        "தமிழ் (Tamil)": "ta",
+                        "తెలుగు (Telugu)": "te",
+                        "ಕನ್ನಡ (Kannada)": "kn",
+                        "മലയാളം (Malayalam)": "ml",
+                        "ଓଡ଼ିଆ (Odia)": "or",
+                        "اردو (Urdu)": "ur",
+                        "असमिया (Assamese)": "as",
+                        "संस्कृत (Sanskrit)": "sa",
+                        "नेपाली (Nepali)": "ne",
+                        "अरबी (Arabic - العربية)": "ar",
+                        "फ्रेंच (French)": "fr",
+                        "स्पेनिश (Spanish)": "es",
+                        "जर्मन (German)": "de",
+                        "चीनी (Chinese - Simplified)": "zh-CN",
+                        "जापानी (Japanese)": "ja",
+                        "रूसी (Russian)": "ru",
+                        "पुर्तगाली (Portuguese)": "pt",
+                    }
+
+                    col_tr1, col_tr2 = st.columns(2)
+                    with col_tr1:
+                        reg_translate_lang_label = st.selectbox(
+                            "🈯 किस भाषा में प्रिंट करना है (भाषा चुनें):",
+                            options=list(REG_LANGUAGE_OPTIONS.keys()),
+                            key="p10_reg_translate_lang_select"
+                        )
+                        reg_translate_lang_code = REG_LANGUAGE_OPTIONS[reg_translate_lang_label]
+
+                    with col_tr2:
+                        reg_translatable_cols = [c for c in reg_selected_print_cols if c != "S. No."]
+                        reg_translate_cols_selected = st.multiselect(
+                            "🧾 कौन-कौन से Column ट्रांसलेट करने हैं:",
+                            options=reg_translatable_cols,
+                            default=[c for c in ["Category", "Subject", "Address", "Status"] if c in reg_translatable_cols],
+                            key="p10_reg_translate_cols_select",
+                            disabled=(reg_translate_lang_code == "none")
+                        )
+
+                    if reg_translate_lang_code != "none" and reg_translate_cols_selected:
+                        st.caption(
+                            f"ℹ️ **{reg_translate_lang_label}** भाषा में सिर्फ ये Columns ट्रांसलेट होकर प्रिंट होंगे: "
+                            f"**{', '.join(reg_translate_cols_selected)}** — असली डेटाबेस पहले जैसा ही रहेगा, "
+                            f"यह सिर्फ इस प्रिंट लिस्ट पर लागू होगा।"
+                        )
+
+                # 🧠 ट्रांसलेशन कैश — एक बार ट्रांसलेट हो चुकी वैल्यू दोबारा API कॉल किए बिना यहीं से मिल जाएगी
+                if "p10_reg_translation_cache" not in st.session_state:
+                    st.session_state.p10_reg_translation_cache = {}
+
+                def reg_translate_value(text_val, lang_code):
+                    """Ek single cell value ko chuni hui bhasha me translate karta hai, cache ke sath."""
+                    text_str = "" if text_val is None else str(text_val).strip()
+                    if lang_code == "none" or text_str == "" or text_str.lower() == "nan":
+                        return text_val
+                    cache_key = f"{lang_code}::{text_str}"
+                    cache = st.session_state.p10_reg_translation_cache
+                    if cache_key in cache:
+                        return cache[cache_key]
+                    try:
+                        translated = GoogleTranslator(source="auto", target=lang_code).translate(text_str)
+                        if not translated:
+                            translated = text_str
+                    except Exception:
+                        translated = text_str  # Internet/API na chalne par original value hi dikhega
+                    cache[cache_key] = translated
+                    return translated
+
                 # 🔤 List Order Selector — Roll No. के क्रम में, Student Name के अल्फाबेटिकल (A-Z) क्रम में,
                 # या पहले Subject फिर उसके अंदर Student Name के अल्फाबेटिकल क्रम में
                 reg_sort_order_choice = st.selectbox(
@@ -2797,6 +2896,25 @@ else:
                             if c not in reg_src_df.columns:
                                 reg_src_df[c] = ""
                         reg_records = reg_src_df[reg_data_cols_needed].to_dict(orient="records") if reg_data_cols_needed else [{} for _ in range(len(reg_src_df))]
+
+                        # 🌐 चुने गए Column(s) की वैल्यू को चुनी हुई भाषा में ट्रांसलेट करें
+                        # (सिर्फ इसी प्रिंट लिस्ट के लिए — असली live_db बिल्कुल अनछुआ रहता है)
+                        if TRANSLATOR_AVAILABLE and reg_translate_lang_code != "none" and reg_translate_cols_selected:
+                            translate_progress_bar = st.progress(0.0, text="🌐 चुने गए Columns ट्रांसलेट किए जा रहे हैं...")
+                            total_translate_steps = max(len(reg_translate_cols_selected), 1)
+                            for step_i, t_col in enumerate(reg_translate_cols_selected):
+                                if t_col in reg_data_cols_needed:
+                                    # पहले उस column की सिर्फ unique values निकालें ताकि बार-बार एक ही
+                                    # value को translate करने पर API कॉल्स waste न हों
+                                    unique_vals = sorted(set(str(r.get(t_col, "")) for r in reg_records))
+                                    value_translation_map = {
+                                        uv: reg_translate_value(uv, reg_translate_lang_code) for uv in unique_vals
+                                    }
+                                    for rec in reg_records:
+                                        original_val = str(rec.get(t_col, ""))
+                                        rec[t_col] = value_translation_map.get(original_val, original_val)
+                                translate_progress_bar.progress((step_i + 1) / total_translate_steps)
+                            translate_progress_bar.empty()
 
                         if len(reg_records) == 0:
                             st.warning(f"🔍 चयनित Subject ('{selected_subject_p10}') और '{chosen_option_p10}' scope के आधार पर रजिस्टर लिस्ट बनाने के लिए कोई रिकॉर्ड नहीं मिला।")
