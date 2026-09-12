@@ -2760,7 +2760,7 @@ else:
                 else:
                     # 🗣️ भाषाओं की स्क्रॉल लिस्ट — नाम + Google Translate कोड
                     REG_LANGUAGE_OPTIONS = {
-                        "🚫 No Translation (जैसा है वैसा रखें)": "none",
+                        "⬜ Normal (No Translation — जैसा है वैसा रखें)": "none",
                         "🇮🇳 Hindi (हिन्दी)": "hi",
                         "🇬🇧 English (अंग्रेज़ी)": "en",
                         "मराठी (Marathi)": "mr",
@@ -2811,6 +2811,8 @@ else:
                             f"**{', '.join(reg_translate_cols_selected)}** — असली डेटाबेस पहले जैसा ही रहेगा, "
                             f"यह सिर्फ इस प्रिंट लिस्ट पर लागू होगा।"
                         )
+                    elif reg_translate_lang_code == "none":
+                        st.caption("ℹ️ **Normal** चुना हुआ है — सभी Columns अंग्रेज़ी/जैसी भी DB में हैं वैसी ही, बिना किसी बदलाव के प्रिंट होंगी।")
 
                 # 🧠 ट्रांसलेशन कैश — एक बार ट्रांसलेट हो चुकी वैल्यू दोबारा API कॉल किए बिना यहीं से मिल जाएगी
                 if "p10_reg_translation_cache" not in st.session_state:
