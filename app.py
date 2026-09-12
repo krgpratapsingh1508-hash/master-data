@@ -39,6 +39,8 @@ DEFAULT_PRE_LOGIN_CONFIG = {
     "show_header_text": True,
     "header_mantra": "ॐ श्री गुरवे नमः",
     "system_title": "Permanent Shared Live Database System",
+    "header_mantra_font_size": 24,   # 🟢 Mantra line ka font size (px)
+    "header_title_font_size": 32,    # 🟢 Main title line ka font size (px)
     "notice_board_border_color": "#FF5733",
     "notice_board_bg_color": "#f9f9f9",
     "logo_width": 110,
@@ -495,6 +497,8 @@ if st.session_state.user_role is None:
     logo_w = st.session_state.pre_login_config.get("logo_width", 110)
     logo_h = st.session_state.pre_login_config.get("logo_height", 110)
     logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
+    mantra_font_px = int(st.session_state.pre_login_config.get("header_mantra_font_size", 24))  # 🟢 FONT SIZE OPTION
+    title_font_px = int(st.session_state.pre_login_config.get("header_title_font_size", 32))    # 🟢 FONT SIZE OPTION
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
@@ -506,8 +510,8 @@ if st.session_state.user_role is None:
                 {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 24px; letter-spacing: 0.5px;">{mantra}</h3>
-                <h1 style="margin: 5px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: 32px; font-weight: bold;">{sys_title}</h1>
+                <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: {mantra_font_px}px; letter-spacing: 0.5px;">{mantra}</h3>
+                <h1 style="margin: 5px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: {title_font_px}px; font-weight: bold;">{sys_title}</h1>
             </div>
         </div>
         <hr style="margin-top: 10px; margin-bottom: 25px; border: 0; border-top: 1px solid #eee;">
@@ -573,6 +577,12 @@ else:
     logo_w = st.session_state.pre_login_config.get("logo_width", 110)
     logo_h = st.session_state.pre_login_config.get("logo_height", 110)
     logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
+    # 🟢 FONT SIZE OPTION: panel ke andar header thoda chhota rehta hai, isliye yahan
+    # Part-2 me set kiye gaye size ka ~75% le rahe hain (login page jaisa bada nahi, lekin
+    # ratio bana rehta hai — jitna bada Mantra/Title font Part-2 me set karoge, utna hi
+    # yahan bhi proportionally bada/chhota dikhega).
+    mantra_font_px = max(10, int(round(int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)) * 0.75)))
+    title_font_px = max(10, int(round(int(st.session_state.pre_login_config.get("header_title_font_size", 32)) * 0.75)))
     
     if show_header:
         img_base64 = get_image_base64(logo_file_path)
@@ -584,8 +594,8 @@ else:
                 {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: 18px;">{mantra}</h4>
-                <h2 style="margin: 3px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: 24px; font-weight: bold;">{sys_title}</h2>
+                <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: {mantra_font_px}px;">{mantra}</h4>
+                <h2 style="margin: 3px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: {title_font_px}px; font-weight: bold;">{sys_title}</h2>
             </div>
         </div>
         <div class="print-hide"><hr style="margin-top: 5px; margin-bottom: 15px; border: 0; border-top: 1px solid #eee;"></div>
@@ -3410,7 +3420,26 @@ else:
                             "Main Gateway Application Title:", 
                             value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System"))
                         )
-                    
+
+                    # 🟢 FONT SIZE OPTION: Mantra aur Main Title, dono line ka font size alag-alag
+                    # yahi se control kar sakte hain — turant Live Preview me dikh jaayega.
+                    st.markdown("##### 🔤 Header Text Font Size")
+                    col_font1, col_font2 = st.columns(2)
+                    with col_font1:
+                        mantra_font_size = st.slider(
+                            "Spiritual Invocation / Mantra — Font Size (px):",
+                            min_value=10, max_value=60,
+                            value=int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)),
+                            key="p12_mantra_font_size_slider"
+                        )
+                    with col_font2:
+                        title_font_size = st.slider(
+                            "Main Gateway Application Title — Font Size (px):",
+                            min_value=10, max_value=80,
+                            value=int(st.session_state.pre_login_config.get("header_title_font_size", 32)),
+                            key="p12_title_font_size_slider"
+                        )
+
                     st.markdown("##### Notice Board Branding Colors")
                     col_theme1, col_theme2 = st.columns(2)
                     with col_theme1:
@@ -3431,6 +3460,8 @@ else:
                             "show_header_text": header_toggle,
                             "header_mantra": mantra_text,
                             "system_title": system_title_text,
+                            "header_mantra_font_size": mantra_font_size,
+                            "header_title_font_size": title_font_size,
                             "notice_board_border_color": border_color,
                             "notice_board_bg_color": bg_color
                         }
