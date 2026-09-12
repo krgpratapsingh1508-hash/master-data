@@ -36,6 +36,10 @@ DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 # 🟢 ADD THIS MISSING LINE HERE:
 NOTICE_FILE = "notice_board_schema.json" 
 
+# 🟢 P12 SYLLABUS MANAGER: subject-wise syllabus (file ya link) yahin store hoga
+SYLLABUS_FILE = "subject_syllabus_schema.json"
+SYLLABUS_UPLOAD_DIR = "syllabus_uploads"
+
 # डिफ़ॉल्ट कॉन्फ़िगरेशन बैकअप डिक्शनरी
 DEFAULT_PRE_LOGIN_CONFIG = {
     "show_header_text": True,
@@ -78,7 +82,7 @@ DEFAULT_CREDENTIALS = {
     "p9_result": {"password": "res9123", "role": "p9_role", "label": "📊 P9: Result panel Exam Controller"},
     "p10_register": {"password": "reg10123", "role": "p10_role", "label": "📋 P10: Register panel Permanent Registry"},
     "p11_notice": {"password": "not11123", "role": "p11_role", "label": "📢 P11: System Informer Block"},
-    "p12_login_view": {"password": "view12123", "role": "p12_role", "label": "📢 P12: Desk Board Editer"},
+    "p12_login_view": {"password": "view12123", "role": "p12_role", "label": "📚 P12: Subject Syllabus Manager"},
     "p13_merge": {"password": "mrg13123", "role": "p13_role", "label": "🔀 P13: Merge & Approve Panel"},
     "p14_viewer": {"password": "view14123", "role": "p14_role", "label": "👁️ P14: Multi-Panel Inspection Window"}
 }
@@ -87,7 +91,7 @@ DEFAULT_PANELS = {
     "P1": "Panal entry", "P2": "Admission panel", "P3": "Unique ID panel",
     "P4": "Roll No. panel", "P5": "Enrollment panel", "P6": "Scholarship panel",
     "P7": "CCE panel", "P8": "Promotion panel", "P9": "Result panel",
-    "P10": "Register panel", "P11": "notice board info", "P12": "📢 Desk Board Editer",
+    "P10": "Register panel", "P11": "notice board info", "P12": "📚 Subject Syllabus Manager",
     "P13": "🔀 Merge & Approve Panel", "P14": "Panal viewer", "P15": "Panel admin"
 }
 
@@ -137,6 +141,21 @@ def load_pre_login_config():
 def save_pre_login_config(config_dict):
     with open(PRE_LOGIN_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config_dict, f, ensure_ascii=False, indent=4)
+
+# 🟢 P12 SYLLABUS MANAGER: har Subject ke saamne File-upload YA Link — dono me se
+# koi bhi ek tarika chuna ja sakta hai. Data yahan {subject: {"type","value","file_name"}} format me save hota hai.
+def load_syllabus_data():
+    if os.path.exists(SYLLABUS_FILE):
+        try:
+            with open(SYLLABUS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict): return data
+        except: return {}
+    return {}
+
+def save_syllabus_data(data_dict):
+    with open(SYLLABUS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data_dict, f, ensure_ascii=False, indent=4)
 
 def load_dynamic_lists():
     if os.path.exists(DYNAMIC_LISTS_FILE):
@@ -438,8 +457,6 @@ def get_display_name(internal_col_name):
     return st.session_state.column_mappings.get(internal_col_name, internal_col_name)
 
 def get_panel_title(panel_id):
-    if panel_id == "P12":
-        return "desh Board Editer"
     return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
 def save_p1_dropdown_schemas():
@@ -3399,197 +3416,118 @@ else:
         # P12: DASH BOARD EDITER MODULE (Pre-Login & Notice Customizer Combined)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P12":
-            st.header(f"🛠️ {get_panel_title('P12')} (Dash Board Editer & Notice Configuration)")
-            
-            # 🟢 Corrected Safe Inline Str Framework Configuration
+            st.header(f"📚 {get_panel_title('P12')} (Subject-wise Syllabus Upload / Link Manager)")
+
             st.markdown(
                 '<div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
-                '📌 <b>प्रशासक निर्देश (Dash Board Control Room):</b> इस एकीकृत कंट्रोल रूम से आप होम स्क्रीन पर दिखने वाले <b>आधिकारिक डिजिटल सूचना पटल (Notice Board)</b> और <b>लैंडिंग स्क्रीन की थीम</b> दोनों को लाइव बदल सकते हैं।'
-                '</div>', 
+                '📌 <b>निर्देश:</b> डेटाबेस में मौजूद हर <b>Subject</b> के सामने आप या तो एक <b>Syllabus File अपलोड</b> कर सकते हैं, '
+                'या फिर उसका <b>Link (URL)</b> दे सकते हैं — दोनों में से जो भी सुविधाजनक हो। '
+                '(नोट: Notice Board और Header/Branding Settings अब <b>Panel Admin (P15)</b> से मैनेज होती हैं।)'
+                '</div>',
                 unsafe_allow_html=True
             )
-            
-            if "pre_login_config" not in st.session_state or not isinstance(st.session_state.pre_login_config, dict):
-                st.session_state.pre_login_config = load_pre_login_config()
-                
-            if role == "full_admin":
-                st.info("🔓 **एडमिन कंट्रोल मोड सक्रिय:** आपके पास सूचना पटल और वेलकम डैशबोर्ड को संपादित करने का पूर्ण अधिकार है।")
-                
-                # --- Part 1: Official Notice Board Guidelines Customizer ---
-                st.subheader("📢 Part 1: Official Notice Board Guidelines Customizer")
-                with st.form(key="p12_integrated_notice_board_form"):
-                    st.caption("🔗 अगर किसी line में आप कोई link (जैसे https://... या www...) लिखेंगे, तो Notice Board पर वो अपने आप clickable बन जाएगा — क्लिक/टच करते ही सीधे उसी link के page पर पहुँच जाएँगे।")
-                    updated_notice_text = st.text_area(
-                        "सूचना पटल टेक्स्ट (Enter Live Announcements Line by Line):", 
-                        value=st.session_state.notice_text, 
-                        height=180,
-                        key="p12_integrated_notice_text_area"
-                    )
-                    publish_notice_btn = st.form_submit_button("🚀 Publish & Update Notice Live Now")
-                    
-                    if publish_notice_btn:
-                        if updated_notice_text.strip() == "":
-                            st.warning("⚠️ खाली नोटिस प्रकाशित नहीं किया जा सकता!")
-                        else:
-                            st.session_state.notice_text = updated_notice_text
-                            save_notice_board(updated_notice_text)
-                            st.success("🎉 कॉलेज डिजिटल सूचना पटल सफलतापूर्वक अपडेट हो गया!")
-                            st.rerun()
-                
-                st.markdown("---")
-                
-                # --- Part 2: Landing Visual Configurations ---
-                st.subheader("🖼️ Part 2: Header Elements & Branding Themes")
-                with st.form(key="p12_landing_view_editor_form_secure"):
-                    col_view1, col_view2 = st.columns(2)
-                    with col_view1:
-                        header_toggle = st.checkbox(
-                            "Display Institutional Header Text Block", 
-                            value=bool(st.session_state.pre_login_config.get("show_header_text", True))
-                        )
-                        mantra_text = st.text_input(
-                            "Spiritual Invocation / Mantra Text:", 
-                            value=str(st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः"))
-                        )
-                    with col_view2:
-                        system_title_text = st.text_input(
-                            "Main Gateway Application Title:", 
-                            value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System"))
-                        )
 
-                    # 🟢 FONT SIZE OPTION: Mantra aur Main Title, dono line ka font size alag-alag
-                    # yahi se control kar sakte hain — turant Live Preview me dikh jaayega.
-                    st.markdown("##### 🔤 Header Text Font Size")
-                    col_font1, col_font2 = st.columns(2)
-                    with col_font1:
-                        mantra_font_size = st.slider(
-                            "Spiritual Invocation / Mantra — Font Size (px):",
-                            min_value=10, max_value=60,
-                            value=int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)),
-                            key="p12_mantra_font_size_slider"
-                        )
-                    with col_font2:
-                        title_font_size = st.slider(
-                            "Main Gateway Application Title — Font Size (px):",
-                            min_value=10, max_value=80,
-                            value=int(st.session_state.pre_login_config.get("header_title_font_size", 32)),
-                            key="p12_title_font_size_slider"
-                        )
+            p12_can_edit = role in ("full_admin", "p12_role")
+            if not p12_can_edit:
+                st.warning("🔒 **रीड-ओनली मोड:** आपके पास यहाँ Syllabus अपलोड/एडिट करने का अधिकार नहीं है — आप सिर्फ मौजूदा Syllabus देख/डाउनलोड कर सकते हैं।")
 
-                    st.markdown("##### Notice Board Branding Colors")
-                    col_theme1, col_theme2 = st.columns(2)
-                    with col_theme1:
-                        border_color = st.color_picker(
-                            "Left Accent Border Color:",
-                            value=str(st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733"))
-                        )
-                    with col_theme2:
-                        bg_color = st.color_picker(
-                            "Container Background Surface Color:", 
-                            value=str(st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9"))
-                        )
-                    
-                    submit_settings = st.form_submit_button("💾 Apply & Save Landing View Settings Permanently", type="primary", use_container_width=True)
-                    
-                    if submit_settings:
-                        updated_config = {
-                            "show_header_text": header_toggle,
-                            "header_mantra": mantra_text,
-                            "system_title": system_title_text,
-                            "header_mantra_font_size": mantra_font_size,
-                            "header_title_font_size": title_font_size,
-                            "notice_board_border_color": border_color,
-                            "notice_board_bg_color": bg_color
-                        }
-                        st.session_state.pre_login_config = updated_config
-                        save_pre_login_config(updated_config)
-                        st.success("🎉 डैशबोर्ड विजुअल सेटिंग्स सफलतापूर्वक सेव हो गई हैं!")
-                        st.rerun()
+            p12_live_db = load_live_data()
+            p12_subject_list = []
+            if "Subject" in p12_live_db.columns:
+                p12_subject_list = sorted([
+                    s for s in p12_live_db["Subject"].dropna().astype(str).str.strip().unique()
+                    if s and s.lower() != "nan"
+                ])
 
-                st.markdown("---")
-
-                # --- Part 3: Logo Upload, Size & Fit Mode Customizer ---
-                st.subheader("🖼️ Part 3: लोगो अपलोड, साइज़ और फिट मोड कंट्रोल")
-                st.caption("यहाँ से नया लोगो अपलोड करें, उसकी Width/Height अलग-अलग सेट करें और Fit Mode चुनें — Live Preview में सेव करने से पहले ही देख सकते हैं कि लोगो कैसा दिखेगा।")
-
-                current_logo_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
-                current_logo_w = int(st.session_state.pre_login_config.get("logo_width", 110))
-                current_logo_h = int(st.session_state.pre_login_config.get("logo_height", 110))
-                current_logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
-
-                new_logo_file = st.file_uploader(
-                    "नया लोगो अपलोड करें (PNG/JPG) — खाली छोड़ने पर मौजूदा लोगो बना रहेगा:",
-                    type=["png", "jpg", "jpeg"],
-                    key="p12_logo_uploader_v1"
-                )
-
-                col_logo1, col_logo2, col_logo3 = st.columns(3)
-                with col_logo1:
-                    logo_width_input = st.slider("↔️ Logo Width (px)", min_value=30, max_value=400, value=current_logo_w, key="p12_logo_width_slider_v1")
-                with col_logo2:
-                    logo_height_input = st.slider("↕️ Logo Height (px)", min_value=30, max_value=400, value=current_logo_h, key="p12_logo_height_slider_v1")
-                with col_logo3:
-                    fit_options = ["contain", "cover"]
-                    fit_index = fit_options.index(current_logo_fit) if current_logo_fit in fit_options else 0
-                    logo_fit_input = st.selectbox(
-                        "🖼️ Fit Mode",
-                        options=fit_options,
-                        index=fit_index,
-                        format_func=lambda x: "contain (पूरी image दिखेगी, कटेगी नहीं)" if x == "contain" else "cover (box भरेगा, extra हिस्सा crop हो सकता है)",
-                        key="p12_logo_fit_selector_v1"
-                    )
-
-                # 👁️ Live Preview (save karne se pehle)
-                preview_img_base64 = ""
-                if new_logo_file is not None:
-                    preview_bytes = new_logo_file.getvalue()
-                    preview_img_base64 = f"data:image/png;base64,{base64.b64encode(preview_bytes).decode()}"
-                else:
-                    preview_img_base64 = get_image_base64(current_logo_path)
-
-                st.markdown("##### 👁️ Live Preview")
-                if preview_img_base64:
-                    st.markdown(
-                        f"""
-                        <div style="width:{logo_width_input}px; height:{logo_height_input}px; display:flex; align-items:center; justify-content:center;
-                                    overflow:hidden; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:1px solid #e2e8f0; background:#fff;">
-                            <img src="{preview_img_base64}" style="width:100%; height:100%; object-fit:{logo_fit_input}; display:block;">
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.info("ℹ️ अभी कोई लोगो उपलब्ध नहीं है — प्रीव्यू देखने के लिए एक लोगो अपलोड करें।")
-
-                if st.button("📏 साइज़ & फिट सेव करें", type="primary", use_container_width=True, key="p12_logo_save_btn_v1"):
-                    saved_path = current_logo_path
-                    if new_logo_file is not None:
-                        ext = os.path.splitext(new_logo_file.name)[1] or ".png"
-                        saved_path = f"custom_logo{ext}"
-                        with open(saved_path, "wb") as f_logo:
-                            f_logo.write(new_logo_file.getvalue())
-
-                    updated_logo_config = dict(st.session_state.pre_login_config)
-                    updated_logo_config["logo_path"] = saved_path
-                    updated_logo_config["logo_width"] = logo_width_input
-                    updated_logo_config["logo_height"] = logo_height_input
-                    updated_logo_config["logo_fit_mode"] = logo_fit_input
-
-                    st.session_state.pre_login_config = updated_logo_config
-                    save_pre_login_config(updated_logo_config)
-                    st.success("🎉 लोगो साइज़, फिट मोड और (यदि अपलोड की गई हो तो) नई इमेज सफलतापूर्वक सेव हो गई!")
-                    st.rerun()
+            if not p12_subject_list:
+                st.info("ℹ️ अभी तक डेटाबेस में कोई Subject उपलब्ध नहीं है। पहले P1 (Data Onboarding) से Students जोड़ें — उनके Subjects यहाँ अपने-आप दिखने लगेंगे।")
             else:
-                st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लैंडिंग पेज कॉन्फ़िगरेशन और डिजिटल सूचना पटल में बदलाव करने का अधिकार नहीं है।")
-                
-                st.markdown("### 📋 Current Active Announcements Preview")
-                formatted_preview = "".join([f"<li style='margin-bottom:8px;'>{linkify_notice_line(line.strip())}</li>" for line in st.session_state.notice_text.split('\n') if line.strip()])
-                st.markdown(f"""
-                    <div style="background-color: #fffaf0; border: 1px solid #ffd1b3; padding: 15px; border-radius: 4px; margin-bottom:20px;">
-                        <ul style="padding-left: 20px; color: #333;">{formatted_preview}</ul>
-                    </div>
-                """, unsafe_allow_html=True)
-                
+                p12_syllabus_data = load_syllabus_data()
+                st.caption(f"📚 कुल **{len(p12_subject_list)}** Subjects मिले — नीचे हर एक के सामने Syllabus की स्थिति और (अगर अधिकार है तो) Upload/Link विकल्प दिख रहा है।")
+
+                for p12_subj in p12_subject_list:
+                    p12_safe_key = _re_notice_link.sub(r'[^A-Za-z0-9_-]+', '_', p12_subj)
+                    with st.expander(f"📘 {p12_subj}", expanded=False):
+                        p12_existing = p12_syllabus_data.get(p12_subj, {})
+
+                        if p12_existing.get("type") == "file" and p12_existing.get("value") and os.path.exists(p12_existing["value"]):
+                            st.success(f"✅ वर्तमान Syllabus फ़ाइल मौजूद है: **{p12_existing.get('file_name', os.path.basename(p12_existing['value']))}**")
+                            try:
+                                with open(p12_existing["value"], "rb") as p12_fh:
+                                    st.download_button(
+                                        "⬇️ Syllabus Download करें",
+                                        data=p12_fh.read(),
+                                        file_name=p12_existing.get("file_name", os.path.basename(p12_existing["value"])),
+                                        key=f"p12_dl_{p12_safe_key}",
+                                        use_container_width=True
+                                    )
+                            except Exception:
+                                st.error("⚠️ सेव की गई फ़ाइल पढ़ने में समस्या आई — शायद फ़ाइल हटा दी गई है।")
+                        elif p12_existing.get("type") == "link" and p12_existing.get("value"):
+                            st.success("✅ वर्तमान Syllabus Link उपलब्ध है:")
+                            st.markdown(f"🔗 [Syllabus खोलें (नए टैब में)]({p12_existing['value']})")
+                        else:
+                            st.info("अभी तक इस Subject के लिए कोई Syllabus (File/Link) नहीं जोड़ा गया है।")
+
+                        if p12_can_edit:
+                            st.markdown("---")
+                            p12_mode = st.radio(
+                                "Syllabus कैसे जोड़ना/बदलना चाहते हैं?",
+                                ["📎 File Upload", "🔗 Link (URL)"],
+                                key=f"p12_mode_{p12_safe_key}",
+                                horizontal=True
+                            )
+
+                            if p12_mode == "📎 File Upload":
+                                p12_up_file = st.file_uploader(
+                                    "Syllabus File चुनें (PDF/DOC/DOCX/Image):",
+                                    type=["pdf", "doc", "docx", "png", "jpg", "jpeg"],
+                                    key=f"p12_upl_{p12_safe_key}"
+                                )
+                                if st.button("💾 Syllabus File Save करें", key=f"p12_savefile_{p12_safe_key}", use_container_width=True):
+                                    if p12_up_file is not None:
+                                        os.makedirs(SYLLABUS_UPLOAD_DIR, exist_ok=True)
+                                        p12_ext = os.path.splitext(p12_up_file.name)[1] or ".pdf"
+                                        p12_save_path = os.path.join(SYLLABUS_UPLOAD_DIR, f"{p12_safe_key}{p12_ext}")
+                                        with open(p12_save_path, "wb") as p12_fo:
+                                            p12_fo.write(p12_up_file.getvalue())
+                                        p12_syllabus_data[p12_subj] = {
+                                            "type": "file", "value": p12_save_path, "file_name": p12_up_file.name
+                                        }
+                                        save_syllabus_data(p12_syllabus_data)
+                                        st.success(f"🎉 {p12_subj} के लिए Syllabus फ़ाइल सफलतापूर्वक सेव हो गई!")
+                                        st.rerun()
+                                    else:
+                                        st.warning("⚠️ पहले कोई फ़ाइल चुनें, फिर Save करें।")
+                            else:
+                                p12_default_link = p12_existing.get("value", "") if p12_existing.get("type") == "link" else ""
+                                p12_link_val = st.text_input(
+                                    "Syllabus Link (URL) डालें:",
+                                    value=p12_default_link,
+                                    key=f"p12_link_{p12_safe_key}",
+                                    placeholder="https://..."
+                                )
+                                if st.button("💾 Syllabus Link Save करें", key=f"p12_savelink_{p12_safe_key}", use_container_width=True):
+                                    if p12_link_val.strip():
+                                        p12_syllabus_data[p12_subj] = {"type": "link", "value": p12_link_val.strip(), "file_name": ""}
+                                        save_syllabus_data(p12_syllabus_data)
+                                        st.success(f"🎉 {p12_subj} के लिए Syllabus Link सफलतापूर्वक सेव हो गया!")
+                                        st.rerun()
+                                    else:
+                                        st.warning("⚠️ Link खाली नहीं छोड़ सकते।")
+
+                            if p12_existing:
+                                if st.button("🗑️ Syllabus हटाएँ (Remove)", key=f"p12_remove_{p12_safe_key}"):
+                                    if p12_existing.get("type") == "file" and p12_existing.get("value") and os.path.exists(p12_existing["value"]):
+                                        try:
+                                            os.remove(p12_existing["value"])
+                                        except Exception:
+                                            pass
+                                    del p12_syllabus_data[p12_subj]
+                                    save_syllabus_data(p12_syllabus_data)
+                                    st.success(f"🗑️ {p12_subj} का Syllabus हटा दिया गया।")
+                                    st.rerun()
+
         # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
         # ======================================================================
@@ -4079,6 +4017,147 @@ else:
                         save_notice_board(updated_notice_input)
                         st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है! यह बिना लॉगिन वाले होम पेज पर लाइव दिखाई देगा।")
                         st.rerun()
+
+            st.markdown("---")
+
+            # --- (P12 se yahan shift kiya gaya) Header Elements & Branding Themes ---
+            st.subheader("🖼️ Header Elements & Branding Themes")
+            with st.form(key="p15_landing_view_editor_form_secure"):
+                col_view1, col_view2 = st.columns(2)
+                with col_view1:
+                    header_toggle = st.checkbox(
+                        "Display Institutional Header Text Block", 
+                        value=bool(st.session_state.pre_login_config.get("show_header_text", True))
+                    )
+                    mantra_text = st.text_input(
+                        "Spiritual Invocation / Mantra Text:", 
+                        value=str(st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः"))
+                    )
+                with col_view2:
+                    system_title_text = st.text_input(
+                        "Main Gateway Application Title:", 
+                        value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System"))
+                    )
+
+                st.markdown("##### 🔤 Header Text Font Size")
+                col_font1, col_font2 = st.columns(2)
+                with col_font1:
+                    mantra_font_size = st.slider(
+                        "Spiritual Invocation / Mantra — Font Size (px):",
+                        min_value=10, max_value=60,
+                        value=int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)),
+                        key="p15_mantra_font_size_slider"
+                    )
+                with col_font2:
+                    title_font_size = st.slider(
+                        "Main Gateway Application Title — Font Size (px):",
+                        min_value=10, max_value=80,
+                        value=int(st.session_state.pre_login_config.get("header_title_font_size", 32)),
+                        key="p15_title_font_size_slider"
+                    )
+
+                st.markdown("##### Notice Board Branding Colors")
+                col_theme1, col_theme2 = st.columns(2)
+                with col_theme1:
+                    border_color = st.color_picker(
+                        "Left Accent Border Color:",
+                        value=str(st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733"))
+                    )
+                with col_theme2:
+                    bg_color = st.color_picker(
+                        "Container Background Surface Color:", 
+                        value=str(st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9"))
+                    )
+                
+                submit_settings = st.form_submit_button("💾 Apply & Save Landing View Settings Permanently", type="primary", use_container_width=True)
+                
+                if submit_settings:
+                    updated_config = {
+                        "show_header_text": header_toggle,
+                        "header_mantra": mantra_text,
+                        "system_title": system_title_text,
+                        "header_mantra_font_size": mantra_font_size,
+                        "header_title_font_size": title_font_size,
+                        "notice_board_border_color": border_color,
+                        "notice_board_bg_color": bg_color
+                    }
+                    st.session_state.pre_login_config = updated_config
+                    save_pre_login_config(updated_config)
+                    st.success("🎉 डैशबोर्ड विजुअल सेटिंग्स सफलतापूर्वक सेव हो गई हैं!")
+                    st.rerun()
+
+            st.markdown("---")
+
+            # --- (P12 se yahan shift kiya gaya) Logo Upload, Size & Fit Mode Customizer ---
+            st.subheader("🖼️ लोगो अपलोड, साइज़ और फिट मोड कंट्रोल")
+            st.caption("यहाँ से नया लोगो अपलोड करें, उसकी Width/Height अलग-अलग सेट करें और Fit Mode चुनें — Live Preview में सेव करने से पहले ही देख सकते हैं कि लोगो कैसा दिखेगा।")
+
+            current_logo_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
+            current_logo_w = int(st.session_state.pre_login_config.get("logo_width", 110))
+            current_logo_h = int(st.session_state.pre_login_config.get("logo_height", 110))
+            current_logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
+
+            new_logo_file = st.file_uploader(
+                "नया लोगो अपलोड करें (PNG/JPG) — खाली छोड़ने पर मौजूदा लोगो बना रहेगा:",
+                type=["png", "jpg", "jpeg"],
+                key="p15_logo_uploader_v1"
+            )
+
+            col_logo1, col_logo2, col_logo3 = st.columns(3)
+            with col_logo1:
+                logo_width_input = st.slider("↔️ Logo Width (px)", min_value=30, max_value=400, value=current_logo_w, key="p15_logo_width_slider_v1")
+            with col_logo2:
+                logo_height_input = st.slider("↕️ Logo Height (px)", min_value=30, max_value=400, value=current_logo_h, key="p15_logo_height_slider_v1")
+            with col_logo3:
+                fit_options = ["contain", "cover"]
+                fit_index = fit_options.index(current_logo_fit) if current_logo_fit in fit_options else 0
+                logo_fit_input = st.selectbox(
+                    "🖼️ Fit Mode",
+                    options=fit_options,
+                    index=fit_index,
+                    format_func=lambda x: "contain (पूरी image दिखेगी, कटेगी नहीं)" if x == "contain" else "cover (box भरेगा, extra हिस्सा crop हो सकता है)",
+                    key="p15_logo_fit_selector_v1"
+                )
+
+            preview_img_base64 = ""
+            if new_logo_file is not None:
+                preview_bytes = new_logo_file.getvalue()
+                preview_img_base64 = f"data:image/png;base64,{base64.b64encode(preview_bytes).decode()}"
+            else:
+                preview_img_base64 = get_image_base64(current_logo_path)
+
+            st.markdown("##### 👁️ Live Preview")
+            if preview_img_base64:
+                st.markdown(
+                    f"""
+                    <div style="width:{logo_width_input}px; height:{logo_height_input}px; display:flex; align-items:center; justify-content:center;
+                                overflow:hidden; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:1px solid #e2e8f0; background:#fff;">
+                        <img src="{preview_img_base64}" style="width:100%; height:100%; object-fit:{logo_fit_input}; display:block;">
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info("ℹ️ अभी कोई लोगो उपलब्ध नहीं है — प्रीव्यू देखने के लिए एक लोगो अपलोड करें।")
+
+            if st.button("📏 साइज़ & फिट सेव करें", type="primary", use_container_width=True, key="p15_logo_save_btn_v1"):
+                saved_path = current_logo_path
+                if new_logo_file is not None:
+                    ext = os.path.splitext(new_logo_file.name)[1] or ".png"
+                    saved_path = f"custom_logo{ext}"
+                    with open(saved_path, "wb") as f_logo:
+                        f_logo.write(new_logo_file.getvalue())
+
+                updated_logo_config = dict(st.session_state.pre_login_config)
+                updated_logo_config["logo_path"] = saved_path
+                updated_logo_config["logo_width"] = logo_width_input
+                updated_logo_config["logo_height"] = logo_height_input
+                updated_logo_config["logo_fit_mode"] = logo_fit_input
+
+                st.session_state.pre_login_config = updated_logo_config
+                save_pre_login_config(updated_logo_config)
+                st.success("🎉 लोगो साइज़, फिट मोड और (यदि अपलोड की गई हो तो) नई इमेज सफलतापूर्वक सेव हो गई!")
+                st.rerun()
 
             st.markdown("---")
             st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
