@@ -6,6 +6,8 @@ import base64
 import json
 import io
 import time
+import re as _re_notice_link  # 🟢 Notice Board me URL detect karke clickable link banane ke liye
+import html as _html_escape_lib  # 🟢 Notice text ko safely HTML-escape karne ke liye
 import requests  # 🟢 P10 naam-transliteration (Google Input Tools) ke liye
 import streamlit.components.v1 as components  # 🟢 यह लाइन यहाँ नीचे जोड़नी है
 
@@ -189,6 +191,36 @@ def load_notice_board():
 def save_notice_board(text):
     with open(NOTICE_FILE, "w", encoding="utf-8") as f:
         json.dump({"notice_text": text}, f, ensure_ascii=False, indent=4)
+
+# 🟢 NOTICE BOARD LINK FEATURE:
+# Agar Notice me admin koi link (http://..., https://..., ya www....) type karta hai,
+# to use is function se pehle HTML-escape karke, phir us link ko clickable <a> tag me
+# badal dete hain — jisse user Notice Board par us link par touch/click karke seedhe
+# us page par pahunch jaaye (naya tab me khulega, taaki Notice Board wala tab band na ho).
+_NOTICE_URL_PATTERN = _re_notice_link.compile(
+    r'((?:https?://|www\.)[^\s<>\"\']+)', _re_notice_link.IGNORECASE
+)
+
+def linkify_notice_line(line_text):
+    """Ek line ke andar jitne bhi URL (http/https/www) mile, unhe safe clickable <a> tag me convert karta hai.
+    Baaki normal text HTML-escape karke as-is rakha jaata hai (taaki koi bhi galti se HTML/script
+    likh de to bhi wo tootn na paaye)."""
+    escaped = _html_escape_lib.escape(line_text)
+
+    def _make_link(match):
+        raw_url = match.group(1)
+        # Trailing punctuation (., ,, ), आदि) ko link ke bahar rakho taaki link kharab na ho
+        trailing = ""
+        while raw_url and raw_url[-1] in ".,);:!?\u0964":
+            trailing = raw_url[-1] + trailing
+            raw_url = raw_url[:-1]
+        href = raw_url if raw_url.lower().startswith("http") else "https://" + raw_url
+        return (
+            f'<a href="{href}" target="_blank" rel="noopener noreferrer" '
+            f'style="color:#1465de; text-decoration:underline; font-weight:600;">{raw_url}</a>{trailing}'
+        )
+
+    return _NOTICE_URL_PATTERN.sub(_make_link, escaped)
 
 # 🆕 P11 डायनेमिक कॉलम मैपिंग लोडर फंक्शन
 def load_twin_mappings():
@@ -519,7 +551,10 @@ if st.session_state.user_role is None:
         st.markdown(header_html, unsafe_allow_html=True)
 
     # 📢 कॉलेज सूचना पटल (Official Notice Board)
-    formatted_notice = "".join([f"<p>{line.strip()}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
+    # 🟢 FIX: ab har line ke andar agar koi link (http/https/www) hai to use HTML-escape karne
+    # ke baad clickable <a> tag me convert kar dete hain — Notice Board par click/touch karte hi
+    # user seedhe us link ke page par (naye tab me) pahunch jaayega.
+    formatted_notice = "".join([f"<p>{linkify_notice_line(line.strip())}</p>" for line in st.session_state.notice_text.split('\n') if line.strip()])
     st.markdown(f"""
         <div class="notice-board">
             <div class="notice-title">📢 कॉलेज सूचना पटल (Official Notice Board)</div>
@@ -3383,6 +3418,7 @@ else:
                 # --- Part 1: Official Notice Board Guidelines Customizer ---
                 st.subheader("📢 Part 1: Official Notice Board Guidelines Customizer")
                 with st.form(key="p12_integrated_notice_board_form"):
+                    st.caption("🔗 अगर किसी line में आप कोई link (जैसे https://... या www...) लिखेंगे, तो Notice Board पर वो अपने आप clickable बन जाएगा — क्लिक/टच करते ही सीधे उसी link के page पर पहुँच जाएँगे।")
                     updated_notice_text = st.text_area(
                         "सूचना पटल टेक्स्ट (Enter Live Announcements Line by Line):", 
                         value=st.session_state.notice_text, 
@@ -3547,7 +3583,7 @@ else:
                 st.warning("🔒 **रीड-ओनली मोड:** सुरक्षा कारणों से आपके पास इस लैंडिंग पेज कॉन्फ़िगरेशन और डिजिटल सूचना पटल में बदलाव करने का अधिकार नहीं है।")
                 
                 st.markdown("### 📋 Current Active Announcements Preview")
-                formatted_preview = "".join([f"<li style='margin-bottom:8px;'>{line.strip()}</li>" for line in st.session_state.notice_text.split('\n') if line.strip()])
+                formatted_preview = "".join([f"<li style='margin-bottom:8px;'>{linkify_notice_line(line.strip())}</li>" for line in st.session_state.notice_text.split('\n') if line.strip()])
                 st.markdown(f"""
                     <div style="background-color: #fffaf0; border: 1px solid #ffd1b3; padding: 15px; border-radius: 4px; margin-bottom:20px;">
                         <ul style="padding-left: 20px; color: #333;">{formatted_preview}</ul>
