@@ -162,6 +162,26 @@ def save_syllabus_data(data_dict):
     with open(SYLLABUS_FILE, "w", encoding="utf-8") as f:
         json.dump(data_dict, f, ensure_ascii=False, indent=4)
 
+# 🟢 FIX: Ab har Subject ke liye utne hi Years dikhenge jitni uski asli "Duration"
+# (jaise 3 saal ka course ho to sirf 1st/2nd/3rd Year hi dikhega, 4th/5th/6th nahi) —
+# Duration wahi column hai jo already "Current Year" auto-calculate karne me use hoti hai.
+def get_subject_syllabus_year_count(subject_name, df):
+    try:
+        if "Duration" not in df.columns or "Subject" not in df.columns:
+            return len(SYLLABUS_YEAR_OPTIONS)
+        sub_rows = df[df["Subject"].astype(str).str.strip() == str(subject_name).strip()]
+        durations = pd.to_numeric(sub_rows["Duration"], errors="coerce").dropna()
+        if durations.empty:
+            return len(SYLLABUS_YEAR_OPTIONS)
+        # Us Subject ke jitne bhi students hain, unme sabse zyada baar aaya Duration
+        # lete hain — taaki kisi ek galat/typo entry se poori list na bigde
+        mode_vals = durations.mode()
+        chosen = int(mode_vals.iloc[0]) if not mode_vals.empty else int(durations.iloc[0])
+        chosen = max(1, chosen)
+        return min(chosen, len(SYLLABUS_YEAR_OPTIONS))
+    except Exception:
+        return len(SYLLABUS_YEAR_OPTIONS)
+
 def load_dynamic_lists():
     if os.path.exists(DYNAMIC_LISTS_FILE):
         try:
@@ -3514,11 +3534,16 @@ else:
                 for p12_subj in p12_subject_list:
                     p12_safe_subj_key = _re_notice_link.sub(r'[^A-Za-z0-9_-]+', '_', p12_subj)
                     p12_subj_years = p12_syllabus_data.get(p12_subj, {})
-                    p12_years_done = sum(1 for _y in SYLLABUS_YEAR_OPTIONS if _y in p12_subj_years)
-                    with st.expander(f"📘 {p12_subj}  —  ({p12_years_done}/{len(SYLLABUS_YEAR_OPTIONS)} Years की Syllabus सेट है)", expanded=False):
+                    # 🟢 FIX: fixed 6 Years ki jagah ab is Subject ki asli Duration ke
+                    # hisaab se hi Years ki list banti hai (jaise 3 saal ka course ho to
+                    # sirf 3 Years hi dikhenge)
+                    p12_yr_count = get_subject_syllabus_year_count(p12_subj, p12_live_db)
+                    p12_years_for_subject = SYLLABUS_YEAR_OPTIONS[:p12_yr_count]
+                    p12_years_done = sum(1 for _y in p12_years_for_subject if _y in p12_subj_years)
+                    with st.expander(f"📘 {p12_subj}  —  ({p12_years_done}/{len(p12_years_for_subject)} Years की Syllabus सेट है)", expanded=False):
 
                         # --- मौजूदा सभी Years का status एक साथ दिखाएँ ---
-                        for p12_yr in SYLLABUS_YEAR_OPTIONS:
+                        for p12_yr in p12_years_for_subject:
                             p12_yr_existing = p12_subj_years.get(p12_yr, {})
                             p12_yr_safe_key = f"{p12_safe_subj_key}__{p12_yr.replace(' ', '_')}"
                             st.markdown(f"**🗓️ {p12_yr}**")
