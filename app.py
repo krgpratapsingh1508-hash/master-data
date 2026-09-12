@@ -39,6 +39,10 @@ NOTICE_FILE = "notice_board_schema.json"
 # 🟢 P12 SYLLABUS MANAGER: subject-wise syllabus (file ya link) yahin store hoga
 SYLLABUS_FILE = "subject_syllabus_schema.json"
 SYLLABUS_UPLOAD_DIR = "syllabus_uploads"
+# 🟢 Syllabus ke liye Year options — app me baaki jagah (P7/P10 etc.) jo standard Year
+# labels use hote hain (1st Year, 2nd Year...) wahi yahan bhi use kar rahe hain, taaki
+# poori app me Year ka matlab hamesha ek jaisa rahe.
+SYLLABUS_YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"]
 
 # डिफ़ॉल्ट कॉन्फ़िगरेशन बैकअप डिक्शनरी
 DEFAULT_PRE_LOGIN_CONFIG = {
@@ -142,8 +146,9 @@ def save_pre_login_config(config_dict):
     with open(PRE_LOGIN_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config_dict, f, ensure_ascii=False, indent=4)
 
-# 🟢 P12 SYLLABUS MANAGER: har Subject ke saamne File-upload YA Link — dono me se
-# koi bhi ek tarika chuna ja sakta hai. Data yahan {subject: {"type","value","file_name"}} format me save hota hai.
+# 🟢 P12 SYLLABUS MANAGER: har Subject + Year ke combination ke liye File-upload YA
+# Link — dono me se koi bhi ek tarika chuna ja sakta hai. Data yahan nested format me
+# save hota hai: { Subject: { Year: {"type","value","file_name"} } }
 def load_syllabus_data():
     if os.path.exists(SYLLABUS_FILE):
         try:
@@ -578,7 +583,66 @@ if st.session_state.user_role is None:
             {formatted_notice}
         </div>
     """, unsafe_allow_html=True)
-    
+
+    # ==========================================================
+    # 📚 STUDENT SYLLABUS LOOKUP (बिना लॉगिन के, Desk Board पर ही)
+    # P12 (Admin) me jo Subject + Year ke hisab se Syllabus File/Link
+    # save ki jaati hai, wahi yahan student khud Subject aur Year
+    # chunkar dekh/download kar sakta hai — koi login nahi chahiye.
+    # ==========================================================
+    _p_syllabus_data = load_syllabus_data()
+    _p_syllabus_subjects = sorted([s for s, yrs in _p_syllabus_data.items() if yrs])
+    if _p_syllabus_subjects:
+        st.markdown("---")
+        st.markdown("### 📚 अपना Syllabus देखें (Check Your Syllabus)")
+        st.caption("नीचे अपना Subject और Year चुनें — Syllabus File या Link तुरंत यहीं मिल जाएगी।")
+
+        _p_col_subj, _p_col_year = st.columns(2)
+        with _p_col_subj:
+            _p_sel_subject = st.selectbox(
+                "📘 अपना Subject चुनें:",
+                options=_p_syllabus_subjects,
+                key="p_public_syllabus_subject_select"
+            )
+        with _p_col_year:
+            _p_subj_years_available = [y for y in SYLLABUS_YEAR_OPTIONS if y in _p_syllabus_data.get(_p_sel_subject, {})]
+            if _p_subj_years_available:
+                _p_sel_year = st.selectbox(
+                    "🗓️ अपना Year चुनें:",
+                    options=_p_subj_years_available,
+                    key="p_public_syllabus_year_select"
+                )
+            else:
+                _p_sel_year = None
+                st.info("इस Subject के लिए अभी किसी भी Year की Syllabus उपलब्ध नहीं है।")
+
+        if _p_sel_year:
+            _p_result = _p_syllabus_data.get(_p_sel_subject, {}).get(_p_sel_year, {})
+            if _p_result.get("type") == "file" and _p_result.get("value") and os.path.exists(_p_result["value"]):
+                st.success(f"✅ **{_p_sel_subject} — {_p_sel_year}** की Syllabus मिल गई!")
+                try:
+                    with open(_p_result["value"], "rb") as _p_fh:
+                        st.download_button(
+                            "⬇️ Syllabus Download करें",
+                            data=_p_fh.read(),
+                            file_name=_p_result.get("file_name", os.path.basename(_p_result["value"])),
+                            key="p_public_syllabus_download_btn",
+                            use_container_width=True,
+                            type="primary"
+                        )
+                except Exception:
+                    st.error("⚠️ फ़ाइल पढ़ने में समस्या आई — कृपया एडमिन से संपर्क करें।")
+            elif _p_result.get("type") == "link" and _p_result.get("value"):
+                st.success(f"✅ **{_p_sel_subject} — {_p_sel_year}** की Syllabus मिल गई!")
+                st.markdown(
+                    f'<a href="{_p_result["value"]}" target="_blank" rel="noopener noreferrer" '
+                    f'style="display:inline-block; padding:10px 18px; background:#1465de; color:white; '
+                    f'border-radius:6px; text-decoration:none; font-weight:600;">🔗 Syllabus खोलें (नए टैब में)</a>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info("इस Subject/Year के लिए अभी Syllabus उपलब्ध नहीं है।")
+
     if not st.session_state.show_login_form:
         if st.button("🔐 Click Here to Open Secure Login System", type="primary", use_container_width=True):
             st.session_state.show_login_form = True
@@ -3416,12 +3480,13 @@ else:
         # P12: DASH BOARD EDITER MODULE (Pre-Login & Notice Customizer Combined)
         # ----------------------------------------------------------------------
         elif current_panel_id == "P12":
-            st.header(f"📚 {get_panel_title('P12')} (Subject-wise Syllabus Upload / Link Manager)")
+            st.header(f"📚 {get_panel_title('P12')} (Subject + Year wise Syllabus Upload / Link Manager)")
 
             st.markdown(
                 '<div style="background-color: #fcf8e3; border-left: 5px solid #f0ad4e; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
-                '📌 <b>निर्देश:</b> डेटाबेस में मौजूद हर <b>Subject</b> के सामने आप या तो एक <b>Syllabus File अपलोड</b> कर सकते हैं, '
-                'या फिर उसका <b>Link (URL)</b> दे सकते हैं — दोनों में से जो भी सुविधाजनक हो। '
+                '📌 <b>निर्देश:</b> डेटाबेस में मौजूद हर <b>Subject</b> के लिए, हर <b>Year</b> (1st Year, 2nd Year...) के हिसाब से अलग-अलग '
+                '<b>Syllabus File अपलोड</b> कर सकते हैं या उसका <b>Link (URL)</b> दे सकते हैं। यही Syllabus होम पेज (Desk Board) पर '
+                'बिना लॉगिन किए भी छात्रों को दिखेगा — वो अपना Subject और Year चुनकर सीधे Syllabus पा सकेंगे। '
                 '(नोट: Notice Board और Header/Branding Settings अब <b>Panel Admin (P15)</b> से मैनेज होती हैं।)'
                 '</div>',
                 unsafe_allow_html=True
@@ -3442,91 +3507,108 @@ else:
             if not p12_subject_list:
                 st.info("ℹ️ अभी तक डेटाबेस में कोई Subject उपलब्ध नहीं है। पहले P1 (Data Onboarding) से Students जोड़ें — उनके Subjects यहाँ अपने-आप दिखने लगेंगे।")
             else:
+                # 🟢 Data structure ab nested hai: { Subject: { Year: {"type","value","file_name"} } }
                 p12_syllabus_data = load_syllabus_data()
-                st.caption(f"📚 कुल **{len(p12_subject_list)}** Subjects मिले — नीचे हर एक के सामने Syllabus की स्थिति और (अगर अधिकार है तो) Upload/Link विकल्प दिख रहा है।")
+                st.caption(f"📚 कुल **{len(p12_subject_list)}** Subjects मिले — हर Subject के अंदर अब **Year-wise** Syllabus सेट कर सकते हैं।")
 
                 for p12_subj in p12_subject_list:
-                    p12_safe_key = _re_notice_link.sub(r'[^A-Za-z0-9_-]+', '_', p12_subj)
-                    with st.expander(f"📘 {p12_subj}", expanded=False):
-                        p12_existing = p12_syllabus_data.get(p12_subj, {})
+                    p12_safe_subj_key = _re_notice_link.sub(r'[^A-Za-z0-9_-]+', '_', p12_subj)
+                    p12_subj_years = p12_syllabus_data.get(p12_subj, {})
+                    p12_years_done = sum(1 for _y in SYLLABUS_YEAR_OPTIONS if _y in p12_subj_years)
+                    with st.expander(f"📘 {p12_subj}  —  ({p12_years_done}/{len(SYLLABUS_YEAR_OPTIONS)} Years की Syllabus सेट है)", expanded=False):
 
-                        if p12_existing.get("type") == "file" and p12_existing.get("value") and os.path.exists(p12_existing["value"]):
-                            st.success(f"✅ वर्तमान Syllabus फ़ाइल मौजूद है: **{p12_existing.get('file_name', os.path.basename(p12_existing['value']))}**")
-                            try:
-                                with open(p12_existing["value"], "rb") as p12_fh:
-                                    st.download_button(
-                                        "⬇️ Syllabus Download करें",
-                                        data=p12_fh.read(),
-                                        file_name=p12_existing.get("file_name", os.path.basename(p12_existing["value"])),
-                                        key=f"p12_dl_{p12_safe_key}",
-                                        use_container_width=True
+                        # --- मौजूदा सभी Years का status एक साथ दिखाएँ ---
+                        for p12_yr in SYLLABUS_YEAR_OPTIONS:
+                            p12_yr_existing = p12_subj_years.get(p12_yr, {})
+                            p12_yr_safe_key = f"{p12_safe_subj_key}__{p12_yr.replace(' ', '_')}"
+                            st.markdown(f"**🗓️ {p12_yr}**")
+                            p12_status_col, p12_action_col = st.columns([3, 2])
+
+                            with p12_status_col:
+                                if p12_yr_existing.get("type") == "file" and p12_yr_existing.get("value") and os.path.exists(p12_yr_existing["value"]):
+                                    st.success(f"✅ फ़ाइल मौजूद: **{p12_yr_existing.get('file_name', os.path.basename(p12_yr_existing['value']))}**")
+                                elif p12_yr_existing.get("type") == "link" and p12_yr_existing.get("value"):
+                                    st.success("✅ Link मौजूद है:")
+                                    st.markdown(f"🔗 [Syllabus खोलें (नए टैब में)]({p12_yr_existing['value']})")
+                                else:
+                                    st.info("अभी तक कोई Syllabus नहीं जोड़ा गया।")
+
+                            with p12_action_col:
+                                if p12_yr_existing.get("type") == "file" and p12_yr_existing.get("value") and os.path.exists(p12_yr_existing["value"]):
+                                    try:
+                                        with open(p12_yr_existing["value"], "rb") as p12_fh:
+                                            st.download_button(
+                                                "⬇️ Download",
+                                                data=p12_fh.read(),
+                                                file_name=p12_yr_existing.get("file_name", os.path.basename(p12_yr_existing["value"])),
+                                                key=f"p12_dl_{p12_yr_safe_key}",
+                                                use_container_width=True
+                                            )
+                                    except Exception:
+                                        st.error("⚠️ फ़ाइल पढ़ने में समस्या।")
+                                if p12_can_edit and p12_yr_existing:
+                                    if st.button("🗑️ हटाएँ", key=f"p12_remove_{p12_yr_safe_key}", use_container_width=True):
+                                        if p12_yr_existing.get("type") == "file" and p12_yr_existing.get("value") and os.path.exists(p12_yr_existing["value"]):
+                                            try:
+                                                os.remove(p12_yr_existing["value"])
+                                            except Exception:
+                                                pass
+                                        del p12_subj_years[p12_yr]
+                                        p12_syllabus_data[p12_subj] = p12_subj_years
+                                        save_syllabus_data(p12_syllabus_data)
+                                        st.success(f"🗑️ {p12_subj} — {p12_yr} का Syllabus हटा दिया गया।")
+                                        st.rerun()
+
+                            if p12_can_edit:
+                                p12_mode = st.radio(
+                                    f"{p12_yr} के लिए Syllabus कैसे जोड़ें/बदलें?",
+                                    ["📎 File Upload", "🔗 Link (URL)"],
+                                    key=f"p12_mode_{p12_yr_safe_key}",
+                                    horizontal=True,
+                                    label_visibility="collapsed"
+                                )
+                                if p12_mode == "📎 File Upload":
+                                    p12_up_file = st.file_uploader(
+                                        f"{p12_yr} — Syllabus File चुनें (PDF/DOC/DOCX/Image):",
+                                        type=["pdf", "doc", "docx", "png", "jpg", "jpeg"],
+                                        key=f"p12_upl_{p12_yr_safe_key}",
+                                        label_visibility="collapsed"
                                     )
-                            except Exception:
-                                st.error("⚠️ सेव की गई फ़ाइल पढ़ने में समस्या आई — शायद फ़ाइल हटा दी गई है।")
-                        elif p12_existing.get("type") == "link" and p12_existing.get("value"):
-                            st.success("✅ वर्तमान Syllabus Link उपलब्ध है:")
-                            st.markdown(f"🔗 [Syllabus खोलें (नए टैब में)]({p12_existing['value']})")
-                        else:
-                            st.info("अभी तक इस Subject के लिए कोई Syllabus (File/Link) नहीं जोड़ा गया है।")
-
-                        if p12_can_edit:
+                                    if st.button(f"💾 {p12_yr} — File Save करें", key=f"p12_savefile_{p12_yr_safe_key}", use_container_width=True):
+                                        if p12_up_file is not None:
+                                            os.makedirs(SYLLABUS_UPLOAD_DIR, exist_ok=True)
+                                            p12_ext = os.path.splitext(p12_up_file.name)[1] or ".pdf"
+                                            p12_save_path = os.path.join(SYLLABUS_UPLOAD_DIR, f"{p12_yr_safe_key}{p12_ext}")
+                                            with open(p12_save_path, "wb") as p12_fo:
+                                                p12_fo.write(p12_up_file.getvalue())
+                                            p12_subj_years[p12_yr] = {
+                                                "type": "file", "value": p12_save_path, "file_name": p12_up_file.name
+                                            }
+                                            p12_syllabus_data[p12_subj] = p12_subj_years
+                                            save_syllabus_data(p12_syllabus_data)
+                                            st.success(f"🎉 {p12_subj} — {p12_yr} के लिए Syllabus फ़ाइल सेव हो गई!")
+                                            st.rerun()
+                                        else:
+                                            st.warning("⚠️ पहले कोई फ़ाइल चुनें, फिर Save करें।")
+                                else:
+                                    p12_default_link = p12_yr_existing.get("value", "") if p12_yr_existing.get("type") == "link" else ""
+                                    p12_link_val = st.text_input(
+                                        f"{p12_yr} — Syllabus Link (URL) डालें:",
+                                        value=p12_default_link,
+                                        key=f"p12_link_{p12_yr_safe_key}",
+                                        placeholder="https://...",
+                                        label_visibility="collapsed"
+                                    )
+                                    if st.button(f"💾 {p12_yr} — Link Save करें", key=f"p12_savelink_{p12_yr_safe_key}", use_container_width=True):
+                                        if p12_link_val.strip():
+                                            p12_subj_years[p12_yr] = {"type": "link", "value": p12_link_val.strip(), "file_name": ""}
+                                            p12_syllabus_data[p12_subj] = p12_subj_years
+                                            save_syllabus_data(p12_syllabus_data)
+                                            st.success(f"🎉 {p12_subj} — {p12_yr} के लिए Syllabus Link सेव हो गया!")
+                                            st.rerun()
+                                        else:
+                                            st.warning("⚠️ Link खाली नहीं छोड़ सकते।")
                             st.markdown("---")
-                            p12_mode = st.radio(
-                                "Syllabus कैसे जोड़ना/बदलना चाहते हैं?",
-                                ["📎 File Upload", "🔗 Link (URL)"],
-                                key=f"p12_mode_{p12_safe_key}",
-                                horizontal=True
-                            )
-
-                            if p12_mode == "📎 File Upload":
-                                p12_up_file = st.file_uploader(
-                                    "Syllabus File चुनें (PDF/DOC/DOCX/Image):",
-                                    type=["pdf", "doc", "docx", "png", "jpg", "jpeg"],
-                                    key=f"p12_upl_{p12_safe_key}"
-                                )
-                                if st.button("💾 Syllabus File Save करें", key=f"p12_savefile_{p12_safe_key}", use_container_width=True):
-                                    if p12_up_file is not None:
-                                        os.makedirs(SYLLABUS_UPLOAD_DIR, exist_ok=True)
-                                        p12_ext = os.path.splitext(p12_up_file.name)[1] or ".pdf"
-                                        p12_save_path = os.path.join(SYLLABUS_UPLOAD_DIR, f"{p12_safe_key}{p12_ext}")
-                                        with open(p12_save_path, "wb") as p12_fo:
-                                            p12_fo.write(p12_up_file.getvalue())
-                                        p12_syllabus_data[p12_subj] = {
-                                            "type": "file", "value": p12_save_path, "file_name": p12_up_file.name
-                                        }
-                                        save_syllabus_data(p12_syllabus_data)
-                                        st.success(f"🎉 {p12_subj} के लिए Syllabus फ़ाइल सफलतापूर्वक सेव हो गई!")
-                                        st.rerun()
-                                    else:
-                                        st.warning("⚠️ पहले कोई फ़ाइल चुनें, फिर Save करें।")
-                            else:
-                                p12_default_link = p12_existing.get("value", "") if p12_existing.get("type") == "link" else ""
-                                p12_link_val = st.text_input(
-                                    "Syllabus Link (URL) डालें:",
-                                    value=p12_default_link,
-                                    key=f"p12_link_{p12_safe_key}",
-                                    placeholder="https://..."
-                                )
-                                if st.button("💾 Syllabus Link Save करें", key=f"p12_savelink_{p12_safe_key}", use_container_width=True):
-                                    if p12_link_val.strip():
-                                        p12_syllabus_data[p12_subj] = {"type": "link", "value": p12_link_val.strip(), "file_name": ""}
-                                        save_syllabus_data(p12_syllabus_data)
-                                        st.success(f"🎉 {p12_subj} के लिए Syllabus Link सफलतापूर्वक सेव हो गया!")
-                                        st.rerun()
-                                    else:
-                                        st.warning("⚠️ Link खाली नहीं छोड़ सकते।")
-
-                            if p12_existing:
-                                if st.button("🗑️ Syllabus हटाएँ (Remove)", key=f"p12_remove_{p12_safe_key}"):
-                                    if p12_existing.get("type") == "file" and p12_existing.get("value") and os.path.exists(p12_existing["value"]):
-                                        try:
-                                            os.remove(p12_existing["value"])
-                                        except Exception:
-                                            pass
-                                    del p12_syllabus_data[p12_subj]
-                                    save_syllabus_data(p12_syllabus_data)
-                                    st.success(f"🗑️ {p12_subj} का Syllabus हटा दिया गया।")
-                                    st.rerun()
 
         # ======================================================================
         # P13: 🔀 MERGE & APPROVE PANEL (Complete Integrated Routing System)
