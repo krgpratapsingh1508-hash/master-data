@@ -43,6 +43,13 @@ SYLLABUS_UPLOAD_DIR = "syllabus_uploads"
 # labels use hote hain (1st Year, 2nd Year...) wahi yahan bhi use kar rahe hain, taaki
 # poori app me Year ka matlab hamesha ek jaisa rahe.
 SYLLABUS_YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"]
+# 🟢 नया: PG (Post-Graduate) जैसे कोर्सेज़ के लिए Semester-wise Syllabus विकल्प — जैसे 2 Year का
+# PG कोर्स हो to 4 Semester (1st Sem. से 4th Sem.) बनते हैं। P10 पैनल में जो Semester labels
+# already इस्तेमाल होते हैं, वही यहाँ भी इस्तेमाल कर रहे हैं ताकि पूरी app में नाम एक जैसे रहें।
+SYLLABUS_SEM_OPTIONS = [
+    "1st Sem.", "2nd Sem.", "3rd Sem.", "4th Sem.", "5th Sem.", "6th Sem.",
+    "7th Sem.", "8th Sem.", "9th Sem.", "10th Sem.", "11th Sem.", "12th Sem."
+]
 
 # डिफ़ॉल्ट कॉन्फ़िगरेशन बैकअप डिक्शनरी
 DEFAULT_PRE_LOGIN_CONFIG = {
@@ -611,11 +618,17 @@ if st.session_state.user_role is None:
     # chunkar dekh/download kar sakta hai — koi login nahi chahiye.
     # ==========================================================
     _p_syllabus_data = load_syllabus_data()
-    _p_syllabus_subjects = sorted([s for s, yrs in _p_syllabus_data.items() if yrs])
+    # 🟢 Fix: "__mode__" sirf Year/Semester mode yaad rakhne wali internal key hai (koi
+    # asli Syllabus entry nahi) — isliye is akeli key ke aadhar par Subject ko "Syllabus
+    # available" mat maano, warna khaali Subject bhi list me dikhne lagega.
+    _p_syllabus_subjects = sorted([
+        s for s, yrs in _p_syllabus_data.items()
+        if any(k != "__mode__" for k in yrs)
+    ])
     if _p_syllabus_subjects:
         st.markdown("---")
         st.markdown("### 📚 अपना Syllabus देखें (Check Your Syllabus)")
-        st.caption("नीचे अपना Subject और Year चुनें — Syllabus File या Link तुरंत यहीं मिल जाएगी।")
+        st.caption("नीचे अपना Subject और Year/Semester चुनें — Syllabus File या Link तुरंत यहीं मिल जाएगी।")
 
         _p_col_subj, _p_col_year = st.columns(2)
         with _p_col_subj:
@@ -625,16 +638,22 @@ if st.session_state.user_role is None:
                 key="p_public_syllabus_subject_select"
             )
         with _p_col_year:
-            _p_subj_years_available = [y for y in SYLLABUS_YEAR_OPTIONS if y in _p_syllabus_data.get(_p_sel_subject, {})]
+            # 🟢 नया: Subject ya to Year-wise (SYLLABUS_YEAR_OPTIONS) ya Semester-wise
+            # (SYLLABUS_SEM_OPTIONS — जैसे PG के 2 Year = 4 Semester) मोड में सेव हुआ हो सकता
+            # है, इसलिए दोनों लिस्ट में से जो भी इस Subject में असल में मौजूद हैं वही दिखाएँ।
+            _p_subj_years_available = [
+                y for y in (SYLLABUS_YEAR_OPTIONS + SYLLABUS_SEM_OPTIONS)
+                if y in _p_syllabus_data.get(_p_sel_subject, {})
+            ]
             if _p_subj_years_available:
                 _p_sel_year = st.selectbox(
-                    "🗓️ अपना Year चुनें:",
+                    "🗓️ अपना Year/Semester चुनें:",
                     options=_p_subj_years_available,
                     key="p_public_syllabus_year_select"
                 )
             else:
                 _p_sel_year = None
-                st.info("इस Subject के लिए अभी किसी भी Year की Syllabus उपलब्ध नहीं है।")
+                st.info("इस Subject के लिए अभी किसी भी Year/Semester की Syllabus उपलब्ध नहीं है।")
 
         if _p_sel_year:
             _p_result = _p_syllabus_data.get(_p_sel_subject, {}).get(_p_sel_year, {})
@@ -3551,14 +3570,45 @@ else:
                     # hisaab se hi Years ki list banti hai (jaise 3 saal ka course ho to
                     # sirf 3 Years hi dikhenge)
                     p12_yr_count = get_subject_syllabus_year_count(p12_subj, p12_live_db)
-                    p12_years_for_subject = SYLLABUS_YEAR_OPTIONS[:p12_yr_count]
-                    p12_years_done = sum(1 for _y in p12_years_for_subject if _y in p12_subj_years)
-                    with st.expander(f"📘 {p12_subj}  —  ({p12_years_done}/{len(p12_years_for_subject)} Years की Syllabus सेट है)", expanded=False):
 
-                        # --- मौजूदा सभी Years का status एक साथ दिखाएँ ---
+                    # 🟢 नया: PG कोर्सेज़ (जैसे 2 Year का कोर्स) के लिए अब Year-wise की जगह
+                    # Semester-wise भी Syllabus सेट किया जा सकता है — 2 Year = 4 Semester,
+                    # 3 Year = 6 Semester वगैरह। हर Subject अपनी चुनी हुई Mode याद रखता है
+                    # (डेटा फ़ाइल में "__mode__" key में सेव होती है), ताकि दोबारा खोलने पर
+                    # सही Mode (Year / Semester) अपने आप दिखे।
+                    p12_saved_mode = p12_subj_years.get("__mode__", "year")
+                    p12_mode_options = ["📅 Year-wise", "📆 Semester-wise (PG)"]
+                    p12_mode_default_idx = 1 if p12_saved_mode == "semester" else 0
+                    p12_chosen_mode_raw = st.radio(
+                        f"**{p12_subj}** — Syllabus किस हिसाब से सेट करें?",
+                        options=p12_mode_options,
+                        index=p12_mode_default_idx,
+                        key=f"p12_period_mode_{p12_safe_subj_key}",
+                        horizontal=True,
+                        disabled=not p12_can_edit
+                    )
+                    p12_chosen_mode = "semester" if p12_chosen_mode_raw == p12_mode_options[1] else "year"
+                    if p12_can_edit and p12_chosen_mode != p12_saved_mode:
+                        p12_subj_years["__mode__"] = p12_chosen_mode
+                        p12_syllabus_data[p12_subj] = p12_subj_years
+                        save_syllabus_data(p12_syllabus_data)
+
+                    if p12_chosen_mode == "semester":
+                        # PG जैसे कोर्स: N Year = N × 2 Semester (ज़्यादा से ज़्यादा 12 Semester)
+                        p12_sem_count = min(p12_yr_count * 2, len(SYLLABUS_SEM_OPTIONS))
+                        p12_years_for_subject = SYLLABUS_SEM_OPTIONS[:p12_sem_count]
+                        p12_period_word = "Semester"
+                    else:
+                        p12_years_for_subject = SYLLABUS_YEAR_OPTIONS[:p12_yr_count]
+                        p12_period_word = "Year"
+
+                    p12_years_done = sum(1 for _y in p12_years_for_subject if _y in p12_subj_years)
+                    with st.expander(f"📘 {p12_subj}  —  ({p12_years_done}/{len(p12_years_for_subject)} {p12_period_word} की Syllabus सेट है)", expanded=False):
+
+                        # --- मौजूदा सभी Year/Semester का status एक साथ दिखाएँ ---
                         for p12_yr in p12_years_for_subject:
                             p12_yr_existing = p12_subj_years.get(p12_yr, {})
-                            p12_yr_safe_key = f"{p12_safe_subj_key}__{p12_yr.replace(' ', '_')}"
+                            p12_yr_safe_key = f"{p12_safe_subj_key}__{_re_notice_link.sub(r'[^A-Za-z0-9_-]+', '_', p12_yr)}"
                             st.markdown(f"**🗓️ {p12_yr}**")
                             p12_status_col, p12_action_col = st.columns([3, 2])
 
