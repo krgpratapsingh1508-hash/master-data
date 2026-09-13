@@ -4123,652 +4123,716 @@ else:
             st.header(f"🛠️ {get_panel_title('P15')} (Full Super-Admin Control Command)")
             
             # 📢 Live Notice Board Manager Panel Area
-            st.subheader("📢 Live Notice Board Manager")
-            with st.expander("कॉलेज सूचना पटल (Official Notice Board) की गाइडलाइंस एडिट करें", expanded=True):
-                with st.form(key="p15_global_notice_form_final_secure"):
-                    updated_notice_input = st.text_area(
-                        "सूचना पटल की पंक्तियाँ लिखें (प्रत्येक नई लाइन मुख्य पेज पर एक नया पॉइंट बनेगी):",
-                        value=st.session_state.notice_text,
-                        height=150,
-                        key="p15_notice_text_area_input_final_secure"
-                    )
-                    if st.form_submit_button("Publish & Save Notice Board Permanently", type="primary", use_container_width=True):
-                        st.session_state.notice_text = updated_notice_input
-                        save_notice_board(updated_notice_input)
-                        st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है! यह बिना लॉगिन वाले होम पेज पर लाइव दिखाई देगा।")
-                        st.rerun()
+            hdr_c1_p15_show_notice_board, hdr_c2_p15_show_notice_board = st.columns([6, 1])
+            with hdr_c1_p15_show_notice_board:
+                st.subheader("📢 Live Notice Board Manager")
+            with hdr_c2_p15_show_notice_board:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_notice_board", True) else "👁️ Unhide", key="p15_show_notice_board_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_notice_board"] = not st.session_state.get("p15_show_notice_board", True)
+                    st.rerun()
+
+            if st.session_state.get("p15_show_notice_board", True):
+                with st.expander("कॉलेज सूचना पटल (Official Notice Board) की गाइडलाइंस एडिट करें", expanded=True):
+                    with st.form(key="p15_global_notice_form_final_secure"):
+                        updated_notice_input = st.text_area(
+                            "सूचना पटल की पंक्तियाँ लिखें (प्रत्येक नई लाइन मुख्य पेज पर एक नया पॉइंट बनेगी):",
+                            value=st.session_state.notice_text,
+                            height=150,
+                            key="p15_notice_text_area_input_final_secure"
+                        )
+                        if st.form_submit_button("Publish & Save Notice Board Permanently", type="primary", use_container_width=True):
+                            st.session_state.notice_text = updated_notice_input
+                            save_notice_board(updated_notice_input)
+                            st.success("🎉 कॉलेज सूचना पटल सफलतापूर्वक अपडेट हो गया है! यह बिना लॉगिन वाले होम पेज पर लाइव दिखाई देगा।")
+                            st.rerun()
 
             st.markdown("---")
 
             # --- (P12 se yahan shift kiya gaya) Header Elements & Branding Themes ---
-            st.subheader("🖼️ Header Elements & Branding Themes")
-            with st.form(key="p15_landing_view_editor_form_secure"):
-                col_view1, col_view2 = st.columns(2)
-                with col_view1:
-                    header_toggle = st.checkbox(
-                        "Display Institutional Header Text Block", 
-                        value=bool(st.session_state.pre_login_config.get("show_header_text", True))
-                    )
-                    mantra_text = st.text_input(
-                        "Spiritual Invocation / Mantra Text:", 
-                        value=str(st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः"))
-                    )
-                with col_view2:
-                    system_title_text = st.text_input(
-                        "Main Gateway Application Title:", 
-                        value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System"))
-                    )
-
-                st.markdown("##### 🔤 Header Text Font Size")
-                col_font1, col_font2 = st.columns(2)
-                with col_font1:
-                    mantra_font_size = st.slider(
-                        "Spiritual Invocation / Mantra — Font Size (px):",
-                        min_value=10, max_value=60,
-                        value=int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)),
-                        key="p15_mantra_font_size_slider"
-                    )
-                with col_font2:
-                    title_font_size = st.slider(
-                        "Main Gateway Application Title — Font Size (px):",
-                        min_value=10, max_value=80,
-                        value=int(st.session_state.pre_login_config.get("header_title_font_size", 32)),
-                        key="p15_title_font_size_slider"
-                    )
-
-                st.markdown("##### Notice Board Branding Colors")
-                col_theme1, col_theme2 = st.columns(2)
-                with col_theme1:
-                    border_color = st.color_picker(
-                        "Left Accent Border Color:",
-                        value=str(st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733"))
-                    )
-                with col_theme2:
-                    bg_color = st.color_picker(
-                        "Container Background Surface Color:", 
-                        value=str(st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9"))
-                    )
-                
-                submit_settings = st.form_submit_button("💾 Apply & Save Landing View Settings Permanently", type="primary", use_container_width=True)
-                
-                if submit_settings:
-                    updated_config = {
-                        "show_header_text": header_toggle,
-                        "header_mantra": mantra_text,
-                        "system_title": system_title_text,
-                        "header_mantra_font_size": mantra_font_size,
-                        "header_title_font_size": title_font_size,
-                        "notice_board_border_color": border_color,
-                        "notice_board_bg_color": bg_color
-                    }
-                    st.session_state.pre_login_config = updated_config
-                    save_pre_login_config(updated_config)
-                    st.success("🎉 डैशबोर्ड विजुअल सेटिंग्स सफलतापूर्वक सेव हो गई हैं!")
+            hdr_c1_p15_show_header_branding, hdr_c2_p15_show_header_branding = st.columns([6, 1])
+            with hdr_c1_p15_show_header_branding:
+                st.subheader("🖼️ Header Elements & Branding Themes")
+            with hdr_c2_p15_show_header_branding:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_header_branding", True) else "👁️ Unhide", key="p15_show_header_branding_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_header_branding"] = not st.session_state.get("p15_show_header_branding", True)
                     st.rerun()
+
+            if st.session_state.get("p15_show_header_branding", True):
+                with st.form(key="p15_landing_view_editor_form_secure"):
+                    col_view1, col_view2 = st.columns(2)
+                    with col_view1:
+                        header_toggle = st.checkbox(
+                            "Display Institutional Header Text Block", 
+                            value=bool(st.session_state.pre_login_config.get("show_header_text", True))
+                        )
+                        mantra_text = st.text_input(
+                            "Spiritual Invocation / Mantra Text:", 
+                            value=str(st.session_state.pre_login_config.get("header_mantra", "ॐ श्री गुरवे नमः"))
+                        )
+                    with col_view2:
+                        system_title_text = st.text_input(
+                            "Main Gateway Application Title:", 
+                            value=str(st.session_state.pre_login_config.get("system_title", "Permanent Shared Live Database System"))
+                        )
+
+                    st.markdown("##### 🔤 Header Text Font Size")
+                    col_font1, col_font2 = st.columns(2)
+                    with col_font1:
+                        mantra_font_size = st.slider(
+                            "Spiritual Invocation / Mantra — Font Size (px):",
+                            min_value=10, max_value=60,
+                            value=int(st.session_state.pre_login_config.get("header_mantra_font_size", 24)),
+                            key="p15_mantra_font_size_slider"
+                        )
+                    with col_font2:
+                        title_font_size = st.slider(
+                            "Main Gateway Application Title — Font Size (px):",
+                            min_value=10, max_value=80,
+                            value=int(st.session_state.pre_login_config.get("header_title_font_size", 32)),
+                            key="p15_title_font_size_slider"
+                        )
+
+                    st.markdown("##### Notice Board Branding Colors")
+                    col_theme1, col_theme2 = st.columns(2)
+                    with col_theme1:
+                        border_color = st.color_picker(
+                            "Left Accent Border Color:",
+                            value=str(st.session_state.pre_login_config.get("notice_board_border_color", "#FF5733"))
+                        )
+                    with col_theme2:
+                        bg_color = st.color_picker(
+                            "Container Background Surface Color:", 
+                            value=str(st.session_state.pre_login_config.get("notice_board_bg_color", "#f9f9f9"))
+                        )
+                    
+                    submit_settings = st.form_submit_button("💾 Apply & Save Landing View Settings Permanently", type="primary", use_container_width=True)
+                    
+                    if submit_settings:
+                        updated_config = {
+                            "show_header_text": header_toggle,
+                            "header_mantra": mantra_text,
+                            "system_title": system_title_text,
+                            "header_mantra_font_size": mantra_font_size,
+                            "header_title_font_size": title_font_size,
+                            "notice_board_border_color": border_color,
+                            "notice_board_bg_color": bg_color
+                        }
+                        st.session_state.pre_login_config = updated_config
+                        save_pre_login_config(updated_config)
+                        st.success("🎉 डैशबोर्ड विजुअल सेटिंग्स सफलतापूर्वक सेव हो गई हैं!")
+                        st.rerun()
 
             st.markdown("---")
 
             # --- (P12 se yahan shift kiya gaya) Logo Upload, Size & Fit Mode Customizer ---
-            st.subheader("🖼️ लोगो अपलोड, साइज़ और फिट मोड कंट्रोल")
-            st.caption("यहाँ से नया लोगो अपलोड करें, उसकी Width/Height अलग-अलग सेट करें और Fit Mode चुनें — Live Preview में सेव करने से पहले ही देख सकते हैं कि लोगो कैसा दिखेगा।")
+            hdr_c1_p15_show_logo_upload, hdr_c2_p15_show_logo_upload = st.columns([6, 1])
+            with hdr_c1_p15_show_logo_upload:
+                st.subheader("🖼️ लोगो अपलोड, साइज़ और फिट मोड कंट्रोल")
+            with hdr_c2_p15_show_logo_upload:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_logo_upload", True) else "👁️ Unhide", key="p15_show_logo_upload_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_logo_upload"] = not st.session_state.get("p15_show_logo_upload", True)
+                    st.rerun()
 
-            current_logo_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
-            current_logo_w = int(st.session_state.pre_login_config.get("logo_width", 110))
-            current_logo_h = int(st.session_state.pre_login_config.get("logo_height", 110))
-            current_logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
+            if st.session_state.get("p15_show_logo_upload", True):
+                st.caption("यहाँ से नया लोगो अपलोड करें, उसकी Width/Height अलग-अलग सेट करें और Fit Mode चुनें — Live Preview में सेव करने से पहले ही देख सकते हैं कि लोगो कैसा दिखेगा।")
 
-            new_logo_file = st.file_uploader(
-                "नया लोगो अपलोड करें (PNG/JPG) — खाली छोड़ने पर मौजूदा लोगो बना रहेगा:",
-                type=["png", "jpg", "jpeg"],
-                key="p15_logo_uploader_v1"
-            )
+                current_logo_path = st.session_state.pre_login_config.get("logo_path", "logo pratap.png")
+                current_logo_w = int(st.session_state.pre_login_config.get("logo_width", 110))
+                current_logo_h = int(st.session_state.pre_login_config.get("logo_height", 110))
+                current_logo_fit = st.session_state.pre_login_config.get("logo_fit_mode", "contain")
 
-            col_logo1, col_logo2, col_logo3 = st.columns(3)
-            with col_logo1:
-                logo_width_input = st.slider("↔️ Logo Width (px)", min_value=30, max_value=400, value=current_logo_w, key="p15_logo_width_slider_v1")
-            with col_logo2:
-                logo_height_input = st.slider("↕️ Logo Height (px)", min_value=30, max_value=400, value=current_logo_h, key="p15_logo_height_slider_v1")
-            with col_logo3:
-                fit_options = ["contain", "cover"]
-                fit_index = fit_options.index(current_logo_fit) if current_logo_fit in fit_options else 0
-                logo_fit_input = st.selectbox(
-                    "🖼️ Fit Mode",
-                    options=fit_options,
-                    index=fit_index,
-                    format_func=lambda x: "contain (पूरी image दिखेगी, कटेगी नहीं)" if x == "contain" else "cover (box भरेगा, extra हिस्सा crop हो सकता है)",
-                    key="p15_logo_fit_selector_v1"
+                new_logo_file = st.file_uploader(
+                    "नया लोगो अपलोड करें (PNG/JPG) — खाली छोड़ने पर मौजूदा लोगो बना रहेगा:",
+                    type=["png", "jpg", "jpeg"],
+                    key="p15_logo_uploader_v1"
                 )
 
-            preview_img_base64 = ""
-            if new_logo_file is not None:
-                preview_bytes = new_logo_file.getvalue()
-                preview_img_base64 = f"data:image/png;base64,{base64.b64encode(preview_bytes).decode()}"
-            else:
-                preview_img_base64 = get_image_base64(current_logo_path)
+                col_logo1, col_logo2, col_logo3 = st.columns(3)
+                with col_logo1:
+                    logo_width_input = st.slider("↔️ Logo Width (px)", min_value=30, max_value=400, value=current_logo_w, key="p15_logo_width_slider_v1")
+                with col_logo2:
+                    logo_height_input = st.slider("↕️ Logo Height (px)", min_value=30, max_value=400, value=current_logo_h, key="p15_logo_height_slider_v1")
+                with col_logo3:
+                    fit_options = ["contain", "cover"]
+                    fit_index = fit_options.index(current_logo_fit) if current_logo_fit in fit_options else 0
+                    logo_fit_input = st.selectbox(
+                        "🖼️ Fit Mode",
+                        options=fit_options,
+                        index=fit_index,
+                        format_func=lambda x: "contain (पूरी image दिखेगी, कटेगी नहीं)" if x == "contain" else "cover (box भरेगा, extra हिस्सा crop हो सकता है)",
+                        key="p15_logo_fit_selector_v1"
+                    )
 
-            st.markdown("##### 👁️ Live Preview")
-            if preview_img_base64:
-                st.markdown(
-                    f"""
-                    <div style="width:{logo_width_input}px; height:{logo_height_input}px; display:flex; align-items:center; justify-content:center;
-                                overflow:hidden; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:1px solid #e2e8f0; background:#fff;">
-                        <img src="{preview_img_base64}" style="width:100%; height:100%; object-fit:{logo_fit_input}; display:block;">
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.info("ℹ️ अभी कोई लोगो उपलब्ध नहीं है — प्रीव्यू देखने के लिए एक लोगो अपलोड करें।")
-
-            if st.button("📏 साइज़ & फिट सेव करें", type="primary", use_container_width=True, key="p15_logo_save_btn_v1"):
-                saved_path = current_logo_path
+                preview_img_base64 = ""
                 if new_logo_file is not None:
-                    ext = os.path.splitext(new_logo_file.name)[1] or ".png"
-                    saved_path = f"custom_logo{ext}"
-                    with open(saved_path, "wb") as f_logo:
-                        f_logo.write(new_logo_file.getvalue())
+                    preview_bytes = new_logo_file.getvalue()
+                    preview_img_base64 = f"data:image/png;base64,{base64.b64encode(preview_bytes).decode()}"
+                else:
+                    preview_img_base64 = get_image_base64(current_logo_path)
 
-                updated_logo_config = dict(st.session_state.pre_login_config)
-                updated_logo_config["logo_path"] = saved_path
-                updated_logo_config["logo_width"] = logo_width_input
-                updated_logo_config["logo_height"] = logo_height_input
-                updated_logo_config["logo_fit_mode"] = logo_fit_input
+                st.markdown("##### 👁️ Live Preview")
+                if preview_img_base64:
+                    st.markdown(
+                        f"""
+                        <div style="width:{logo_width_input}px; height:{logo_height_input}px; display:flex; align-items:center; justify-content:center;
+                                    overflow:hidden; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:1px solid #e2e8f0; background:#fff;">
+                            <img src="{preview_img_base64}" style="width:100%; height:100%; object-fit:{logo_fit_input}; display:block;">
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.info("ℹ️ अभी कोई लोगो उपलब्ध नहीं है — प्रीव्यू देखने के लिए एक लोगो अपलोड करें।")
 
-                st.session_state.pre_login_config = updated_logo_config
-                save_pre_login_config(updated_logo_config)
-                st.success("🎉 लोगो साइज़, फिट मोड और (यदि अपलोड की गई हो तो) नई इमेज सफलतापूर्वक सेव हो गई!")
-                st.rerun()
+                if st.button("📏 साइज़ & फिट सेव करें", type="primary", use_container_width=True, key="p15_logo_save_btn_v1"):
+                    saved_path = current_logo_path
+                    if new_logo_file is not None:
+                        ext = os.path.splitext(new_logo_file.name)[1] or ".png"
+                        saved_path = f"custom_logo{ext}"
+                        with open(saved_path, "wb") as f_logo:
+                            f_logo.write(new_logo_file.getvalue())
+
+                    updated_logo_config = dict(st.session_state.pre_login_config)
+                    updated_logo_config["logo_path"] = saved_path
+                    updated_logo_config["logo_width"] = logo_width_input
+                    updated_logo_config["logo_height"] = logo_height_input
+                    updated_logo_config["logo_fit_mode"] = logo_fit_input
+
+                    st.session_state.pre_login_config = updated_logo_config
+                    save_pre_login_config(updated_logo_config)
+                    st.success("🎉 लोगो साइज़, फिट मोड और (यदि अपलोड की गई हो तो) नई इमेज सफलतापूर्वक सेव हो गई!")
+                    st.rerun()
 
             st.markdown("---")
-            st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
-            with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
-                with st.form(key="p15_panel_rename_matrix_form_final_secure"):
-                    p_setup1, p_setup2 = st.columns(2)
-                    temp_panel_mappings = {}
-                    for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
-                        current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
-                        if idx % 2 == 0:
-                            with p_setup1: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
-                        else:
-                            with p_setup2: 
-                                temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
-                    
-                    if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
-                        st.session_state.panel_names = temp_panel_mappings
-                        save_panel_names(temp_panel_mappings)
-                        st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
-                        st.rerun()
+            hdr_c1_p15_show_panel_names, hdr_c2_p15_show_panel_names = st.columns([6, 1])
+            with hdr_c1_p15_show_panel_names:
+                st.subheader("✏️ Dynamic 15 Panels Name & Label Customizer")
+            with hdr_c2_p15_show_panel_names:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_panel_names", True) else "👁️ Unhide", key="p15_show_panel_names_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_panel_names"] = not st.session_state.get("p15_show_panel_names", True)
+                    st.rerun()
+
+            if st.session_state.get("p15_show_panel_names", True):
+                with st.expander("15 पैनल्स के नाम (App Titles) एडिट करने के लिए यहाँ क्लिक करें", expanded=False):
+                    with st.form(key="p15_panel_rename_matrix_form_final_secure"):
+                        p_setup1, p_setup2 = st.columns(2)
+                        temp_panel_mappings = {}
+                        for idx, p_key in enumerate(DEFAULT_PANELS.keys()):
+                            current_panel_name = st.session_state.panel_names.get(p_key, DEFAULT_PANELS[p_key])
+                            if idx % 2 == 0:
+                                with p_setup1: 
+                                    temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
+                            else:
+                                with p_setup2: 
+                                    temp_panel_mappings[p_key] = st.text_input(f"Name for {p_key}:", value=current_panel_name, key=f"p15_ren_final_{p_key}")
+                        
+                        if st.form_submit_button("Save All 15 Panel Titles Permanently", type="primary", use_container_width=True):
+                            st.session_state.panel_names = temp_panel_mappings
+                            save_panel_names(temp_panel_mappings)
+                            st.success("✅ सभी 15 पैनल्स के नाम अपडेट हो गए हैं!")
+                            st.rerun()
 
             st.markdown("---")
-            st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
-            vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
-            
-            # Visibility Panel Controllers Layer for P1 - P7
-            with vis_tabs[0]:
-                c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-                panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
-                cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
-                for i, p_key in enumerate(panels_p1_p7):
-                    with cols_p1_p7[i]:
-                        status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
-                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
-                            st.rerun()
+            hdr_c1_p15_show_panel_visibility, hdr_c2_p15_show_panel_visibility = st.columns([6, 1])
+            with hdr_c1_p15_show_panel_visibility:
+                st.subheader("🛡️ Global 15 Panels Visibility Toggle Switch Board")
+            with hdr_c2_p15_show_panel_visibility:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_panel_visibility", True) else "👁️ Unhide", key="p15_show_panel_visibility_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_panel_visibility"] = not st.session_state.get("p15_show_panel_visibility", True)
+                    st.rerun()
 
-            # Visibility Panel Controllers Layer for P8 - P15
-            with vis_tabs[1]:
-                c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
-                panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
-                cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
-                for i, p_key in enumerate(panels_p8_p15):
-                    with cols_p8_p15[i]:
-                        status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
-                        if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
-                            st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
-                            st.rerun()
+            if st.session_state.get("p15_show_panel_visibility", True):
+                vis_tabs = st.tabs(["🔒 Panels P1 - P7 Control", "🔒 Panels P8 - P15 Control"])
+                
+                # Visibility Panel Controllers Layer for P1 - P7
+                with vis_tabs[0]:
+                    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+                    panels_p1_p7 = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"]
+                    cols_p1_p7 = [c1, c2, c3, c4, c5, c6, c7]
+                    for i, p_key in enumerate(panels_p1_p7):
+                        with cols_p1_p7[i]:
+                            status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
+                            if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
+                                st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                st.rerun()
+
+                # Visibility Panel Controllers Layer for P8 - P15
+                with vis_tabs[1]:
+                    c8, c9, c10, c11, c12, c13, c14, c15 = st.columns(8)
+                    panels_p8_p15 = ["P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15"]
+                    cols_p8_p15 = [c8, c9, c10, c11, c12, c13, c14, c15]
+                    for i, p_key in enumerate(panels_p8_p15):
+                        with cols_p8_p15[i]:
+                            status_lbl = "🙈 Hidden" if st.session_state.get(f"hide_panel_{p_key}", False) else "👀 Active"
+                            if st.button(f"{p_key}\n({status_lbl})", use_container_width=True, key=f"p15_btn_v_final_{p_key}"):
+                                st.session_state[f"hide_panel_{p_key}"] = not st.session_state.get(f"hide_panel_{p_key}", False)
+                                st.rerun()
 
             # ⚙️ सुपर-एडमिन मास्टर ड्रॉपडाउन लिस्ट कस्टमाइज़र
             st.markdown("---")
-            st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
-            st.markdown("पैनल 1 (Data Onboarding) में दिखने वाली तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
-            
-            col_drop1, col_drop2, col_drop3 = st.columns(3)
-            with col_drop1:
-                st.markdown("##### 📁 1. File Segments / Types")
-                edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
-            with col_drop2:
-                st.markdown("##### 📆 2. Academic Years")
-                edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
-            with col_drop3:
-                st.markdown("##### ⏳ 3. Academic Sessions")
-                edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
-            
-            if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
-                st.session_state.p1_dropdown_schemas["file_types"] = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
-                st.session_state.p1_dropdown_schemas["academic_years"] = [line.strip() for line in edited_years.split("\n") if line.strip()]
-                st.session_state.p1_dropdown_schemas["academic_sessions"] = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
-                st.success("🎉 ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट हो गईं!")
-                st.rerun()
+            hdr_c1_p15_show_dropdown_customizer, hdr_c2_p15_show_dropdown_customizer = st.columns([6, 1])
+            with hdr_c1_p15_show_dropdown_customizer:
+                st.subheader("⚙️ Super-Admin Master Dropdown List Customizer")
+            with hdr_c2_p15_show_dropdown_customizer:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_dropdown_customizer", True) else "👁️ Unhide", key="p15_show_dropdown_customizer_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_dropdown_customizer"] = not st.session_state.get("p15_show_dropdown_customizer", True)
+                    st.rerun()
+
+            if st.session_state.get("p15_show_dropdown_customizer", True):
+                st.markdown("पैनल 1 (Data Onboarding) में दिखने वाली तीनों स्क्रॉल सूचियों के विकल्पों को यहाँ से लाइव कस्टमाइज़ करें:")
+                
+                col_drop1, col_drop2, col_drop3 = st.columns(3)
+                with col_drop1:
+                    st.markdown("##### 📁 1. File Segments / Types")
+                    edited_file_types = st.text_area("File Types (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["file_types"]), height=140, key="p15_custom_file_types_text")
+                with col_drop2:
+                    st.markdown("##### 📆 2. Academic Years")
+                    edited_years = st.text_area("Admission Years (एक प्रति लाइन):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_years"]), height=140, key="p15_custom_years_text")
+                with col_drop3:
+                    st.markdown("##### ⏳ 3. Academic Sessions")
+                    edited_sessions = st.text_area("Admission Sessions (एक प्रति line):", value="\n".join(st.session_state.p1_dropdown_schemas["academic_sessions"]), height=140, key="p15_custom_sessions_text")
+                
+                if st.button("💾 Apply & Update Master Dropdown Framework", type="primary", use_container_width=True, key="p15_save_dropdowns_btn"):
+                    st.session_state.p1_dropdown_schemas["file_types"] = [line.strip() for line in edited_file_types.split("\n") if line.strip()]
+                    st.session_state.p1_dropdown_schemas["academic_years"] = [line.strip() for line in edited_years.split("\n") if line.strip()]
+                    st.session_state.p1_dropdown_schemas["academic_sessions"] = [line.strip() for line in edited_sessions.split("\n") if line.strip()]
+                    st.success("🎉 ड्रॉपडाउन सूचियाँ सफलतापूर्वक अपडेट हो गईं!")
+                    st.rerun()
 
             # ======================================================================
             # 🔐 न्यू मॉड्यूल: सुरक्षित मास्टर CSV/XLSX फ़ाइल ओवरराइट अपलोडर (Fixed Auto Lock)
             # ======================================================================
             st.markdown("---")
-            st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
-            st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
-            
-            # ऑटो-रीसेट ट्रिगर काउंटर स्टेट जो विजेट को रीबूट करेगा
-            if "p15_uploader_reset_counter" not in st.session_state:
-                st.session_state.p15_uploader_reset_counter = 0
+            hdr_c1_p15_show_master_overwrite, hdr_c2_p15_show_master_overwrite = st.columns([6, 1])
+            with hdr_c1_p15_show_master_overwrite:
+                st.subheader("⚠️ Advanced Action: Dangerous Master File Overwrite Uploader (CSV / XLSX)")
+            with hdr_c2_p15_show_master_overwrite:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_master_overwrite", True) else "👁️ Unhide", key="p15_show_master_overwrite_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_master_overwrite"] = not st.session_state.get("p15_show_master_overwrite", True)
+                    st.rerun()
 
-            with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
-                col_up_pass, col_up_file = st.columns(2)
+            if st.session_state.get("p15_show_master_overwrite", True):
+                st.warning("यह एक अत्यंत संवेदनशील विकल्प है। यहाँ नई फ़ाइल अपलोड करने पर वर्तमान का पूरा लाइव डेटाबेस (`shared_student_database.csv`) स्थायी रूप से मिट जाएगा और नई फ़ाइल का डेटा नया मास्टर बन जाएगा।")
                 
-                with col_up_pass:
-                    # काउंटर को की (Key) के साथ जोड़कर डायनेमिक बनाया गया है ताकि एरर न आए
-                    uploader_secure_password = st.text_input(
-                        "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
-                        type="password", 
-                        key=f"p15_master_pass_widget_run_{st.session_state.p15_uploader_reset_counter}"
-                    )
-                
-                with col_up_file:
-                    is_password_correct = (uploader_secure_password == "admin@upload15")
+                # ऑटो-रीसेट ट्रिगर काउंटर स्टेट जो विजेट को रीबूट करेगा
+                if "p15_uploader_reset_counter" not in st.session_state:
+                    st.session_state.p15_uploader_reset_counter = 0
+
+                with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
+                    col_up_pass, col_up_file = st.columns(2)
                     
-                    uploaded_master_file = st.file_uploader(
-                        "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
-                        type=["csv", "xlsx", "xls"],
-                        key=f"p15_master_file_widget_run_{st.session_state.p15_uploader_reset_counter}",
-                        disabled=not is_password_correct
-                    )
-                
-                if uploader_secure_password and not is_password_correct:
-                    st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
-                elif is_password_correct:
-                    st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
-                    
-                    if uploaded_master_file is not None:
-                        st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
-                        
-                        confirm_overwrite_checkbox = st.checkbox(
-                            "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
-                            key=f"p15_master_chk_run_{st.session_state.p15_uploader_reset_counter}"
+                    with col_up_pass:
+                        # काउंटर को की (Key) के साथ जोड़कर डायनेमिक बनाया गया है ताकि एरर न आए
+                        uploader_secure_password = st.text_input(
+                            "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
+                            type="password", 
+                            key=f"p15_master_pass_widget_run_{st.session_state.p15_uploader_reset_counter}"
                         )
+                    
+                    with col_up_file:
+                        is_password_correct = (uploader_secure_password == "admin@upload15")
                         
-                        if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
-                            try:
-                                if uploaded_master_file.name.endswith('.csv'):
-                                    raw_uploaded_df = pd.read_csv(uploaded_master_file, dtype=str).fillna("")
-                                elif uploaded_master_file.name.endswith('.xlsx'):
-                                    raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='openpyxl', dtype=str).fillna("")
-                                elif uploaded_master_file.name.endswith('.xls'):
-                                    try:
-                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlsrd', dtype=str).fillna("")
-                                    except:
-                                        uploaded_master_file.seek(0)
-                                        html_tables = pd.read_html(uploaded_master_file)
-                                        raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
-                                
-                                if raw_uploaded_df.empty:
-                                    st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
-                                else:
-                                    raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+                        uploaded_master_file = st.file_uploader(
+                            "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
+                            type=["csv", "xlsx", "xls"],
+                            key=f"p15_master_file_widget_run_{st.session_state.p15_uploader_reset_counter}",
+                            disabled=not is_password_correct
+                        )
+                    
+                    if uploader_secure_password and not is_password_correct:
+                        st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
+                    elif is_password_correct:
+                        st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
+                        
+                        if uploaded_master_file is not None:
+                            st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
+                            
+                            confirm_overwrite_checkbox = st.checkbox(
+                                "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
+                                key=f"p15_master_chk_run_{st.session_state.p15_uploader_reset_counter}"
+                            )
+                            
+                            if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
+                                try:
+                                    if uploaded_master_file.name.endswith('.csv'):
+                                        raw_uploaded_df = pd.read_csv(uploaded_master_file, dtype=str).fillna("")
+                                    elif uploaded_master_file.name.endswith('.xlsx'):
+                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='openpyxl', dtype=str).fillna("")
+                                    elif uploaded_master_file.name.endswith('.xls'):
+                                        try:
+                                            raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlsrd', dtype=str).fillna("")
+                                        except:
+                                            uploaded_master_file.seek(0)
+                                            html_tables = pd.read_html(uploaded_master_file)
+                                            raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
                                     
-                                    for col in DEFAULT_COLUMNS:
-                                        if col not in raw_uploaded_df.columns:
-                                            raw_uploaded_df[col] = ""
-                                    
-                                    if "Target Panel Visibility" not in raw_uploaded_df.columns or raw_uploaded_df["Target Panel Visibility"].eq("").all():
-                                        raw_uploaded_df["Target Panel Visibility"] = "P2"
-                                    
-                                    finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
-                                    save_live_data(finalized_uploaded_master)
-                                    
-                                    # 🔒 सुरक्षित रीसेट मैकेनिज्म: काउंटर बदलते ही विजेट फ्रेश रीबूट हो जाएगा और पुराना डेटा मिट जाएगा
-                                    st.session_state.p15_uploader_reset_counter += 1
-                                    
-                                    st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को सुरक्षित लॉक कर दिया गया है।")
-                                    st.balloons()
-                                    st.rerun()
-                                    
-                            except Exception as upload_err:
-                                st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
+                                    if raw_uploaded_df.empty:
+                                        st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
+                                    else:
+                                        raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+                                        
+                                        for col in DEFAULT_COLUMNS:
+                                            if col not in raw_uploaded_df.columns:
+                                                raw_uploaded_df[col] = ""
+                                        
+                                        if "Target Panel Visibility" not in raw_uploaded_df.columns or raw_uploaded_df["Target Panel Visibility"].eq("").all():
+                                            raw_uploaded_df["Target Panel Visibility"] = "P2"
+                                        
+                                        finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
+                                        save_live_data(finalized_uploaded_master)
+                                        
+                                        # 🔒 सुरक्षित रीसेट मैकेनिज्म: काउंटर बदलते ही विजेट फ्रेश रीबूट हो जाएगा और पुराना डेटा मिट जाएगा
+                                        st.session_state.p15_uploader_reset_counter += 1
+                                        
+                                        st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को सुरक्षित लॉक कर दिया गया है।")
+                                        st.balloons()
+                                        st.rerun()
+                                        
+                                except Exception as upload_err:
+                                    st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
 
             # ----------------------------------------------------------------------
             # यहाँ से आपका पुराना कोड वापस शुरू हो जाएगा:
             # ----------------------------------------------------------------------
             st.markdown("---")
-            st.subheader("📊 Master Database List View & Advanced Operational Controls")
-            
-            # Action Toggles Column Layout
-            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-            with col_ctrl3:
-                lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
-                if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
-                    st.session_state.admin_lock_state = not st.session_state.admin_lock_state
+            hdr_c1_p15_show_master_db_view, hdr_c2_p15_show_master_db_view = st.columns([6, 1])
+            with hdr_c1_p15_show_master_db_view:
+                st.subheader("📊 Master Database List View & Advanced Operational Controls")
+            with hdr_c2_p15_show_master_db_view:
+                if st.button("🙈 Hide" if st.session_state.get("p15_show_master_db_view", True) else "👁️ Unhide", key="p15_show_master_db_view_toggle_btn", use_container_width=True):
+                    st.session_state["p15_show_master_db_view"] = not st.session_state.get("p15_show_master_db_view", True)
                     st.rerun()
 
-            with col_ctrl1:
-                lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
-                if st.button(lbl_edit, use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_edit_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
-                    st.rerun()
-
-            with col_ctrl2:
-                lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
-                if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
-                    st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
-                    st.rerun()
-
-            # ======================================================================
-            # 🔀 कॉलम शिफ्टर ब्लॉक (लिस्ट लॉक होने पर यह आटोमेटिक फ्रीज हो जाएगा)
-            # ======================================================================
-            if st.session_state.admin_unhide_move:
-                st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
+            if st.session_state.get("p15_show_master_db_view", True):
                 
-                # 🚨 यदि लिस्ट लॉक है, तो ड्रॉपडाउन को भी डिसेबल (फ्रीज) कर दें
-                target_col = st.selectbox(
-                    "मूव करने के लिए कॉलम चुनें:", 
-                    options=st.session_state.admin_columns_order, 
-                    disabled=st.session_state.admin_lock_state,
-                    key="p15_column_shifter_select_box_final"
-                )
-                c_left, c_right = st.columns(2)
-                
-                # 🔒 सुरक्षा गेटवे: यदि लिस्ट लॉक है (admin_lock_state = True), तो बटन लॉक रहेंगे
-                if c_left.button("⬅️ Shift Left", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_left_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx > 0:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
-                        st.rerun()
-                        
-                if c_right.button("➡️ Shift Right", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_right_master_btn_final"):
-                    idx = st.session_state.admin_columns_order.index(target_col)
-                    if idx < len(st.session_state.admin_columns_order) - 1:
-                        st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                # Action Toggles Column Layout
+                col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+                with col_ctrl3:
+                    lock_label = "🔒 लिस्ट लॉक करें (Locked)" if st.session_state.admin_lock_state else "🔓 लिस्ट अनलॉक करें (Editable)"
+                    if st.button(lock_label, use_container_width=True, type="primary" if not st.session_state.admin_lock_state else "secondary", key="p15_lock_toggle_master_btn_final"):
+                        st.session_state.admin_lock_state = not st.session_state.admin_lock_state
                         st.rerun()
 
-            # फ़ील्ड्स और ऑर्डर्स मैपिंग
-            render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-            ordered_db = live_db[render_columns].copy()
-            ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
-            ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
+                with col_ctrl1:
+                    lbl_edit = "👀 एडमिट टेक्स्ट FUNCTION: active" if st.session_state.admin_unhide_edit else "🙈 एडमिट टेक्स्ट FUNCTION: hidden"
+                    if st.button(lbl_edit, use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_edit_toggle_master_btn_final"):
+                        st.session_state.admin_unhide_edit = not st.session_state.admin_unhide_edit
+                        st.rerun()
 
-            st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
-            
-            if ordered_db_display.empty:
-                st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
-            else:
-                if st.session_state.admin_lock_state:
-                    # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
-                    st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
-                else:
-                    # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
-                    st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
-                    
-                    disabled_fields = ["S.No."]
-                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
-                    if not st.session_state.admin_unhide_edit:
-                        disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+                with col_ctrl2:
+                    lbl_move = "👀 कॉलम मूव बटन्स: active" if st.session_state.admin_unhide_move else "🙈 कॉलम मूव बटन्स: hidden"
+                    if st.button(lbl_move, use_container_width=True, key="p15_move_toggle_master_btn_final"):
+                        st.session_state.admin_unhide_move = not st.session_state.admin_unhide_move
+                        st.rerun()
 
-                    disabled_fields = ["S.No."]
-                    # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
-                    if not st.session_state.admin_unhide_edit:
-                        disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+                # ======================================================================
+                # 🔀 कॉलम शिफ्टर ब्लॉक (लिस्ट लॉक होने पर यह आटोमेटिक फ्रीज हो जाएगा)
+                # ======================================================================
+                if st.session_state.admin_unhide_move:
+                    st.info("🔀 कॉलम का क्रम बदलने के लिए सेलेक्ट करें (Select Column to Shift):")
                     
-                    # 🛡️ 🆕 यहाँ यह नया स्कीमा एडिटर (कॉलम और रो जोड़ने/हटाने का फ़ंक्शन) पेस्ट हो रहा है:
-                    if role == "full_admin" and not st.session_state.admin_lock_state:
-                        st.markdown("---")
-                        st.markdown("#### 🛠️ Super-Admin Schema Editor (Add/Delete Columns & Rows)")
-                        tab_col_ctrl, tab_row_ctrl = st.tabs(["📊 Dynamic Column Panel Engine", "➕ Manual Row Injector"])
-                        
-                        with tab_col_ctrl:
-                            col_add_side, col_del_side = st.columns(2)
-                            with col_add_side:
-                                st.markdown("##### ➕ नया कॉलम जोड़ें (Add Column)")
-                                new_col_input = st.text_input("नया कॉलम का सटीक नाम दर्ज करें:", key="p15_new_col_input_name").strip()
-                                if st.button("🚀 Create Column Globally", type="primary", use_container_width=True):
-                                    if new_col_input and new_col_input not in live_db.columns:
-                                        live_db[new_col_input] = ""
-                                        if new_col_input not in DEFAULT_COLUMNS: DEFAULT_COLUMNS.append(new_col_input)
-                                        if new_col_input not in st.session_state.admin_columns_order: st.session_state.admin_columns_order.append(new_col_input)
-                                        save_live_data(live_db)
-                                        st.success(f"🎉 कॉलम `{new_col_input}` संरचना में जुड़ गया है।")
-                                        st.rerun()
-                                        
-                            with col_del_side:
-                                st.markdown("##### 🗑️ कॉलम हटाएं (Delete Column)")
-                                col_to_delete = st.selectbox("हटाने के लिए कॉलम चुनें:", options=[c for c in live_db.columns if c != "Target Panel Visibility"], key="p15_col_to_delete_select")
-                                confirm_col_del = st.checkbox("हाँ, मैं इस कॉलम का पूरा डेटा नष्ट करना चाहता हूँ।", key="p15_confirm_col_del_chk")
-                                if st.button("🗑️ ERASE COLUMN PERMANENT PERMANENTLY", type="primary", use_container_width=True, disabled=not confirm_col_del):
-                                    if col_to_delete in live_db.columns: live_db = live_db.drop(columns=[col_to_delete])
-                                    if col_to_delete in DEFAULT_COLUMNS: DEFAULT_COLUMNS.remove(col_to_delete)
-                                    if col_to_delete in st.session_state.admin_columns_order: st.session_state.admin_columns_order.remove(col_to_delete)
-                                    save_live_data(live_db)
-                                    st.error(f"💥 कॉलम `{col_to_delete}` हटा दिया गया है!")
-                                    st.rerun()
-
-                        with tab_row_ctrl:
-                            st.markdown("##### ➕ डेटाबेस में सिंगल रो इंजेक्ट करें (Add Row)")
-                            if st.button("➕ Inject Blank Data Row at the End", use_container_width=True):
-                                blank_row = {c: "" for c in live_db.columns}
-                                blank_row["Target Panel Visibility"] = "P2"
-                                live_db = pd.concat([live_db, pd.DataFrame([blank_row])], ignore_index=True)
-                                save_live_data(live_db)
-                                st.success("🎉 एक खाली रो डेटाबेस के अंत में जोड़ दी गई है!")
-                                st.rerun()
+                    # 🚨 यदि लिस्ट लॉक है, तो ड्रॉपडाउन को भी डिसेबल (फ्रीज) कर दें
+                    target_col = st.selectbox(
+                        "मूव करने के लिए कॉलम चुनें:", 
+                        options=st.session_state.admin_columns_order, 
+                        disabled=st.session_state.admin_lock_state,
+                        key="p15_column_shifter_select_box_final"
+                    )
+                    c_left, c_right = st.columns(2)
                     
-                    st.markdown("---")
-                    
-                    # 🎯 आपकी शर्त: लॉक होने पर माउस कर्सर से कॉलम हिलना बंद होगा, अनलॉक पर चालू रहेगा
-                    if st.session_state.admin_lock_state:
-                        # 🔒 लॉक मोड: यह माउस कर्सर से कॉलम को खींचना (Move करना) पूरी तरह बंद कर देगा
-                        st.dataframe(
-                            ordered_db_display, 
-                            use_container_width=True, 
-                            hide_index=True
-                        )
-                        edited_master_db = ordered_db_display
-                    else:
-                        # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
-                        edited_master_db = st.data_editor(
-                            ordered_db_display,
-                            use_container_width=True,
-                            disabled=disabled_fields,
-                            hide_index=True,
-                            num_rows="dynamic",
-                            key="p15_supreme_master_live_editor_grid"
-                        )
-                    
-                    if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
-                        try:
-                            clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
-                            display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
-                            clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
-                            save_live_data(clean_edited_master)
-                            st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                    # 🔒 सुरक्षा गेटवे: यदि लिस्ट लॉक है (admin_lock_state = True), तो बटन लॉक रहेंगे
+                    if c_left.button("⬅️ Shift Left", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_left_master_btn_final"):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx > 0:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx-1] = st.session_state.admin_columns_order[idx-1], st.session_state.admin_columns_order[idx]
                             st.rerun()
-                        except Exception as e:
-                            st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
+                            
+                    if c_right.button("➡️ Shift Right", use_container_width=True, disabled=st.session_state.admin_lock_state, key="p15_shift_right_master_btn_final"):
+                        idx = st.session_state.admin_columns_order.index(target_col)
+                        if idx < len(st.session_state.admin_columns_order) - 1:
+                            st.session_state.admin_columns_order[idx], st.session_state.admin_columns_order[idx+1] = st.session_state.admin_columns_order[idx+1], st.session_state.admin_columns_order[idx]
+                            st.rerun()
 
-                    # ======================================================================
-                    # 🎓 न्यू सब-सिस्टम: Degree + Branch → Subject ऑटो-जेनरेटर
-                    #    (Degree के ब्रैकेट में लिखा नंबर अपने-आप Duration कॉलम में चला जाएगा,
-                    #     ब्रैकेट/उसका डेटा Degree से हट जाएगा, फिर Degree + Branch जोड़कर
-                    #     "Degree (Branch)" फॉर्मेट में Subject कॉलम में लिख दिया जाएगा)
-                    # ======================================================================
-                    if role == "full_admin" and not st.session_state.admin_lock_state and "Degree" in live_db.columns:
-                        st.markdown("---")
-                        st.subheader("🎓 Degree + Branch → Subject Auto-Generator (Bracket → Duration)")
-                        st.info(
-                            "🔓 इस बटन को दबाने पर: Degree कॉलम में मौजूद `(...)` ब्रैकेट में अगर कोई नंबर लिखा है "
-                            "तो वह नंबर उसी रो के Duration कॉलम में सेट हो जाएगा, और Degree से ब्रैकेट + उसके अंदर "
-                            "का डेटा हटा दिया जाएगा। फिर Degree और Branch को जोड़कर Subject कॉलम में "
-                            "`Degree (Branch)` फॉर्मेट में लिख दिया जाएगा। उदाहरण: Degree = `M.Sc.`, "
-                            "Branch = `Home Science` → Subject = `M.Sc. (Home Science)`"
-                        )
+                # फ़ील्ड्स और ऑर्डर्स मैपिंग
+                render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+                ordered_db = live_db[render_columns].copy()
+                ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+                ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
-                        bracket_pattern = re.compile(r"\(([^)]*)\)")
-
-                        if st.button(
-                            "🚀 Process Degree/Branch → Subject & Duration (All Rows)",
-                            type="primary",
-                            use_container_width=True,
-                            key="p15_degree_branch_subject_auto_btn"
-                        ):
-                            try:
-                                processed_counter = 0
-                                duration_updated_counter = 0
-
-                                for idx in live_db.index:
-                                    degree_raw = str(live_db.at[idx, "Degree"]) if pd.notna(live_db.at[idx, "Degree"]) else ""
-                                    if degree_raw.strip().lower() == "nan":
-                                        degree_raw = ""
-
-                                    branch_raw = ""
-                                    if "Branch" in live_db.columns and pd.notna(live_db.at[idx, "Branch"]):
-                                        branch_raw = str(live_db.at[idx, "Branch"])
-                                        if branch_raw.strip().lower() == "nan":
-                                            branch_raw = ""
-
-                                    if degree_raw.strip() == "" and branch_raw.strip() == "":
-                                        continue
-
-                                    # 1️⃣ Degree में मौजूद हर ब्रैकेट ढूंढें
-                                    bracket_matches = bracket_pattern.findall(degree_raw)
-
-                                    # 2️⃣ अगर किसी ब्रैकेट के अंदर सिर्फ नंबर है तो वह Duration कॉलम में डालें
-                                    for bracket_content in bracket_matches:
-                                        num_match = re.search(r"\d+(\.\d+)?", bracket_content)
-                                        if num_match:
-                                            if "Duration" in live_db.columns:
-                                                live_db.at[idx, "Duration"] = num_match.group(0)
-                                                duration_updated_counter += 1
-                                            break  # पहला नंबर वाला ब्रैकेट मिलते ही रुक जाएँ
-
-                                    # 3️⃣ Degree से हर ब्रैकेट + उसके अंदर का डेटा हटा दें (चाहे नंबर हो या टेक्स्ट)
-                                    clean_degree = bracket_pattern.sub("", degree_raw)
-                                    clean_degree = re.sub(r"\s{2,}", " ", clean_degree).strip()
-
-                                    # 4️⃣ Degree + Branch जोड़कर Subject कॉलम बनाएँ
-                                    branch_clean = branch_raw.strip()
-                                    if clean_degree and branch_clean:
-                                        new_subject = f"{clean_degree} ({branch_clean})"
-                                    elif clean_degree:
-                                        new_subject = clean_degree
-                                    else:
-                                        new_subject = branch_clean
-
-                                    live_db.at[idx, "Degree"] = clean_degree
-                                    if "Subject" in live_db.columns:
-                                        live_db.at[idx, "Subject"] = new_subject
-                                    processed_counter += 1
-
-                                save_live_data(live_db)
-                                st.success(
-                                    f"🎉 सफलता! कुल {processed_counter} रिकॉर्ड्स प्रोसेस किए गए, जिनमें से "
-                                    f"{duration_updated_counter} रिकॉर्ड्स में ब्रैकेट वाला नंबर Duration कॉलम में अपडेट हुआ।"
-                                )
-                                st.balloons()
-                                st.rerun()
-                            except Exception as deg_err:
-                                st.error(f"Degree/Branch → Subject प्रोसेस करने में तकनीकी समस्या आई: {deg_err}")
-
-                    # ======================================================================
-                    # 📚 न्यू सब-सिस्टम: बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र (सिर्फ एडमिन लॉक-सिक्योर)
-                    # ======================================================================
-                    if not live_db.empty and "Subject" in live_db.columns:
-                        st.markdown("---")
-                        st.subheader("📚 Bulk Subject-Wise Duration Settings (Admin Control)")
+                st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
+                
+                if ordered_db_display.empty:
+                    st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
+                else:
+                    if st.session_state.admin_lock_state:
+                        # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
+                        st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+                    else:
+                        # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
+                        st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
                         
-                        # लॉक स्टेट के आधार पर एडमिन को निर्देश दिखाएं
+                        disabled_fields = ["S.No."]
+                        # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
+                        if not st.session_state.admin_unhide_edit:
+                            disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+
+                        disabled_fields = ["S.No."]
+                        # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
+                        if not st.session_state.admin_unhide_edit:
+                            disabled_fields.extend([get_display_name("Application Number"), get_display_name("Student Name"), get_display_name("Father Name")])
+                        
+                        # 🛡️ 🆕 यहाँ यह नया स्कीमा एडिटर (कॉलम और रो जोड़ने/हटाने का फ़ंक्शन) पेस्ट हो रहा है:
+                        if role == "full_admin" and not st.session_state.admin_lock_state:
+                            st.markdown("---")
+                            st.markdown("#### 🛠️ Super-Admin Schema Editor (Add/Delete Columns & Rows)")
+                            tab_col_ctrl, tab_row_ctrl = st.tabs(["📊 Dynamic Column Panel Engine", "➕ Manual Row Injector"])
+                            
+                            with tab_col_ctrl:
+                                col_add_side, col_del_side = st.columns(2)
+                                with col_add_side:
+                                    st.markdown("##### ➕ नया कॉलम जोड़ें (Add Column)")
+                                    new_col_input = st.text_input("नया कॉलम का सटीक नाम दर्ज करें:", key="p15_new_col_input_name").strip()
+                                    if st.button("🚀 Create Column Globally", type="primary", use_container_width=True):
+                                        if new_col_input and new_col_input not in live_db.columns:
+                                            live_db[new_col_input] = ""
+                                            if new_col_input not in DEFAULT_COLUMNS: DEFAULT_COLUMNS.append(new_col_input)
+                                            if new_col_input not in st.session_state.admin_columns_order: st.session_state.admin_columns_order.append(new_col_input)
+                                            save_live_data(live_db)
+                                            st.success(f"🎉 कॉलम `{new_col_input}` संरचना में जुड़ गया है।")
+                                            st.rerun()
+                                            
+                                with col_del_side:
+                                    st.markdown("##### 🗑️ कॉलम हटाएं (Delete Column)")
+                                    col_to_delete = st.selectbox("हटाने के लिए कॉलम चुनें:", options=[c for c in live_db.columns if c != "Target Panel Visibility"], key="p15_col_to_delete_select")
+                                    confirm_col_del = st.checkbox("हाँ, मैं इस कॉलम का पूरा डेटा नष्ट करना चाहता हूँ।", key="p15_confirm_col_del_chk")
+                                    if st.button("🗑️ ERASE COLUMN PERMANENT PERMANENTLY", type="primary", use_container_width=True, disabled=not confirm_col_del):
+                                        if col_to_delete in live_db.columns: live_db = live_db.drop(columns=[col_to_delete])
+                                        if col_to_delete in DEFAULT_COLUMNS: DEFAULT_COLUMNS.remove(col_to_delete)
+                                        if col_to_delete in st.session_state.admin_columns_order: st.session_state.admin_columns_order.remove(col_to_delete)
+                                        save_live_data(live_db)
+                                        st.error(f"💥 कॉलम `{col_to_delete}` हटा दिया गया है!")
+                                        st.rerun()
+
+                            with tab_row_ctrl:
+                                st.markdown("##### ➕ डेटाबेस में सिंगल रो इंजेक्ट करें (Add Row)")
+                                if st.button("➕ Inject Blank Data Row at the End", use_container_width=True):
+                                    blank_row = {c: "" for c in live_db.columns}
+                                    blank_row["Target Panel Visibility"] = "P2"
+                                    live_db = pd.concat([live_db, pd.DataFrame([blank_row])], ignore_index=True)
+                                    save_live_data(live_db)
+                                    st.success("🎉 एक खाली रो डेटाबेस के अंत में जोड़ दी गई है!")
+                                    st.rerun()
+                        
+                        st.markdown("---")
+                        
+                        # 🎯 आपकी शर्त: लॉक होने पर माउस कर्सर से कॉलम हिलना बंद होगा, अनलॉक पर चालू रहेगा
                         if st.session_state.admin_lock_state:
-                            st.warning("🔒 **यह ग्रिड अभी लॉक है:** ड्यूरेशन बदलने के लिए ऊपर जाकर पहले '🔓 लिस्ट अनलॉक करें (Editable)' बटन दबाएं।")
-                        else:
-                            st.info("🔓 **अनलॉक मोड सक्रिय:** अब आप किसी भी विषय के सामने उसकी कोर्स अवधि (Duration) बदल सकते हैं।")
-                        
-                        # 1. डेटाबेस से सभी उपलब्ध यूनीक विषयों की लिस्ट निकालें
-                        unique_db_subjects = sorted([s for s in live_db["Subject"].dropna().unique() if str(s).strip() != ""])
-                        
-                        if not unique_db_subjects:
-                            st.warning("⚠️ डेटाबेस में कोई भी विषय (Subject) नहीं मिला।")
-                        else:
-                            # 2. कस्टमाइज़ेशन के लिए एक डेटाफ्रेम मैट्रिक्स तैयार करें
-                            subject_duration_mapping = []
-                            for sub in unique_db_subjects:
-                                existing_sub_rows = live_db[live_db["Subject"] == sub]
-                                existing_duration = "3" # डिफ़ॉल्ट मान
-                                if not existing_sub_rows.empty:
-                                    valid_durations = existing_sub_rows["Duration"].dropna().unique()
-                                    valid_durations = [str(d).strip() for d in valid_durations if str(d).strip() != ""]
-                                    if valid_durations:
-                                        first_val = valid_durations[0].split('.')[0]
-                                        if first_val in ["1", "2", "3", "4", "5", "6"]:
-                                            existing_duration = first_val
-                                
-                                subject_duration_mapping.append({
-                                    "Subject Name": sub,
-                                    "Course Duration (Years)": existing_duration
-                                })
-                            
-                            sub_mapping_df = pd.DataFrame(subject_duration_mapping)
-                            
-                            # 🚨 सुरक्षा गेटवे: यदि मास्टर लिस्ट लॉक है, तो पूरा ग्रिड डिसेबल रहेगा
-                            is_grid_disabled = st.session_state.admin_lock_state
-                            
-                            # 3. एडमिन के लिए एक इंटरैक्टिव कस्टमाइज़ेशन ग्रिड रेंडर करें
-                            edited_sub_mapping_df = st.data_editor(
-                                sub_mapping_df,
-                                use_container_width=True,
-                                disabled=True if is_grid_disabled else ["Subject Name"], # लॉक होने पर पूरी टेबल फ्रीज हो जाएगी
-                                column_config={
-                                    "Course Duration (Years)": st.column_config.SelectboxColumn(
-                                        "Select Duration",
-                                        options=["1", "2", "3", "4", "5", "6"],
-                                        required=True,
-                                        help="इस विषय के लिए कोर्स की कुल अवधि वर्षों में चुनें"
-                                    )
-                                },
-                                key="p15_bulk_subject_duration_editor_grid_final_clean",
+                            # 🔒 लॉक मोड: यह माउस कर्सर से कॉलम को खींचना (Move करना) पूरी तरह बंद कर देगा
+                            st.dataframe(
+                                ordered_db_display, 
+                                use_container_width=True, 
                                 hide_index=True
                             )
-                            
-                            # 🚨 सुरक्षा गेटवे 2: सेव बटन केवल तभी दिखाई देगा जब लिस्ट अनलॉक होगी
-                            if not st.session_state.admin_lock_state:
-                                if st.button("💾 Apply & Update Bulk Subject Durations", type="primary", use_container_width=True, key="p15_save_bulk_sub_duration_btn"):
-                                    try:
-                                        bulk_update_counter = 0
-                                        bulk_skip_counter = 0
-                                        
-                                        # ग्रिड की प्रत्येक रो को लूप करें और मास्टर डेटाबेस में बदलें
-                                        for _, edit_row in edited_sub_mapping_df.iterrows():
-                                            target_sub = edit_row["Subject Name"]
-                                            new_duration_to_apply = edit_row["Course Duration (Years)"]
-                                            
-                                            # मास्टर डेटाबेस में इस सब्जेक्ट के सभी इंडेक्स ढूंढें
-                                            sub_match_indices = live_db[live_db["Subject"] == target_sub].index
-                                            
-                                            if not sub_match_indices.empty:
-                                                for idx in sub_match_indices:
-                                                    # 🚨 अगर इस रो में Duration पहले से भरा हुआ है, तो उसे छोड़ दें (ignore) और अगली रो पर जाएँ
-                                                    existing_val = live_db.at[idx, "Duration"]
-                                                    existing_val_str = "" if pd.isna(existing_val) else str(existing_val).strip()
-                                                    if existing_val_str != "" and existing_val_str.lower() != "nan":
-                                                        bulk_skip_counter += 1
-                                                        continue
+                            edited_master_db = ordered_db_display
+                        else:
+                            # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
+                            edited_master_db = st.data_editor(
+                                ordered_db_display,
+                                use_container_width=True,
+                                disabled=disabled_fields,
+                                hide_index=True,
+                                num_rows="dynamic",
+                                key="p15_supreme_master_live_editor_grid"
+                            )
+                        
+                        if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
+                            try:
+                                clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
+                                display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
+                                clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
+                                save_live_data(clean_edited_master)
+                                st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
 
-                                                    # Duration खाली है, तभी नया मान भरेंगे
-                                                    live_db.at[idx, "Duration"] = str(new_duration_to_apply)
-                                                    bulk_update_counter += 1
-                                                    
-                                        # परिवर्तनों को स्थायी रूप से सेव करें
-                                        save_live_data(live_db)
-                                        st.success(
-                                            f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार अपडेट कर दिया गया है। "
-                                            f"({bulk_skip_counter} रिकॉर्ड्स को छोड़ दिया गया क्योंकि उनमें Duration पहले से भरा हुआ था)"
+                        # ======================================================================
+                        # 🎓 न्यू सब-सिस्टम: Degree + Branch → Subject ऑटो-जेनरेटर
+                        #    (Degree के ब्रैकेट में लिखा नंबर अपने-आप Duration कॉलम में चला जाएगा,
+                        #     ब्रैकेट/उसका डेटा Degree से हट जाएगा, फिर Degree + Branch जोड़कर
+                        #     "Degree (Branch)" फॉर्मेट में Subject कॉलम में लिख दिया जाएगा)
+                        # ======================================================================
+                        if role == "full_admin" and not st.session_state.admin_lock_state and "Degree" in live_db.columns:
+                            st.markdown("---")
+                            st.subheader("🎓 Degree + Branch → Subject Auto-Generator (Bracket → Duration)")
+                            st.info(
+                                "🔓 इस बटन को दबाने पर: Degree कॉलम में मौजूद `(...)` ब्रैकेट में अगर कोई नंबर लिखा है "
+                                "तो वह नंबर उसी रो के Duration कॉलम में सेट हो जाएगा, और Degree से ब्रैकेट + उसके अंदर "
+                                "का डेटा हटा दिया जाएगा। फिर Degree और Branch को जोड़कर Subject कॉलम में "
+                                "`Degree (Branch)` फॉर्मेट में लिख दिया जाएगा। उदाहरण: Degree = `M.Sc.`, "
+                                "Branch = `Home Science` → Subject = `M.Sc. (Home Science)`"
+                            )
+
+                            bracket_pattern = re.compile(r"\(([^)]*)\)")
+
+                            if st.button(
+                                "🚀 Process Degree/Branch → Subject & Duration (All Rows)",
+                                type="primary",
+                                use_container_width=True,
+                                key="p15_degree_branch_subject_auto_btn"
+                            ):
+                                try:
+                                    processed_counter = 0
+                                    duration_updated_counter = 0
+
+                                    for idx in live_db.index:
+                                        degree_raw = str(live_db.at[idx, "Degree"]) if pd.notna(live_db.at[idx, "Degree"]) else ""
+                                        if degree_raw.strip().lower() == "nan":
+                                            degree_raw = ""
+
+                                        branch_raw = ""
+                                        if "Branch" in live_db.columns and pd.notna(live_db.at[idx, "Branch"]):
+                                            branch_raw = str(live_db.at[idx, "Branch"])
+                                            if branch_raw.strip().lower() == "nan":
+                                                branch_raw = ""
+
+                                        if degree_raw.strip() == "" and branch_raw.strip() == "":
+                                            continue
+
+                                        # 1️⃣ Degree में मौजूद हर ब्रैकेट ढूंढें
+                                        bracket_matches = bracket_pattern.findall(degree_raw)
+
+                                        # 2️⃣ अगर किसी ब्रैकेट के अंदर सिर्फ नंबर है तो वह Duration कॉलम में डालें
+                                        for bracket_content in bracket_matches:
+                                            num_match = re.search(r"\d+(\.\d+)?", bracket_content)
+                                            if num_match:
+                                                if "Duration" in live_db.columns:
+                                                    live_db.at[idx, "Duration"] = num_match.group(0)
+                                                    duration_updated_counter += 1
+                                                break  # पहला नंबर वाला ब्रैकेट मिलते ही रुक जाएँ
+
+                                        # 3️⃣ Degree से हर ब्रैकेट + उसके अंदर का डेटा हटा दें (चाहे नंबर हो या टेक्स्ट)
+                                        clean_degree = bracket_pattern.sub("", degree_raw)
+                                        clean_degree = re.sub(r"\s{2,}", " ", clean_degree).strip()
+
+                                        # 4️⃣ Degree + Branch जोड़कर Subject कॉलम बनाएँ
+                                        branch_clean = branch_raw.strip()
+                                        if clean_degree and branch_clean:
+                                            new_subject = f"{clean_degree} ({branch_clean})"
+                                        elif clean_degree:
+                                            new_subject = clean_degree
+                                        else:
+                                            new_subject = branch_clean
+
+                                        live_db.at[idx, "Degree"] = clean_degree
+                                        if "Subject" in live_db.columns:
+                                            live_db.at[idx, "Subject"] = new_subject
+                                        processed_counter += 1
+
+                                    save_live_data(live_db)
+                                    st.success(
+                                        f"🎉 सफलता! कुल {processed_counter} रिकॉर्ड्स प्रोसेस किए गए, जिनमें से "
+                                        f"{duration_updated_counter} रिकॉर्ड्स में ब्रैकेट वाला नंबर Duration कॉलम में अपडेट हुआ।"
+                                    )
+                                    st.balloons()
+                                    st.rerun()
+                                except Exception as deg_err:
+                                    st.error(f"Degree/Branch → Subject प्रोसेस करने में तकनीकी समस्या आई: {deg_err}")
+
+                        # ======================================================================
+                        # 📚 न्यू सब-सिस्टम: बल्क सब्जेक्ट-वाइज ड्यूरेशन कस्टमाइज़र (सिर्फ एडमिन लॉक-सिक्योर)
+                        # ======================================================================
+                        if not live_db.empty and "Subject" in live_db.columns:
+                            st.markdown("---")
+                            st.subheader("📚 Bulk Subject-Wise Duration Settings (Admin Control)")
+                            
+                            # लॉक स्टेट के आधार पर एडमिन को निर्देश दिखाएं
+                            if st.session_state.admin_lock_state:
+                                st.warning("🔒 **यह ग्रिड अभी लॉक है:** ड्यूरेशन बदलने के लिए ऊपर जाकर पहले '🔓 लिस्ट अनलॉक करें (Editable)' बटन दबाएं।")
+                            else:
+                                st.info("🔓 **अनलॉक मोड सक्रिय:** अब आप किसी भी विषय के सामने उसकी कोर्स अवधि (Duration) बदल सकते हैं।")
+                            
+                            # 1. डेटाबेस से सभी उपलब्ध यूनीक विषयों की लिस्ट निकालें
+                            unique_db_subjects = sorted([s for s in live_db["Subject"].dropna().unique() if str(s).strip() != ""])
+                            
+                            if not unique_db_subjects:
+                                st.warning("⚠️ डेटाबेस में कोई भी विषय (Subject) नहीं मिला।")
+                            else:
+                                # 2. कस्टमाइज़ेशन के लिए एक डेटाफ्रेम मैट्रिक्स तैयार करें
+                                subject_duration_mapping = []
+                                for sub in unique_db_subjects:
+                                    existing_sub_rows = live_db[live_db["Subject"] == sub]
+                                    existing_duration = "3" # डिफ़ॉल्ट मान
+                                    if not existing_sub_rows.empty:
+                                        valid_durations = existing_sub_rows["Duration"].dropna().unique()
+                                        valid_durations = [str(d).strip() for d in valid_durations if str(d).strip() != ""]
+                                        if valid_durations:
+                                            first_val = valid_durations[0].split('.')[0]
+                                            if first_val in ["1", "2", "3", "4", "5", "6"]:
+                                                existing_duration = first_val
+                                    
+                                    subject_duration_mapping.append({
+                                        "Subject Name": sub,
+                                        "Course Duration (Years)": existing_duration
+                                    })
+                                
+                                sub_mapping_df = pd.DataFrame(subject_duration_mapping)
+                                
+                                # 🚨 सुरक्षा गेटवे: यदि मास्टर लिस्ट लॉक है, तो पूरा ग्रिड डिसेबल रहेगा
+                                is_grid_disabled = st.session_state.admin_lock_state
+                                
+                                # 3. एडमिन के लिए एक इंटरैक्टिव कस्टमाइज़ेशन ग्रिड रेंडर करें
+                                edited_sub_mapping_df = st.data_editor(
+                                    sub_mapping_df,
+                                    use_container_width=True,
+                                    disabled=True if is_grid_disabled else ["Subject Name"], # लॉक होने पर पूरी टेबल फ्रीज हो जाएगी
+                                    column_config={
+                                        "Course Duration (Years)": st.column_config.SelectboxColumn(
+                                            "Select Duration",
+                                            options=["1", "2", "3", "4", "5", "6"],
+                                            required=True,
+                                            help="इस विषय के लिए कोर्स की कुल अवधि वर्षों में चुनें"
                                         )
-                                        st.balloons()
-                                        st.rerun()
-                                    except Exception as bulk_err:
-                                        st.error(f"सब्जेक्ट-वाइज ड्यूरेशन सिंक करने में तकनीकी समस्या आई: {bulk_err}")
+                                    },
+                                    key="p15_bulk_subject_duration_editor_grid_final_clean",
+                                    hide_index=True
+                                )
+                                
+                                # 🚨 सुरक्षा गेटवे 2: सेव बटन केवल तभी दिखाई देगा जब लिस्ट अनलॉक होगी
+                                if not st.session_state.admin_lock_state:
+                                    if st.button("💾 Apply & Update Bulk Subject Durations", type="primary", use_container_width=True, key="p15_save_bulk_sub_duration_btn"):
+                                        try:
+                                            bulk_update_counter = 0
+                                            bulk_skip_counter = 0
+                                            
+                                            # ग्रिड की प्रत्येक रो को लूप करें और मास्टर डेटाबेस में बदलें
+                                            for _, edit_row in edited_sub_mapping_df.iterrows():
+                                                target_sub = edit_row["Subject Name"]
+                                                new_duration_to_apply = edit_row["Course Duration (Years)"]
+                                                
+                                                # मास्टर डेटाबेस में इस सब्जेक्ट के सभी इंडेक्स ढूंढें
+                                                sub_match_indices = live_db[live_db["Subject"] == target_sub].index
+                                                
+                                                if not sub_match_indices.empty:
+                                                    for idx in sub_match_indices:
+                                                        # 🚨 अगर इस रो में Duration पहले से भरा हुआ है, तो उसे छोड़ दें (ignore) और अगली रो पर जाएँ
+                                                        existing_val = live_db.at[idx, "Duration"]
+                                                        existing_val_str = "" if pd.isna(existing_val) else str(existing_val).strip()
+                                                        if existing_val_str != "" and existing_val_str.lower() != "nan":
+                                                            bulk_skip_counter += 1
+                                                            continue
+
+                                                        # Duration खाली है, तभी नया मान भरेंगे
+                                                        live_db.at[idx, "Duration"] = str(new_duration_to_apply)
+                                                        bulk_update_counter += 1
+                                                        
+                                            # परिवर्तनों को स्थायी रूप से सेव करें
+                                            save_live_data(live_db)
+                                            st.success(
+                                                f"🎉 शत-प्रतिशत सफलता! कुल {bulk_update_counter} छात्रों का ड्यूरेशन डेटा विषय के अनुसार अपडेट कर दिया गया है। "
+                                                f"({bulk_skip_counter} रिकॉर्ड्स को छोड़ दिया गया क्योंकि उनमें Duration पहले से भरा हुआ था)"
+                                            )
+                                            st.balloons()
+                                            st.rerun()
+                                        except Exception as bulk_err:
+                                            st.error(f"सब्जेक्ट-वाइज ड्यूरेशन सिंक करने में तकनीकी समस्या आई: {bulk_err}")
