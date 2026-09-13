@@ -2631,12 +2631,25 @@ else:
                 # 🟢 Fix: "Student Abc Id" ab apne alag column mein dikhega — pehle ise "Unique ID"
                 # mein hi merge/rename kar diya jaata tha, jisse Unique ID column mein Student Abc Id
                 # ka data aa jaata tha. Ab dono alag-alag columns hain.
+                # 🟢 नया Fix: पहले यहाँ सिर्फ ऊपर दिए गए fixed 21 columns ही available hote the।
+                # अब "Master Database List View & Advanced Operational Controls" (P15) में जितने भी
+                # columns मौजूद हैं (st.session_state.admin_columns_order — जिसमें एडमिन द्वारा नए
+                # जोड़े गए columns भी शामिल हो जाते हैं), वही सभी columns यहाँ P10 में भी उपलब्ध रहेंगे,
+                # ताकि जिस column की ज़रूरत हो उसे नीचे "Print Columns चुनें" वाले multiselect से चुनकर
+                # इस्तेमाल किया जा सके।
                 archive_view_cols = [
-                    "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
-                    "Admission Date", "Unique ID", "Student Abc Id", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
-                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
-                    "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                    col for col in st.session_state.get("admin_columns_order", DEFAULT_COLUMNS)
+                    if col not in ("S.No.", "S. No.")
                 ]
+                # Safety fallback: agar kisi wajah se master column list khaali mil jaaye,
+                # to purane fixed 21 columns hi backup ke roop mein use ho jaayenge.
+                if not archive_view_cols:
+                    archive_view_cols = [
+                        "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
+                        "Admission Date", "Unique ID", "Student Abc Id", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
+                        "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
+                        "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status"
+                    ]
                 
                 column_mapping_fixes = {
                     "Unique Id": "Unique ID", 
