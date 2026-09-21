@@ -1529,6 +1529,7 @@ else:
                 # बॉक्स पुरानी वैल्यू पर ही अटका रहता था — यही bug अब ठीक कर दिया गया है)
                 default_header_3 = f"Session: {p2_filter_year} | Subject: {p2_filter_subject}"
                 default_header_4 = f"{p2_selected_col}: {p2_selected_val}" if p2_selected_val != "All Values" else ""
+                default_header_ugpg = p2_filter_ugpg if p2_filter_ugpg != "All" else ""
 
                 _h3_track_key = "_p2_h3_last_filters"
                 if st.session_state.get(_h3_track_key) != (p2_filter_year, p2_filter_subject):
@@ -1540,24 +1541,34 @@ else:
                     st.session_state["p2_custom_head_line_4_final_fixed"] = default_header_4
                     st.session_state[_h4_track_key] = (p2_selected_col, p2_selected_val)
 
+                # 🆕 हेडर लाइन 2 (Under Graduate/Post Graduate) — मैट्रिक्स फ़िल्टर बॉक्स 2 से अपने आप सिंक होगी।
+                # जब "All" चुना हो तो यह खाली रहेगी और प्रिंट में पूरी तरह गायब हो जाएगी (नीचे वाली लाइन ऊपर खिसक आएगी)।
+                _h_ugpg_track_key = "_p2_h_ugpg_last_filter"
+                if st.session_state.get(_h_ugpg_track_key) != p2_filter_ugpg:
+                    st.session_state["p2_custom_head_line_ugpg_final_fixed"] = default_header_ugpg
+                    st.session_state[_h_ugpg_track_key] = p2_filter_ugpg
+
                 if st.session_state.p2_show_header_customizer_section:
                     st.caption("नीचे दिए गए बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा। "
-                                "बॉक्स 3 और 4 अपने आप ऊपर चुने गए Year/Subject और Column Filter Target/Filter Value के हिसाब से अपडेट होते हैं "
-                                "(बॉक्स 4 सिर्फ तभी दिखेगा जब 'Filter Value for...' में 'All Values' के अलावा कोई खास वैल्यू चुनी गई हो — जरूरत न हो तो यह खाली/print में गायब रहेगा)।")
+                                "बॉक्स 2, 4 और 5 अपने आप ऊपर चुने गए Under Graduate/Post Graduate, Year/Subject और Column Filter Target/Filter Value के हिसाब से अपडेट होते हैं "
+                                "(बॉक्स 2 सिर्फ तभी दिखेगा जब 'Select Under Graduate/Post Graduate' में 'All' के अलावा कोई खास वैल्यू चुनी गई हो, और बॉक्स 5 सिर्फ तभी जब 'Filter Value for...' में 'All Values' के अलावा कोई खास वैल्यू चुनी गई हो — जरूरत न हो तो ये खाली/print में गायब रहेंगे, और उनकी जगह खाली रो नहीं बनेगी, बाकी लाइनें अपने आप ऊपर खिसक आएँगी)।")
 
-                    col_tb1, col_tb2, col_tb3, col_tb4 = st.columns(4)
+                    col_tb1, col_tb2, col_tb3, col_tb4, col_tb5 = st.columns(5)
                     with col_tb1:
                         custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
                     with col_tb2:
-                        custom_header_2 = st.text_input("2. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
+                        custom_header_ugpg = st.text_input("2. Select Under Graduate/Post Graduate:", value=default_header_ugpg, key="p2_custom_head_line_ugpg_final_fixed")
                     with col_tb3:
-                        custom_header_3 = st.text_input("3. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
+                        custom_header_2 = st.text_input("3. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
                     with col_tb4:
-                        custom_header_4 = st.text_input(f"4. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
+                        custom_header_3 = st.text_input("4. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
+                    with col_tb5:
+                        custom_header_4 = st.text_input(f"5. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
                 else:
                     st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
 
                 custom_header_1 = st.session_state.get("p2_custom_head_line_1_final_fixed", "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)")
+                custom_header_ugpg = st.session_state.get("p2_custom_head_line_ugpg_final_fixed", default_header_ugpg)
                 custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
                 custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
                 custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
@@ -1723,6 +1734,7 @@ else:
                                 box-sizing: border-box; text-align: center;
                             }}
                             .h-line-1 {{ font-size: 16px; font-weight: bold; color: #0F2A4A; margin-bottom: 5px; }}
+                            .h-line-ugpg {{ font-size: 13px; font-weight: bold; color: #A97A25; margin-bottom: 5px; letter-spacing: 0.3px; }}
                             .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
                             .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
                             .h-line-4 {{ font-size: 12px; font-style: italic; color: #0F2A4A; margin-top: 3px; }}
@@ -1732,6 +1744,7 @@ else:
                     <body>
                         <div class="custom-print-header">
                             <div class="h-line-1">{custom_header_1}</div>
+                            {f'<div class="h-line-ugpg">{custom_header_ugpg}</div>' if custom_header_ugpg and custom_header_ugpg.strip() else ''}
                             <div class="h-line-2">{custom_header_2}</div>
                             <div class="h-line-3">{custom_header_3}</div>
                             {f'<div class="h-line-4">{custom_header_4}</div>' if custom_header_4 and custom_header_4.strip() else ''}
