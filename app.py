@@ -306,6 +306,22 @@ def apply_name_proper_case(df):
             df[name_col] = df[name_col].apply(to_proper_name_case)
     return df
 
+# 🆕 P2 Matrix Filter (Box 2): "Degree" column ke naam se pehchanta hai ki record
+# UG (Under-Graduate) hai ya PG (Post-Graduate). Koi alag "UG/PG" column database
+# me nahi hai, isliye Degree ke naam se hi (B.../BA/BSc/BCom/BTech = UG,
+# M.../MA/MSc/MCom/MTech/Ph.D = PG) yeh tay kiya jaata hai.
+def classify_ug_pg(degree_val):
+    s = str(degree_val).strip().upper()
+    if not s or s == "NAN":
+        return ""
+    if "PH.D" in s or "PHD" in s or "DOCTOR" in s:
+        return "PG"
+    if s.startswith("M"):
+        return "PG"
+    if s.startswith("B") or "DIPLOMA" in s:
+        return "UG"
+    return "Other"
+
 def load_pre_login_config():
     if os.path.exists(PRE_LOGIN_CONFIG_FILE):
         try:
@@ -1375,40 +1391,55 @@ else:
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("🔍 Advanced Matrix Filters System")
                 
-                col_p2_1, col_p2_2, col_p2_3, col_p2_4 = st.columns(4)
+                col_p2_1, col_p2_2, col_p2_3, col_p2_4, col_p2_5 = st.columns(5)
                 
                 with col_p2_1:
                     year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
                     p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
                 
-                temp_db_for_sub = p2_authorized_db.copy()
+                temp_db_after_year = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
-                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Admission Year"] == p2_filter_year]
+                    temp_db_after_year = temp_db_after_year[temp_db_after_year["Admission Year"] == p2_filter_year]
 
+                # 🆕 बॉक्स 2: UG / PG फ़िल्टर — "Degree" कॉलम के नाम से पहचानता है
                 with col_p2_2:
-                    subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
-                    p2_filter_subject = st.selectbox("2. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
-                
+                    if "Degree" in temp_db_after_year.columns:
+                        ugpg_seen = sorted({classify_ug_pg(d) for d in temp_db_after_year["Degree"].unique()} - {""})
+                    else:
+                        ugpg_seen = []
+                    ugpg_list = ["All"] + ugpg_seen
+                    p2_filter_ugpg = st.selectbox("2. Select UG/PG:", options=ugpg_list, key="p2_scroll_filter_ugpg_v18")
+
+                temp_db_for_sub = temp_db_after_year.copy()
+                if p2_filter_ugpg != "All" and "Degree" in temp_db_for_sub.columns:
+                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
+
                 with col_p2_3:
+                    subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
+                    p2_filter_subject = st.selectbox("3. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
+                
+                with col_p2_4:
                     # 🟢 Fix: "Subject" ko yahan se hata diya gaya hai kyunki uska apna dedicated
-                    # dropdown (2. Select Subject) upar hi maujood hai — dono jagah Subject rakhne se
+                    # dropdown (3. Select Subject) upar hi maujood hai — dono jagah Subject rakhne se
                     # confusing double-filtering hoti thi. Ab "Subject" ki jagah is dropdown mein
                     # nahi dikhega (jab bhi "All Subjects" ho ya na ho, "Column Filter Target" hamesha
                     # baaki dusre columns hi dikhayega).
                     ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type", "Subject"]
                     available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("3. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
+                    p2_selected_col = st.selectbox("4. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
                 
                 dependent_db = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
+                if p2_filter_ugpg != "All" and "Degree" in dependent_db.columns:
+                    dependent_db = dependent_db[dependent_db["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
                 if p2_filter_subject != "All Subjects":
                     dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
 
-                with col_p2_4:
+                with col_p2_5:
                     raw_vals = dependent_db[p2_selected_col].unique()
                     val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
-                    p2_selected_val = st.selectbox(f"4. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
+                    p2_selected_val = st.selectbox(f"5. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
                 
                 # Payment Date Range Filter
                 st.markdown("---")
@@ -1451,6 +1482,9 @@ else:
                 
                 if p2_filter_year != "All Years":
                     admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
+                
+                if p2_filter_ugpg != "All" and "Degree" in admission_display_db.columns:
+                    admission_display_db = admission_display_db[admission_display_db["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
                 
                 if p2_filter_subject != "All Subjects":
                     admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
