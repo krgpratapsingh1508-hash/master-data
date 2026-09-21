@@ -151,6 +151,25 @@ def convert_excel_to_csv_bytes(uploaded_file):
     return df_x.to_csv(index=False).encode("utf-8-sig")
 
 
+def dataframe_to_excel_bytes(df_out, sheet_name="Sheet1"):
+    """DataFrame ko formatted .xlsx (bold header, auto column width, freeze row) bytes me badalta hai."""
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df_out.to_excel(writer, index=False, sheet_name=sheet_name[:31])
+        ws = writer.sheets[sheet_name[:31]]
+        for idx, col_name in enumerate(df_out.columns, start=1):
+            head_cell = ws.cell(row=1, column=idx)
+            head_cell.font = Font(bold=True)
+            head_cell.fill = PatternFill("solid", fgColor="F2F2F2")
+            head_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            longest = max([len(str(col_name))] + [len(str(v)) for v in df_out.iloc[:, idx - 1].head(500)])
+            ws.column_dimensions[get_column_letter(idx)].width = min(max(longest + 2, 8), 45)
+        ws.freeze_panes = "A2"
+    return buf.getvalue()
+
+
 def read_uploaded_file_as_csv_df(uploaded_file):
     """CSV / XLS / XLSX kuch bhi ho -> (convert to CSV if needed) -> DataFrame (sab text)."""
     name = uploaded_file.name.lower()
@@ -1451,6 +1470,23 @@ else:
                 
                 # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका
                 st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+
+                # ==================================================================
+                # 📥 Excel Download — ऊपर चुने गए कॉलम्स + Sort Order + Filters के अनुसार ही (जैसा ग्रिड में दिख रहा है)
+                # ==================================================================
+                if not final_p2_render.empty:
+                    try:
+                        p2_excel_bytes = dataframe_to_excel_bytes(final_p2_render, "Admission List")
+                        st.download_button(
+                            label="📥 Download Excel File (.xlsx) — चुने हुए कॉलम्स के साथ",
+                            data=p2_excel_bytes,
+                            file_name=f"admission_list_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="p2_download_excel_btn"
+                        )
+                    except Exception as p2_xl_err:
+                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p2_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
 
                 # ==================================================================
                 # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix)
