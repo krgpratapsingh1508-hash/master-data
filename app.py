@@ -28,25 +28,70 @@ st.set_page_config(layout="wide", page_title="Permanent Shared Live Database")
 # Kisi bhi panel me file upload ho: agar Excel (.xls/.xlsx) hai to pehle use
 # CSV me convert kiya jata hai, fir bilkul CSV ki tarah hi aage process hota hai.
 # ==========================================================
+def _clean_raw_table(raw):
+    """Khali rows/columns hatao, upar ke title-rows chhodo, sahi header row dhundo."""
+    raw = raw.fillna("").astype(str).apply(lambda col: col.str.strip())
+    raw = raw.loc[:, (raw != "").any(axis=0)]
+    raw = raw.loc[(raw != "").any(axis=1)].reset_index(drop=True)
+    if raw.empty:
+        return pd.DataFrame()
+    counts = (raw != "").sum(axis=1)
+    hdr = int(counts[counts >= max(1, counts.max() * 0.5)].index[0])
+    header = [h if h else f"Unnamed_{i}" for i, h in enumerate(raw.iloc[hdr].tolist())]
+    body = raw.iloc[hdr + 1:].reset_index(drop=True)
+    body.columns = header
+    return body
+
+
+def _best_frame(frames):
+    """Kai sheets/tables me se sabse zyada data wali chuno."""
+    best, best_cells = pd.DataFrame(), 0
+    for f in frames:
+        cleaned = _clean_raw_table(f)
+        cells = cleaned.shape[0] * cleaned.shape[1]
+        if cells > best_cells:
+            best, best_cells = cleaned, cells
+    return best
+
+
 def convert_excel_to_csv_bytes(uploaded_file):
-    """Excel (.xls/.xlsx/.html-.xls) file ko CSV bytes me badalta hai (pehli sheet)."""
-    name = uploaded_file.name.lower()
+    """XLS / XLSX (ya asal me HTML / text wali .xls) ko CSV bytes me badalta hai.
+    File ka type extension se nahi, andar ke content se pehchana jata hai."""
     raw = uploaded_file.getvalue()
-    df_x = None
-    if name.endswith(".xlsx"):
-        df_x = pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str)
-    else:  # .xls
-        try:
-            df_x = pd.read_excel(io.BytesIO(raw), engine="xlrd", dtype=str)
-        except Exception:
+    head = raw[:2048].lstrip().lower()
+    frames = []
+    if raw[:4] == b"PK\x03\x04":                                   # asli .xlsx
+        frames = list(pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str,
+                                    header=None, sheet_name=None).values())
+    elif raw[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":            # asli .xls (Excel 97-2003)
+        frames = list(pd.read_excel(io.BytesIO(raw), engine="xlrd", dtype=str,
+                                    header=None, sheet_name=None).values())
+    elif head.startswith(b"<") or b"<table" in head:               # HTML wali "fake xls"
+        text = None
+        for enc in ("utf-8-sig", "cp1252", "latin-1"):
             try:
-                # kai baar .xls asal me .xlsx hoti hai
-                df_x = pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str)
+                text = raw.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        frames = []
+        for t in pd.read_html(io.StringIO(text)):
+            if not isinstance(t.columns, pd.RangeIndex):   # <thead> wali header row ko wapas data me daalo
+                hdr_row = [str(c[-1] if isinstance(c, tuple) else c) for c in t.columns]
+                t = pd.concat([pd.DataFrame([hdr_row]), t.set_axis(range(t.shape[1]), axis=1).astype(str)],
+                              ignore_index=True)
+            frames.append(t)
+    else:                                                          # CSV / TSV text jo .xls naam se save hai
+        for enc in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
+            try:
+                frames = [pd.read_csv(io.BytesIO(raw), sep=None, engine="python",
+                                      dtype=str, header=None, encoding=enc)]
+                break
             except Exception:
-                # ya fir HTML-table wali "fake xls" (portals se download hui)
-                tables = pd.read_html(io.BytesIO(raw))
-                df_x = tables[0].astype(str) if tables else pd.DataFrame()
-    df_x = df_x.fillna("").astype(str)
+                continue
+    df_x = _best_frame(frames)
+    if df_x.empty:
+        return b""
     # Excel date ke peeche laga " 00:00:00" hata do
     df_x = df_x.replace(r"\s00:00:00$", "", regex=True)
     return df_x.to_csv(index=False).encode("utf-8-sig")
@@ -59,11 +104,15 @@ def read_uploaded_file_as_csv_df(uploaded_file):
         csv_bytes = convert_excel_to_csv_bytes(uploaded_file)
     else:
         csv_bytes = uploaded_file.getvalue()
+    if not csv_bytes.strip():
+        return pd.DataFrame()
     for enc in ("utf-8-sig", "cp1252", "latin-1"):
         try:
             return pd.read_csv(io.BytesIO(csv_bytes), dtype=str, encoding=enc).fillna("")
         except UnicodeDecodeError:
             continue
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame()
     return pd.DataFrame()
 
 
