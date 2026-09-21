@@ -306,25 +306,24 @@ def apply_name_proper_case(df):
             df[name_col] = df[name_col].apply(to_proper_name_case)
     return df
 
-# 🆕 P2 Matrix Filter (Box 2): "Degree" column ke naam se pehchanta hai ki record
-# UG (Under-Graduate) hai ya PG (Post-Graduate). Koi alag "UG/PG" column database
-# me nahi hai, isliye Degree ke naam se hi (B.../BA/BSc/BCom/BTech = UG,
-# M.../MA/MSc/MCom/MTech/Ph.D = PG) yeh tay kiya jaata hai.
-def classify_ug_pg(degree_val):
-    s = str(degree_val).strip().upper()
+# 🆕 P2 Matrix Filter (Box 2): "Eligibility Name" column ke text se pehchanta hai
+# ki record Under Graduate hai ya Post Graduate.
+# - "After 12th / HSC / 10+2 / XII" jaisa likha ho (B.A., B.Com., B.Sc. jaisi degree
+#   ke liye eligibility) → Under Graduate
+# - "After Graduation" jaisa likha ho (M.A., M.Com., M.Sc. jaisi degree ke liye
+#   eligibility) → Post Graduate
+def classify_ug_pg(eligibility_val):
+    s = str(eligibility_val).strip().upper()
     if not s or s == "NAN":
         return ""
-    s_nodot = s.replace(".", "").replace(" ", "")
-    if "PH.D" in s or "PHD" in s or "DOCTOR" in s:
-        return "PG"
-    if s_nodot.startswith("LLM"):
-        return "PG"
-    if s_nodot.startswith("LLB"):
-        return "UG"
-    if s.startswith("M"):
-        return "PG"
-    if s.startswith("B") or "DIPLOMA" in s:
-        return "UG"
+    if "UNDER GRADUATE" in s or "UNDERGRADUATE" in s:
+        return "Under Graduate"
+    if "POST GRADUATE" in s or "POSTGRADUATE" in s:
+        return "Post Graduate"
+    if "12TH" in s or "HSC" in s or "10+2" in s or "XII" in s or "INTERMEDIATE" in s:
+        return "Under Graduate"
+    if "GRADUATION" in s or "GRADUATE" in s:
+        return "Post Graduate"
     return "Other"
 
 def load_pre_login_config():
@@ -1406,18 +1405,18 @@ else:
                 if p2_filter_year != "All Years":
                     temp_db_after_year = temp_db_after_year[temp_db_after_year["Admission Year"] == p2_filter_year]
 
-                # 🆕 बॉक्स 2: UG / PG फ़िल्टर — "Degree" कॉलम के नाम से पहचानता है
+                # 🆕 बॉक्स 2: Under Graduate / Post Graduate फ़िल्टर — "Eligibility Name" कॉलम के टेक्स्ट से पहचानता है
                 with col_p2_2:
-                    if "Degree" in temp_db_after_year.columns:
-                        ugpg_seen = sorted({classify_ug_pg(d) for d in temp_db_after_year["Degree"].unique()} - {""})
+                    if "Eligibility Name" in temp_db_after_year.columns:
+                        ugpg_seen = sorted({classify_ug_pg(d) for d in temp_db_after_year["Eligibility Name"].unique()} - {""})
                     else:
                         ugpg_seen = []
                     ugpg_list = ["All"] + ugpg_seen
-                    p2_filter_ugpg = st.selectbox("2. Select UG/PG:", options=ugpg_list, key="p2_scroll_filter_ugpg_v18")
+                    p2_filter_ugpg = st.selectbox("2. Select Under Graduate/Post Graduate:", options=ugpg_list, key="p2_scroll_filter_ugpg_v18")
 
                 temp_db_for_sub = temp_db_after_year.copy()
-                if p2_filter_ugpg != "All" and "Degree" in temp_db_for_sub.columns:
-                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
+                if p2_filter_ugpg != "All" and "Eligibility Name" in temp_db_for_sub.columns:
+                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
 
                 with col_p2_3:
                     subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
@@ -1436,8 +1435,8 @@ else:
                 dependent_db = p2_authorized_db.copy()
                 if p2_filter_year != "All Years":
                     dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
-                if p2_filter_ugpg != "All" and "Degree" in dependent_db.columns:
-                    dependent_db = dependent_db[dependent_db["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
+                if p2_filter_ugpg != "All" and "Eligibility Name" in dependent_db.columns:
+                    dependent_db = dependent_db[dependent_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
                 if p2_filter_subject != "All Subjects":
                     dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
 
@@ -1488,8 +1487,8 @@ else:
                 if p2_filter_year != "All Years":
                     admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
                 
-                if p2_filter_ugpg != "All" and "Degree" in admission_display_db.columns:
-                    admission_display_db = admission_display_db[admission_display_db["Degree"].apply(classify_ug_pg) == p2_filter_ugpg]
+                if p2_filter_ugpg != "All" and "Eligibility Name" in admission_display_db.columns:
+                    admission_display_db = admission_display_db[admission_display_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
                 
                 if p2_filter_subject != "All Subjects":
                     admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
