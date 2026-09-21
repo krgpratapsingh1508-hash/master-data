@@ -23,6 +23,50 @@ except Exception:
 # ==========================================================
 st.set_page_config(layout="wide", page_title="Permanent Shared Live Database")
 
+# ==========================================================
+# 🔄 UNIVERSAL UPLOAD CONVERTER: XLS / XLSX  ->  CSV  ->  DataFrame
+# Kisi bhi panel me file upload ho: agar Excel (.xls/.xlsx) hai to pehle use
+# CSV me convert kiya jata hai, fir bilkul CSV ki tarah hi aage process hota hai.
+# ==========================================================
+def convert_excel_to_csv_bytes(uploaded_file):
+    """Excel (.xls/.xlsx/.html-.xls) file ko CSV bytes me badalta hai (pehli sheet)."""
+    name = uploaded_file.name.lower()
+    raw = uploaded_file.getvalue()
+    df_x = None
+    if name.endswith(".xlsx"):
+        df_x = pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str)
+    else:  # .xls
+        try:
+            df_x = pd.read_excel(io.BytesIO(raw), engine="xlrd", dtype=str)
+        except Exception:
+            try:
+                # kai baar .xls asal me .xlsx hoti hai
+                df_x = pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str)
+            except Exception:
+                # ya fir HTML-table wali "fake xls" (portals se download hui)
+                tables = pd.read_html(io.BytesIO(raw))
+                df_x = tables[0].astype(str) if tables else pd.DataFrame()
+    df_x = df_x.fillna("").astype(str)
+    # Excel date ke peeche laga " 00:00:00" hata do
+    df_x = df_x.replace(r"\s00:00:00$", "", regex=True)
+    return df_x.to_csv(index=False).encode("utf-8-sig")
+
+
+def read_uploaded_file_as_csv_df(uploaded_file):
+    """CSV / XLS / XLSX kuch bhi ho -> (convert to CSV if needed) -> DataFrame (sab text)."""
+    name = uploaded_file.name.lower()
+    if name.endswith((".xlsx", ".xls")):
+        csv_bytes = convert_excel_to_csv_bytes(uploaded_file)
+    else:
+        csv_bytes = uploaded_file.getvalue()
+    for enc in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return pd.read_csv(io.BytesIO(csv_bytes), dtype=str, encoding=enc).fillna("")
+        except UnicodeDecodeError:
+            continue
+    return pd.DataFrame()
+
+
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
 STAGE_FILE = "merge_stage_database.csv"
@@ -858,17 +902,7 @@ else:
                                 all_new_dfs = [current_stage_db]
                                 
                                 for uploaded_file in uploaded_files:
-                                    if uploaded_file.name.endswith('.csv'):
-                                        uploaded_df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-                                    elif uploaded_file.name.endswith('.xlsx'):
-                                        uploaded_df = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str).fillna("")
-                                    elif uploaded_file.name.endswith('.xls'):
-                                        try:
-                                            uploaded_df = pd.read_excel(uploaded_file, engine='xlrd', dtype=str).fillna("")
-                                        except:
-                                            uploaded_file.seek(0) 
-                                            html_tables = pd.read_html(uploaded_file)
-                                            uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
+                                    uploaded_df = read_uploaded_file_as_csv_df(uploaded_file)
                                     
                                     if uploaded_df.empty:
                                         st.error(f"❌ फ़ाइल '{uploaded_file.name}' के अंदर कोई मान्य डेटा नहीं मिला।")
@@ -4504,17 +4538,7 @@ else:
                             
                             if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
                                 try:
-                                    if uploaded_master_file.name.endswith('.csv'):
-                                        raw_uploaded_df = pd.read_csv(uploaded_master_file, dtype=str).fillna("")
-                                    elif uploaded_master_file.name.endswith('.xlsx'):
-                                        raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='openpyxl', dtype=str).fillna("")
-                                    elif uploaded_master_file.name.endswith('.xls'):
-                                        try:
-                                            raw_uploaded_df = pd.read_excel(uploaded_master_file, engine='xlsrd', dtype=str).fillna("")
-                                        except:
-                                            uploaded_master_file.seek(0)
-                                            html_tables = pd.read_html(uploaded_master_file)
-                                            raw_uploaded_df = html_tables[0].astype(str).fillna("") if html_tables else pd.DataFrame()
+                                    raw_uploaded_df = read_uploaded_file_as_csv_df(uploaded_master_file)
                                     
                                     if raw_uploaded_df.empty:
                                         st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
