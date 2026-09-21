@@ -189,6 +189,72 @@ def read_uploaded_file_as_csv_df(uploaded_file):
     return pd.DataFrame()
 
 
+# ==========================================================
+# 🎨 PRINT HEADER STYLE — P2 "Print Header Text Customizer" ke liye
+# Har header line ka Font Size (px) aur Colour yahin se control hota hai.
+# Neeche ke DEFAULT wahi hain jo pehle CSS me fixed the (look pehle jaisa hi rahega).
+# ==========================================================
+PRINT_HEADER_LINES = [
+    # (key,   css_class,       label,                 default_px, default_colour, extra_css)
+    ("l1",   "h-line-1",    "1. कॉलेज का नाम",       16, "#0F2A4A", "font-weight: bold; margin-bottom: 5px;"),
+    ("ugpg", "h-line-ugpg", "2. UG / PG",             13, "#A97A25", "font-weight: bold; margin-bottom: 5px; letter-spacing: 0.3px;"),
+    ("l2",   "h-line-2",    "3. रिपोर्ट का टाइटल",    14, "#333333", "font-weight: bold; margin-bottom: 5px;"),
+    ("l3",   "h-line-3",    "4. Session / Subject",   12, "#555555", "font-style: italic;"),
+    ("l4",   "h-line-4",    "5. Filter Value",        12, "#0F2A4A", "font-style: italic; margin-top: 3px;"),
+]
+PRINT_HEADER_MIN_PX = 8
+PRINT_HEADER_MAX_PX = 60
+
+
+def _hdr_style_key(line_key, field):
+    return f"p2_hdr_style_{line_key}_{field}"
+
+
+def get_print_header_styles():
+    """Har header line ka (font_px, colour) session_state se padhta hai; na mile ya galat ho to default."""
+    styles = {}
+    for key, _cls, _label, d_px, d_color, _extra in PRINT_HEADER_LINES:
+        try:
+            px = int(st.session_state.get(_hdr_style_key(key, "size"), d_px))
+        except (TypeError, ValueError):
+            px = d_px
+        px = max(PRINT_HEADER_MIN_PX, min(px, PRINT_HEADER_MAX_PX))
+        color = str(st.session_state.get(_hdr_style_key(key, "color"), d_color))
+        if not re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+            color = d_color
+        styles[key] = (px, color)
+    return styles
+
+
+def build_print_header_css():
+    """Print HTML ke <style> me lagane ke liye .h-line-* ki CSS string banata hai."""
+    styles = get_print_header_styles()
+    css = []
+    for key, css_class, _label, _d_px, _d_color, extra in PRINT_HEADER_LINES:
+        px, color = styles[key]
+        css.append(f".{css_class} {{ font-size: {px}px; color: {color}; {extra} }}")
+    return "\n".join(css)
+
+
+def render_print_header_style_controls():
+    """Text boxes ke neeche har line ke liye Font Size + Colour ke controls dikhata hai."""
+    def _reset_header_styles():
+        for _k, *_rest in PRINT_HEADER_LINES:
+            st.session_state.pop(_hdr_style_key(_k, "size"), None)
+            st.session_state.pop(_hdr_style_key(_k, "color"), None)
+
+    st.markdown("**🎨 हर हेडर लाइन का Font Size (px) और Colour**")
+    cols = st.columns(len(PRINT_HEADER_LINES))
+    for col, (key, _cls, label, d_px, d_color, _extra) in zip(cols, PRINT_HEADER_LINES):
+        with col:
+            st.number_input(f"{label} — Font Size (px)", min_value=PRINT_HEADER_MIN_PX,
+                            max_value=PRINT_HEADER_MAX_PX, value=d_px, step=1,
+                            key=_hdr_style_key(key, "size"))
+            st.color_picker(f"{label} — Colour", value=d_color, key=_hdr_style_key(key, "color"))
+    st.button("↩️ Font Size / Colour Default पर वापस", key="p2_hdr_style_reset_btn",
+              on_click=_reset_header_styles)
+
+
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
 STAGE_FILE = "merge_stage_database.csv"
@@ -1564,6 +1630,8 @@ else:
                         custom_header_3 = st.text_input("4. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
                     with col_tb5:
                         custom_header_4 = st.text_input(f"5. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
+
+                    render_print_header_style_controls()
                 else:
                     st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
 
@@ -1572,6 +1640,7 @@ else:
                 custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
                 custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
                 custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
+                header_style_css = build_print_header_css()  # 🎨 Font size + colour (print header)
                 
                 # ==================================================================
                 # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
@@ -1733,11 +1802,7 @@ else:
                                 padding: 15px; margin-bottom: 20px; border-radius: 6px;
                                 box-sizing: border-box; text-align: center;
                             }}
-                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #0F2A4A; margin-bottom: 5px; }}
-                            .h-line-ugpg {{ font-size: 13px; font-weight: bold; color: #A97A25; margin-bottom: 5px; letter-spacing: 0.3px; }}
-                            .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
-                            .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
-                            .h-line-4 {{ font-size: 12px; font-style: italic; color: #0F2A4A; margin-top: 3px; }}
+                            {header_style_css}
                             table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
                         </style>
                     </head>
