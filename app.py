@@ -833,6 +833,59 @@ st.markdown(f"""
 
     .notice-board {{ border-radius: 10px !important; }}
     hr {{ border-top: 1px solid var(--pg-border) !important; }}
+
+    /* ============================================================
+       🧭 SIDEBAR NAVIGATION — "Navigate Active Modules" ko
+       Dark-Navy panel ke andar Gold-highlight wale pill buttons
+       jaisa banaya gaya hai, taaki active module turant dikhe.
+       ============================================================ */
+    [data-testid="stSidebar"] {{
+        background: linear-gradient(180deg, #0F2A4A 0%, #0A1E33 100%) !important;
+        border-right: 1px solid #0A1E33 !important;
+    }}
+    [data-testid="stSidebar"] * {{ color: #F2F5FA !important; }}
+    [data-testid="stSidebar"] hr {{ border-top: 1px solid rgba(255,255,255,0.15) !important; }}
+    [data-testid="stSidebar"] label[data-testid="stWidgetLabel"] p {{
+        font-family: 'Poppins','Inter',sans-serif !important;
+        font-size: 16px !important; font-weight: 700 !important;
+        color: #E9C989 !important; letter-spacing: 0.2px;
+        padding-bottom: 10px !important; margin-bottom: 4px !important;
+        border-bottom: 2px solid rgba(233,201,137,0.35);
+    }}
+
+    /* हर मॉड्यूल एक साफ़, अलग-अलग "pill" कार्ड जैसा दिखे */
+    [data-testid="stSidebar"] div[role="radiogroup"] {{
+        display: flex !important; flex-direction: column !important; gap: 7px !important;
+        margin-top: 6px !important;
+    }}
+    [data-testid="stSidebar"] div[role="radiogroup"] label {{
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.14) !important;
+        border-radius: 9px !important;
+        padding: 11px 14px !important;
+        margin: 0 !important;
+        width: 100% !important;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease !important;
+        cursor: pointer !important;
+    }}
+    [data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
+        background: rgba(201,151,63,0.18) !important;
+        border-color: #C9973F !important;
+        transform: translateX(2px);
+    }}
+    /* चुना हुआ (Active) मॉड्यूल — गोल्ड हाईलाइट */
+    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
+        background: linear-gradient(135deg, #C9973F 0%, #A97A25 100%) !important;
+        border-color: #E9C989 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+    }}
+    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {{
+        color: #0F2A4A !important; font-weight: 700 !important;
+    }}
+    /* डिफ़ॉल्ट गोल बुलेट हटाकर साफ़ pill जैसा लुक */
+    [data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {{
+        display: none !important;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -1063,6 +1116,18 @@ else:
     if not active_tabs_names:
         st.warning("⚠️ वर्तमान में आपकी भूमिका के लिए कोई भी पैनल एक्टिव नहीं किया गया है।")
     else:
+        st.sidebar.markdown(
+            f"""
+            <div style="display:flex; align-items:center; gap:10px; padding:2px 2px 14px 2px; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.15);">
+                <div style="width:38px; height:38px; border-radius:9px; background:linear-gradient(135deg,#C9973F,#A97A25); display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 2px 6px rgba(0,0,0,0.3); flex-shrink:0;">🏛️</div>
+                <div style="line-height:1.25;">
+                    <div style="font-size:13px; color:#E9C989; font-weight:700;">{username.upper()}</div>
+                    <div style="font-size:11px; color:rgba(242,245,250,0.65);">{role.upper()} · {len(active_tabs_names)} Module{'s' if len(active_tabs_names) != 1 else ''} Active</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         selected_tab_ui = st.sidebar.radio("🧭 Navigate Active Modules:", options=active_tabs_names)
         
         # 🎯 यहाँ फिक्स किया गया है (अंतिम भाग [0] को जोड़कर इसे दोबारा स्ट्रिंग बनाया गया है)
