@@ -54,45 +54,99 @@ def _best_frame(frames):
     return best
 
 
+_UPLOAD_DIAG = {"info": ""}
+
+
+def _decode_text(raw):
+    for enc in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
+        try:
+            return raw.decode(enc), enc
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("latin-1", errors="ignore"), "latin-1"
+
+
+def _parse_spreadsheetml(text):
+    """Excel 2003 'XML Spreadsheet' (.xls naam se save hui XML file)."""
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(text.encode("utf-8"))
+    frames = []
+    for ws in root.iter():
+        if ws.tag.split("}")[-1] != "Worksheet":
+            continue
+        rows = []
+        for row in ws.iter():
+            if row.tag.split("}")[-1] != "Row":
+                continue
+            cells, col = [], 0
+            for cell in row:
+                if cell.tag.split("}")[-1] != "Cell":
+                    continue
+                idx = None
+                for k, v in cell.attrib.items():
+                    if k.split("}")[-1] == "Index":
+                        idx = int(v)
+                if idx:
+                    cells += [""] * (idx - 1 - len(cells))
+                data = next((d for d in cell if d.tag.split("}")[-1] == "Data"), None)
+                cells.append("".join(data.itertext()) if data is not None else "")
+            rows.append(cells)
+        if rows:
+            width = max(len(r) for r in rows)
+            frames.append(pd.DataFrame([r + [""] * (width - len(r)) for r in rows]))
+    return frames
+
+
+def _parse_delimited_text(raw):
+    text, enc = _decode_text(raw)
+    first = "\n".join(text.splitlines()[:20])
+    seps = {"\t": first.count("\t"), ",": first.count(","), ";": first.count(";"), "|": first.count("|")}
+    sep = max(seps, key=seps.get)
+    df_t = pd.read_csv(io.StringIO(text), sep=sep, engine="python", dtype=str,
+                       header=None, on_bad_lines="skip")
+    return [df_t]
+
+
 def convert_excel_to_csv_bytes(uploaded_file):
-    """XLS / XLSX (ya asal me HTML / text wali .xls) ko CSV bytes me badalta hai.
+    """XLS / XLSX (ya asal me HTML / XML / text wali .xls) ko CSV bytes me badalta hai.
     File ka type extension se nahi, andar ke content se pehchana jata hai."""
     raw = uploaded_file.getvalue()
-    head = raw[:2048].lstrip().lower()
-    frames = []
-    if raw[:4] == b"PK\x03\x04":                                   # asli .xlsx
-        frames = list(pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str,
-                                    header=None, sheet_name=None).values())
-    elif raw[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":            # asli .xls (Excel 97-2003)
-        frames = list(pd.read_excel(io.BytesIO(raw), engine="xlrd", dtype=str,
-                                    header=None, sheet_name=None).values())
-    elif head.startswith(b"<") or b"<table" in head:               # HTML wali "fake xls"
-        text = None
-        for enc in ("utf-8-sig", "cp1252", "latin-1"):
-            try:
-                text = raw.decode(enc)
-                break
-            except UnicodeDecodeError:
-                continue
-        frames = []
-        for t in pd.read_html(io.StringIO(text)):
-            if not isinstance(t.columns, pd.RangeIndex):   # <thead> wali header row ko wapas data me daalo
-                hdr_row = [str(c[-1] if isinstance(c, tuple) else c) for c in t.columns]
-                t = pd.concat([pd.DataFrame([hdr_row]), t.set_axis(range(t.shape[1]), axis=1).astype(str)],
-                              ignore_index=True)
-            frames.append(t)
-    else:                                                          # CSV / TSV text jo .xls naam se save hai
-        for enc in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
-            try:
-                frames = [pd.read_csv(io.BytesIO(raw), sep=None, engine="python",
-                                      dtype=str, header=None, encoding=enc)]
-                break
-            except Exception:
-                continue
+    head = raw[:4096].lstrip()
+    head_l = head.lower()
+    frames, kind = [], "unknown"
+    try:
+        if raw[:4] == b"PK\x03\x04":                                   # asli .xlsx
+            kind = "xlsx"
+            frames = list(pd.read_excel(io.BytesIO(raw), engine="openpyxl", dtype=str,
+                                        header=None, sheet_name=None).values())
+        elif raw[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":            # asli .xls (Excel 97-2003)
+            kind = "xls"
+            frames = list(pd.read_excel(io.BytesIO(raw), engine="xlrd", dtype=str,
+                                        header=None, sheet_name=None).values())
+        elif b"urn:schemas-microsoft-com:office:spreadsheet" in raw[:8192]:   # Excel 2003 XML
+            kind = "spreadsheetml-xml"
+            frames = _parse_spreadsheetml(_decode_text(raw)[0])
+        elif head_l.startswith(b"<") or b"<table" in head_l:          # HTML wali "fake xls"
+            kind = "html"
+            text = _decode_text(raw)[0]
+            for t in pd.read_html(io.StringIO(text)):
+                if not isinstance(t.columns, pd.RangeIndex):
+                    hdr_row = [str(c[-1] if isinstance(c, tuple) else c) for c in t.columns]
+                    t = pd.concat([pd.DataFrame([hdr_row]),
+                                   t.set_axis(range(t.shape[1]), axis=1).astype(str)], ignore_index=True)
+                frames.append(t)
+        else:                                                          # CSV / TSV text
+            kind = "text"
+            frames = _parse_delimited_text(raw)
+    except Exception as parse_err:
+        _UPLOAD_DIAG["info"] = f"type={kind}, size={len(raw)} bytes, parse error: {parse_err}"
+        raise
     df_x = _best_frame(frames)
+    preview = raw[:120].decode("latin-1", errors="replace").replace("\n", " ").replace("\r", " ")
+    _UPLOAD_DIAG["info"] = (f"type={kind}, size={len(raw)} bytes, sheets/tables={len(frames)}, "
+                            f"rows x cols after cleanup={df_x.shape}, file start: {preview!r}")
     if df_x.empty:
         return b""
-    # Excel date ke peeche laga " 00:00:00" hata do
     df_x = df_x.replace(r"\s00:00:00$", "", regex=True)
     return df_x.to_csv(index=False).encode("utf-8-sig")
 
@@ -955,6 +1009,8 @@ else:
                                     
                                     if uploaded_df.empty:
                                         st.error(f"❌ फ़ाइल '{uploaded_file.name}' के अंदर कोई मान्य डेटा नहीं मिला।")
+                                        if _UPLOAD_DIAG["info"]:
+                                            st.caption(f"🔎 Diagnostic: {_UPLOAD_DIAG['info']}")
                                         continue
 
                                     uploaded_df = uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
@@ -4591,6 +4647,8 @@ else:
                                     
                                     if raw_uploaded_df.empty:
                                         st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
+                                        if _UPLOAD_DIAG["info"]:
+                                            st.caption(f"🔎 Diagnostic: {_UPLOAD_DIAG['info']}")
                                     else:
                                         raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
                                         
