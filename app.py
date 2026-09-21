@@ -434,7 +434,7 @@ def linkify_notice_line(line_text):
         href = raw_url if raw_url.lower().startswith("http") else "https://" + raw_url
         return (
             f'<a href="{href}" target="_blank" rel="noopener noreferrer" '
-            f'style="color:#1465de; text-decoration:underline; font-weight:600;">{raw_url}</a>{trailing}'
+            f'style="color:#0F2A4A; text-decoration:underline; font-weight:600;">{raw_url}</a>{trailing}'
         )
 
     return _NOTICE_URL_PATTERN.sub(_make_link, escaped)
@@ -718,7 +718,7 @@ st.markdown(f"""
     /* स्क्रीन डिस्प्ले के लिए सामान्य CSS */
     .header-container {{ display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }}
     .header-text {{ display: flex; flex-direction: column; }}
-    .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #1465de; }}
+    .header-text h3 {{ margin: 0 !important; padding: 0 !important; color: #0F2A4A; }}
     .header-text h1 {{ margin: 0 !important; }}
     
     .notice-board {{
@@ -730,6 +730,109 @@ st.markdown(f"""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }}
     .notice-title {{ font-weight: bold; color: #333; margin-bottom: 8px; font-size: 18px; }}
+
+    /* ============================================================
+       🎨 UNIFIED INSTITUTIONAL THEME — Navy + Gold
+       Yeh poore app (P1 se P15 tak, login screen samet) par apne aap
+       lagu hota hai kyunki yeh sabhi Streamlit ke standard widgets
+       (headers, buttons, tables, alerts, inputs) ko target karta hai.
+       ============================================================ */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {{
+        --pg-navy: #0F2A4A;
+        --pg-navy-light: #1D4A7A;
+        --pg-gold: #C9973F;
+        --pg-gold-dark: #A97A25;
+        --pg-bg: #F5F7FA;
+        --pg-surface: #FFFFFF;
+        --pg-border: #DCE3EC;
+        --pg-text: #1B2430;
+    }}
+
+    [data-testid="stAppViewContainer"], .main, body {{
+        background: var(--pg-bg) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        color: var(--pg-text) !important;
+    }}
+    [data-testid="stHeader"] {{ background: transparent !important; }}
+    .block-container {{ padding-top: 2rem !important; }}
+
+    /* --- हेडलाइन्स (h1-h4) — Poppins + Navy, हर सेक्शन-हेड के नीचे गोल्ड अंडरलाइन --- */
+    h1, h2, h3, h4 {{
+        font-family: 'Poppins', 'Inter', sans-serif !important;
+        color: var(--pg-navy) !important;
+        font-weight: 600 !important;
+    }}
+    .stMarkdown h1, .stMarkdown h2, div[data-testid="stHeadingWithActionElements"] h1,
+    div[data-testid="stHeadingWithActionElements"] h2 {{
+        display: inline-block;
+        padding-bottom: 6px;
+        border-bottom: 3px solid var(--pg-gold);
+        margin-bottom: 16px !important;
+    }}
+
+    /* --- बटन्स (सभी पैनल्स के Save/Verify/Delete/Update आदि बटन) --- */
+    .stButton > button, .stDownloadButton > button {{
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.55rem 1.2rem !important;
+        transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+    }}
+    .stButton > button[kind="primary"] {{
+        background: linear-gradient(135deg, var(--pg-navy) 0%, var(--pg-navy-light) 100%) !important;
+        border: none !important; color: #fff !important;
+    }}
+    .stButton > button[kind="primary"]:hover {{
+        box-shadow: 0 4px 14px rgba(15,42,74,0.30) !important; transform: translateY(-1px);
+    }}
+    .stButton > button[kind="secondary"] {{
+        background: var(--pg-surface) !important; color: var(--pg-navy) !important;
+        border: 1.5px solid var(--pg-navy) !important;
+    }}
+    .stButton > button[kind="secondary"]:hover {{ background: #EEF2F8 !important; }}
+    /* Download/Share बटन्स — Gold accent ताकि 'share' actions बाकी बटन्स से अलग दिखें */
+    .stDownloadButton > button {{
+        background: linear-gradient(135deg, var(--pg-gold-dark) 0%, var(--pg-gold) 100%) !important;
+        color: #fff !important; border: none !important;
+    }}
+    .stDownloadButton > button:hover {{
+        box-shadow: 0 4px 14px rgba(201,151,63,0.38) !important; transform: translateY(-1px);
+    }}
+
+    /* --- लिस्ट/शीट (st.dataframe और st.data_editor) --- */
+    div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
+        border: 1px solid var(--pg-border) !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        box-shadow: 0 1px 4px rgba(15,42,74,0.07) !important;
+    }}
+    div[data-testid="stDataFrame"] [role="columnheader"],
+    div[data-testid="stDataEditor"] [role="columnheader"] {{
+        background: var(--pg-navy) !important; color: #fff !important; font-weight: 600 !important;
+    }}
+
+    /* --- अलर्ट बॉक्स (success/info/warning/error) --- */
+    div[data-testid="stAlert"] {{ border-radius: 8px !important; border-left-width: 5px !important; }}
+
+    /* --- इनपुट फ़ील्ड्स --- */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea,
+    .stSelectbox div[data-baseweb="select"] > div {{
+        border-radius: 6px !important; border-color: var(--pg-border) !important;
+    }}
+    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {{
+        border-color: var(--pg-gold) !important; box-shadow: 0 0 0 1px var(--pg-gold) !important;
+    }}
+
+    /* --- टैब्स और एक्सपैंडर्स --- */
+    button[data-baseweb="tab"] {{ font-weight: 600 !important; }}
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        color: var(--pg-navy) !important; border-bottom-color: var(--pg-gold) !important;
+    }}
+    details {{ border-radius: 8px !important; border-color: var(--pg-border) !important; }}
+
+    .notice-board {{ border-radius: 10px !important; }}
+    hr {{ border-top: 1px solid var(--pg-border) !important; }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -752,16 +855,16 @@ if st.session_state.user_role is None:
         
         # 🎨 यहाँ लोगो पर 'box-shadow' बॉर्डर और मंत्र को 'font-weight: bold' किया गया है
         header_html = f"""
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
-            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; font-family: 'Poppins','Inter',sans-serif; background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); border: 1px solid #DCE3EC; border-radius: 12px; padding: 16px 20px;">
+            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 10px; box-shadow: 0 4px 12px rgba(15,42,74,0.18); border: 2px solid #C9973F;">
                 {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h1 style='margin: 0;'>🏛️</h1>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h3 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: {mantra_font_px}px; letter-spacing: 0.5px;">{mantra}</h3>
-                <h1 style="margin: 5px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: {title_font_px}px; font-weight: bold;">{sys_title}</h1>
+                <h3 style="margin: 0 !important; padding: 0 !important; color: #A97A25; font-weight: 700 !important; font-size: {mantra_font_px}px; letter-spacing: 0.5px;">{mantra}</h3>
+                <h1 style="margin: 5px 0 0 0 !important; padding: 0 !important; color: #0F2A4A; font-size: {title_font_px}px; font-weight: 700; border: none !important;">{sys_title}</h1>
             </div>
         </div>
-        <hr style="margin-top: 10px; margin-bottom: 25px; border: 0; border-top: 1px solid #eee;">
+        <hr style="margin-top: 10px; margin-bottom: 25px; border: 0; border-top: 1px solid #DCE3EC;">
         """
         st.markdown(header_html, unsafe_allow_html=True)
 
@@ -841,8 +944,8 @@ if st.session_state.user_role is None:
                 st.success(f"✅ **{_p_sel_subject} — {_p_sel_year}** की Syllabus मिल गई!")
                 st.markdown(
                     f'<a href="{_p_result["value"]}" target="_blank" rel="noopener noreferrer" '
-                    f'style="display:inline-block; padding:10px 18px; background:#1465de; color:white; '
-                    f'border-radius:6px; text-decoration:none; font-weight:600;">🔗 Syllabus खोलें (नए टैब में)</a>',
+                    f'style="display:inline-block; padding:10px 18px; background:linear-gradient(135deg,#A97A25,#C9973F); color:white; '
+                    f'border-radius:8px; text-decoration:none; font-weight:600; box-shadow:0 3px 10px rgba(201,151,63,0.35);">🔗 Syllabus खोलें (नए टैब में)</a>',
                     unsafe_allow_html=True
                 )
             else:
@@ -910,16 +1013,16 @@ else:
         
         # 🎨 पैनल के अंदर प्रीमियम शैडो बॉर्डर और बोल्ड लुक
         panel_header_html = f"""
-        <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: sans-serif;">
-            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); border: 1px solid #e2e8f0;">
+        <div class="print-hide" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-family: 'Poppins','Inter',sans-serif; background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); border: 1px solid #DCE3EC; border-radius: 10px; padding: 12px 16px;">
+            <div style="flex-shrink: 0; width: {logo_w}px; height: {logo_h}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; box-shadow: 0 3px 8px rgba(15,42,74,0.15); border: 2px solid #C9973F;">
                 {"<img src='" + img_base64 + "' style='width: 100%; height: 100%; object-fit: " + logo_fit + "; display: block;'>" if img_base64 else "<h2 style='margin: 0;'>🏛️</h2>"}
             </div>
             <div style="display: flex; flex-direction: column; justify-content: center;">
-                <h4 style="margin: 0 !important; padding: 0 !important; color: #1465de; font-weight: bold !important; font-size: {mantra_font_px}px;">{mantra}</h4>
-                <h2 style="margin: 3px 0 0 0 !important; padding: 0 !important; color: #212529; font-size: {title_font_px}px; font-weight: bold;">{sys_title}</h2>
+                <h4 style="margin: 0 !important; padding: 0 !important; color: #A97A25; font-weight: 700 !important; font-size: {mantra_font_px}px;">{mantra}</h4>
+                <h2 style="margin: 3px 0 0 0 !important; padding: 0 !important; color: #0F2A4A; font-size: {title_font_px}px; font-weight: 700; border: none !important;">{sys_title}</h2>
             </div>
         </div>
-        <div class="print-hide"><hr style="margin-top: 5px; margin-bottom: 15px; border: 0; border-top: 1px solid #eee;"></div>
+        <div class="print-hide"><hr style="margin-top: 5px; margin-bottom: 15px; border: 0; border-top: 1px solid #DCE3EC;"></div>
         """
         st.markdown(panel_header_html, unsafe_allow_html=True)
 
@@ -1512,14 +1615,14 @@ else:
                             @page {{ size: A4 {orientation_css}; margin: 8mm; }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
                             .custom-print-header {{
-                                width: 100%; border: 2px solid #1465de; background-color: #f4f8ff;
+                                width: 100%; border: 2px solid #0F2A4A; background-color: #EEF2F8;
                                 padding: 15px; margin-bottom: 20px; border-radius: 6px;
                                 box-sizing: border-box; text-align: center;
                             }}
-                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #1465de; margin-bottom: 5px; }}
+                            .h-line-1 {{ font-size: 16px; font-weight: bold; color: #0F2A4A; margin-bottom: 5px; }}
                             .h-line-2 {{ font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px; }}
                             .h-line-3 {{ font-size: 12px; font-style: italic; color: #555; }}
-                            .h-line-4 {{ font-size: 12px; font-style: italic; color: #1465de; margin-top: 3px; }}
+                            .h-line-4 {{ font-size: 12px; font-style: italic; color: #0F2A4A; margin-top: 3px; }}
                             table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
                         </style>
                     </head>
@@ -1563,7 +1666,7 @@ else:
                             }}
                             </script>
                             <button onclick="printAdmissionList()" style="
-                                width: 100%; background-color: #1465de; color: white; padding: 14px; 
+                                width: 100%; background-color: #0F2A4A; color: white; padding: 14px; 
                                 border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
                                 font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
                                 🖨️ Click Here to Print Admission & Payment Report Sheet
@@ -1588,7 +1691,7 @@ else:
             else:
                 # 🟢 सही किया गया कोड (यह बिना किसी एरर के हिंदी और इमोजी को रेंडर करेगा)
                 st.markdown(
-                    '<div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
+                    '<div style="background-color: #EEF2F8; border-left: 5px solid #0F2A4A; padding: 10px; border-radius: 4px; margin-bottom: 15px;">'
                     '📌 <b>ऑपरेटर निर्देश:</b> इस ग्रिड में विशिष्ट पहचान पत्र संख्या (Unique ID) से संबंधित डेटा प्रदर्शित है। सुरक्षा और पारदर्शिता के लिए केवल सुपर एडमिन ही इसमें बदलाव कर सकता है।'
                     '</div>', 
                     unsafe_allow_html=True
@@ -3888,7 +3991,7 @@ else:
             else:
                 # 🟢 Corrected Safe Inline String Setup
                 st.markdown(
-                    '<div style="background-color: #f0f7ff; border-left: 5px solid #1465de; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
+                    '<div style="background-color: #EEF2F8; border-left: 5px solid #0F2A4A; padding: 12px; border-radius: 4px; margin-bottom: 20px;">'
                     '🎯 <b>कन्फर्मेशन मर्ज गाइड:</b> पहले वह पैनल (Main File) चुनें जिसका डेटा बदलना है, फिर स्टेजिंग से नई फ़ाइल (Anya File) चुनकर लाइव मैचिंग चेक करें। यदि मर्ज नहीं करना है तो सीधे अप्रूव करें।'
                     '</div>', 
                     unsafe_allow_html=True
