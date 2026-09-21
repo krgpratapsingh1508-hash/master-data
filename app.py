@@ -314,8 +314,13 @@ def classify_ug_pg(degree_val):
     s = str(degree_val).strip().upper()
     if not s or s == "NAN":
         return ""
+    s_nodot = s.replace(".", "").replace(" ", "")
     if "PH.D" in s or "PHD" in s or "DOCTOR" in s:
         return "PG"
+    if s_nodot.startswith("LLM"):
+        return "PG"
+    if s_nodot.startswith("LLB"):
+        return "UG"
     if s.startswith("M"):
         return "PG"
     if s.startswith("B") or "DIPLOMA" in s:
