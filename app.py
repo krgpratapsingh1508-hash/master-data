@@ -237,22 +237,58 @@ def build_print_header_css():
 
 
 def render_print_header_style_controls():
-    """Text boxes ke neeche har line ke liye Font Size + Colour ke controls dikhata hai."""
+    """Text boxes ke neeche har line ke liye Font Size + Colour ke controls dikhata hai.
+    🆕 Ab isme do naye cheezein hain:
+    1. 🔒 Lock/Unlock Button — jab Lock ho, to koi bhi galti se Font Size/Colour badal
+       nahi sakta (sabhi number_input/color_picker/reset button disable ho jaate hain).
+    2. 👁️ Live Preview — screen par turant dikha deta hai ki chuna hua Size/Colour print
+       me kaisa dikhega, taaki bina print kiye hi confirm ho jaaye ki setting kaam kar rahi hai."""
+    if "p2_hdr_style_locked" not in st.session_state:
+        st.session_state.p2_hdr_style_locked = False
+
     def _reset_header_styles():
         for _k, *_rest in PRINT_HEADER_LINES:
             st.session_state.pop(_hdr_style_key(_k, "size"), None)
             st.session_state.pop(_hdr_style_key(_k, "color"), None)
 
-    st.markdown("**🎨 हर हेडर लाइन का Font Size (px) और Colour**")
+    lock_col1, lock_col2 = st.columns([5, 2])
+    with lock_col1:
+        st.markdown("**🎨 हर हेडर लाइन का Font Size (px) और Colour**")
+    with lock_col2:
+        is_locked_now = st.session_state.p2_hdr_style_locked
+        lock_btn_label = "🔒 Locked — खोलने हेतु क्लिक करें" if is_locked_now else "🔓 Unlocked — लॉक हेतु क्लिक करें"
+        if st.button(lock_btn_label, key="p2_hdr_style_lock_toggle_btn", use_container_width=True,
+                     type="secondary" if is_locked_now else "primary"):
+            st.session_state.p2_hdr_style_locked = not is_locked_now
+            st.rerun()
+
+    is_locked = st.session_state.p2_hdr_style_locked
+    if is_locked:
+        st.caption("🔒 **सेटिंग्स लॉक हैं** — गलती से Font Size/Colour नहीं बदल सकते। बदलने के लिए पहले ऊपर वाला बटन दबाकर Unlock करें।")
+
     cols = st.columns(len(PRINT_HEADER_LINES))
-    for col, (key, _cls, label, d_px, d_color, _extra) in zip(cols, PRINT_HEADER_LINES):
+    for col, (key, css_class, label, d_px, d_color, extra) in zip(cols, PRINT_HEADER_LINES):
         with col:
             st.number_input(f"{label} — Font Size (px)", min_value=PRINT_HEADER_MIN_PX,
                             max_value=PRINT_HEADER_MAX_PX, value=d_px, step=1,
-                            key=_hdr_style_key(key, "size"))
-            st.color_picker(f"{label} — Colour", value=d_color, key=_hdr_style_key(key, "color"))
+                            key=_hdr_style_key(key, "size"), disabled=is_locked)
+            st.color_picker(f"{label} — Colour", value=d_color, key=_hdr_style_key(key, "color"),
+                             disabled=is_locked)
+
+    # 👁️ Live Preview: yahi par turant dikha do ki Print me yeh size/colour kaisa dikhega —
+    # print kiye bina hi turant confirm ho jaayega ki setting effect kar rahi hai.
+    st.markdown("**👁️ Live Preview (यह असली Print जैसा ही दिखेगा):**")
+    current_styles = get_print_header_styles()
+    preview_html = ('<div style="border:1px dashed #C9973F; border-radius:6px; padding:10px 14px; '
+                     'background:#fff; text-align:center;">')
+    for key, css_class, label, d_px, d_color, extra in PRINT_HEADER_LINES:
+        px, color = current_styles[key]
+        preview_html += f'<div style="font-size:{px}px; color:{color}; {extra}">{label} — नमूना टेक्स्ट (Sample)</div>'
+    preview_html += "</div>"
+    st.markdown(preview_html, unsafe_allow_html=True)
+
     st.button("↩️ Font Size / Colour Default पर वापस", key="p2_hdr_style_reset_btn",
-              on_click=_reset_header_styles)
+              on_click=_reset_header_styles, disabled=is_locked)
 
 
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
