@@ -5173,11 +5173,10 @@ else:
                             edited_master_db = ordered_db_display
                         else:
                             # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
-                            # 🗑️ रो डिलीट करने के लिए एक छोटा सा टिक (✔️) कॉलम इसी ग्रिड में जोड़ा गया है —
-                            #    यह डेटा का हिस्सा नहीं है, सिर्फ़ सिलेक्शन के लिए है और सेव के वक़्त अपने आप हट जाता है।
+                            # 🗑️ रो डिलीट करने के लिए अब ग्रिड का बिल्ट-इन सिलेक्शन चेकबॉक्स (सबसे बाईं ओर वाला) इस्तेमाल होगा —
+                            #    उस चेकबॉक्स पर टिक लगाएं (रो लाल हाइलाइट हो जाएगी), फिर Delete key दबाएं या ऊपर आए 🗑️ आइकन पर क्लिक करें,
+                            #    और अंत में नीचे "🗑️ Delete Selected Rows" बटन दबाकर लाइव डेटाबेस से स्थायी रूप से हटाएं।
                             editor_source_df = ordered_db_display.copy()
-                            delete_col_name = "✔️"
-                            editor_source_df.insert(1, delete_col_name, False)
 
                             edited_master_db = st.data_editor(
                                 editor_source_df,
@@ -5185,26 +5184,21 @@ else:
                                 disabled=disabled_fields,
                                 hide_index=True,
                                 num_rows="dynamic",
-                                column_config={
-                                    delete_col_name: st.column_config.CheckboxColumn(
-                                        delete_col_name,
-                                        help="जिस रो को हटाना है उसका टिक लगाएं, फिर नीचे Delete बटन दबाएँ।",
-                                        default=False,
-                                        width="small"
-                                    )
-                                },
                                 key="p15_supreme_master_live_editor_grid"
                             )
 
-                            rows_marked_for_delete = edited_master_db[edited_master_db[delete_col_name] == True] if delete_col_name in edited_master_db.columns else edited_master_db.iloc[0:0]
+                            # जिन रो को ग्रिड के बिल्ट-इन चेकबॉक्स + Delete key/आइकन से हटाया गया है
+                            # (लेकिन अभी लाइव डेटाबेस में स्थायी रूप से सेव नहीं हुआ), उन्हें यहाँ पहचानें
+                            removed_index_labels = [idx for idx in editor_source_df.index if idx not in edited_master_db.index]
+                            rows_marked_for_delete = ordered_db_display.loc[removed_index_labels] if removed_index_labels else ordered_db_display.iloc[0:0]
 
                             del_col1, del_col2 = st.columns([3, 1])
                             with del_col1:
                                 if not rows_marked_for_delete.empty:
-                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो पर ✔️ टिक लगा है — नीचे Delete बटन दबाने पर ये स्थायी रूप से हट जाएँगी।")
+                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो ग्रिड से हटाई गई हैं — नीचे Delete बटन दबाने पर ये लाइव डेटाबेस से स्थायी रूप से हट जाएँगी।")
                             with del_col2:
                                 if st.button(
-                                    "🗑️ Delete Ticked Rows",
+                                    "🗑️ Delete Selected Rows",
                                     type="primary",
                                     use_container_width=True,
                                     disabled=rows_marked_for_delete.empty,
@@ -5218,7 +5212,7 @@ else:
                         
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
-                                clean_edited_master = edited_master_db.drop(columns=["S.No.", "✔️"], errors="ignore")
+                                clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
                                 display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                                 clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
                                 save_live_data(clean_edited_master)
