@@ -5159,6 +5159,45 @@ else:
                                     save_live_data(live_db)
                                     st.success("🎉 एक खाली रो डेटाबेस के अंत में जोड़ दी गई है!")
                                     st.rerun()
+
+                                st.markdown("---")
+                                st.markdown("##### 🗑️ रो चुनकर हटाएं (Select Row to Delete)")
+
+                                if live_db.empty:
+                                    st.info("💡 डेटाबेस में फ़िलहाल हटाने के लिए कोई रो मौजूद नहीं है।")
+                                else:
+                                    id_col_candidates = [c for c in ["Student Name", "Application Number", "Father Name"] if c in live_db.columns]
+
+                                    def _row_label(pos):
+                                        parts = [f"S.No {pos + 1}"]
+                                        for c in id_col_candidates:
+                                            val = str(live_db.iloc[pos][c]).strip()
+                                            if val and val.lower() != "nan":
+                                                parts.append(val)
+                                        return " — ".join(parts)
+
+                                    row_to_delete_pos = st.selectbox(
+                                        "हटाने के लिए रो चुनें (S.No. के अनुसार):",
+                                        options=list(range(len(live_db))),
+                                        format_func=_row_label,
+                                        key="p15_row_to_delete_select"
+                                    )
+                                    confirm_row_del = st.checkbox(
+                                        "हाँ, मैं इस रो का पूरा डेटा स्थायी रूप से हटाना चाहता हूँ।",
+                                        key="p15_confirm_row_del_chk"
+                                    )
+                                    if st.button(
+                                        "🗑️ DELETE SELECTED ROW PERMANENTLY",
+                                        type="primary",
+                                        use_container_width=True,
+                                        disabled=not confirm_row_del,
+                                        key="p15_delete_row_btn"
+                                    ):
+                                        row_index_label = live_db.index[row_to_delete_pos]
+                                        live_db = live_db.drop(index=row_index_label).reset_index(drop=True)
+                                        save_live_data(live_db)
+                                        st.error(f"💥 चुनी गई रो (S.No {row_to_delete_pos + 1}) डेटाबेस से हटा दी गई है!")
+                                        st.rerun()
                         
                         st.markdown("---")
                         
