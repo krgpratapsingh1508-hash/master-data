@@ -5161,7 +5161,7 @@ else:
                                     st.rerun()
 
                                 st.markdown("---")
-                                st.markdown("##### 🗑️ रो चुनकर हटाएं (Select Row to Delete)")
+                                st.markdown("##### 🗑️ एक या सभी रो चुनकर हटाएं (Select / Select-All Rows to Delete)")
 
                                 if live_db.empty:
                                     st.info("💡 डेटाबेस में फ़िलहाल हटाने के लिए कोई रो मौजूद नहीं है।")
@@ -5176,27 +5176,40 @@ else:
                                                 parts.append(val)
                                         return " — ".join(parts)
 
-                                    row_to_delete_pos = st.selectbox(
-                                        "हटाने के लिए रो चुनें (S.No. के अनुसार):",
-                                        options=list(range(len(live_db))),
-                                        format_func=_row_label,
-                                        key="p15_row_to_delete_select"
+                                    all_row_positions = list(range(len(live_db)))
+                                    all_row_labels = {pos: _row_label(pos) for pos in all_row_positions}
+
+                                    select_all_rows = st.checkbox(
+                                        "✅ सभी रो सिलेक्ट करें (Select All Rows)",
+                                        key="p15_select_all_rows_chk"
                                     )
-                                    confirm_row_del = st.checkbox(
-                                        "हाँ, मैं इस रो का पूरा डेटा स्थायी रूप से हटाना चाहता हूँ।",
-                                        key="p15_confirm_row_del_chk"
+
+                                    rows_to_delete_pos = st.multiselect(
+                                        "हटाने के लिए एक, कई, या सभी रो चुनें:",
+                                        options=all_row_positions,
+                                        default=all_row_positions if select_all_rows else [],
+                                        format_func=lambda pos: all_row_labels[pos],
+                                        key="p15_rows_to_delete_multiselect"
+                                    )
+
+                                    if rows_to_delete_pos:
+                                        st.warning(f"⚠️ कुल {len(rows_to_delete_pos)} रो चुनी गई हैं — ये सभी हटाई जाएँगी।")
+
+                                    confirm_multi_row_del = st.checkbox(
+                                        "हाँ, मैं चुनी गई सभी रो(s) का डेटा स्थायी रूप से हटाना चाहता हूँ।",
+                                        key="p15_confirm_multi_row_del_chk"
                                     )
                                     if st.button(
-                                        "🗑️ DELETE SELECTED ROW PERMANENTLY",
+                                        "🗑️ DELETE ALL SELECTED ROWS PERMANENTLY",
                                         type="primary",
                                         use_container_width=True,
-                                        disabled=not confirm_row_del,
-                                        key="p15_delete_row_btn"
+                                        disabled=not (confirm_multi_row_del and rows_to_delete_pos),
+                                        key="p15_delete_multi_row_btn"
                                     ):
-                                        row_index_label = live_db.index[row_to_delete_pos]
-                                        live_db = live_db.drop(index=row_index_label).reset_index(drop=True)
+                                        row_index_labels = [live_db.index[pos] for pos in rows_to_delete_pos]
+                                        live_db = live_db.drop(index=row_index_labels).reset_index(drop=True)
                                         save_live_data(live_db)
-                                        st.error(f"💥 चुनी गई रो (S.No {row_to_delete_pos + 1}) डेटाबेस से हटा दी गई है!")
+                                        st.error(f"💥 कुल {len(rows_to_delete_pos)} रो डेटाबेस से हटा दी गई हैं!")
                                         st.rerun()
                         
                         st.markdown("---")
