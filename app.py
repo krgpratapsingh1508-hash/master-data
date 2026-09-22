@@ -5161,55 +5161,46 @@ else:
                                     st.rerun()
 
                                 st.markdown("---")
-                                st.markdown("##### 🗑️ एक या सभी रो चुनकर हटाएं (Select / Select-All Rows to Delete)")
+                                st.markdown("##### 🗑️ चेकबॉक्स से रो चुनकर हटाएं (Click Checkbox to Select Rows, then Delete)")
 
                                 if live_db.empty:
                                     st.info("💡 डेटाबेस में फ़िलहाल हटाने के लिए कोई रो मौजूद नहीं है।")
                                 else:
-                                    id_col_candidates = [c for c in ["Student Name", "Application Number", "Father Name"] if c in live_db.columns]
+                                    st.caption("👇 नीचे टेबल में रो के बाएँ तरफ़ मौजूद चेकबॉक्स पर क्लिक करके एक या कई रो चुनें (हेडर वाला चेकबॉक्स सभी को सिलेक्ट कर देगा), फिर नीचे डिलीट बटन दबाएँ।")
 
-                                    def _row_label(pos):
-                                        parts = [f"S.No {pos + 1}"]
-                                        for c in id_col_candidates:
-                                            val = str(live_db.iloc[pos][c]).strip()
-                                            if val and val.lower() != "nan":
-                                                parts.append(val)
-                                        return " — ".join(parts)
+                                    delete_view_df = ordered_db_display.copy()
 
-                                    all_row_positions = list(range(len(live_db)))
-                                    all_row_labels = {pos: _row_label(pos) for pos in all_row_positions}
-
-                                    select_all_rows = st.checkbox(
-                                        "✅ सभी रो सिलेक्ट करें (Select All Rows)",
-                                        key="p15_select_all_rows_chk"
+                                    row_delete_selector_event = st.dataframe(
+                                        delete_view_df,
+                                        use_container_width=True,
+                                        hide_index=True,
+                                        on_select="rerun",
+                                        selection_mode="multi-row",
+                                        key="p15_row_delete_selector_df"
                                     )
 
-                                    rows_to_delete_pos = st.multiselect(
-                                        "हटाने के लिए एक, कई, या सभी रो चुनें:",
-                                        options=all_row_positions,
-                                        default=all_row_positions if select_all_rows else [],
-                                        format_func=lambda pos: all_row_labels[pos],
-                                        key="p15_rows_to_delete_multiselect"
-                                    )
+                                    selected_row_positions = []
+                                    if row_delete_selector_event and hasattr(row_delete_selector_event, "selection"):
+                                        selected_row_positions = list(row_delete_selector_event.selection.get("rows", []))
 
-                                    if rows_to_delete_pos:
-                                        st.warning(f"⚠️ कुल {len(rows_to_delete_pos)} रो चुनी गई हैं — ये सभी हटाई जाएँगी।")
+                                    if selected_row_positions:
+                                        st.warning(f"⚠️ कुल {len(selected_row_positions)} रो चुनी गई हैं — ये सभी हटाई जाएँगी।")
 
                                     confirm_multi_row_del = st.checkbox(
                                         "हाँ, मैं चुनी गई सभी रो(s) का डेटा स्थायी रूप से हटाना चाहता हूँ।",
                                         key="p15_confirm_multi_row_del_chk"
                                     )
                                     if st.button(
-                                        "🗑️ DELETE ALL SELECTED ROWS PERMANENTLY",
+                                        "🗑️ DELETE SELECTED ROWS PERMANENTLY",
                                         type="primary",
                                         use_container_width=True,
-                                        disabled=not (confirm_multi_row_del and rows_to_delete_pos),
+                                        disabled=not (confirm_multi_row_del and selected_row_positions),
                                         key="p15_delete_multi_row_btn"
                                     ):
-                                        row_index_labels = [live_db.index[pos] for pos in rows_to_delete_pos]
+                                        row_index_labels = [live_db.index[pos] for pos in selected_row_positions]
                                         live_db = live_db.drop(index=row_index_labels).reset_index(drop=True)
                                         save_live_data(live_db)
-                                        st.error(f"💥 कुल {len(rows_to_delete_pos)} रो डेटाबेस से हटा दी गई हैं!")
+                                        st.error(f"💥 कुल {len(selected_row_positions)} रो डेटाबेस से हटा दी गई हैं!")
                                         st.rerun()
                         
                         st.markdown("---")
