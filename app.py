@@ -5178,6 +5178,13 @@ else:
                             #    और अंत में नीचे "🗑️ Delete Selected Rows" बटन दबाकर लाइव डेटाबेस से स्थायी रूप से हटाएं।
                             editor_source_df = ordered_db_display.copy()
 
+                            st.info(
+                                "☑️ **रो हटाने का तरीका:** जिस रो को हटाना है उसके सबसे बाईं ओर वाले चेकबॉक्स पर टिक लगाएं "
+                                "(रो लाल हाइलाइट हो जाएगी) → फिर अपने **कीबोर्ड से Delete या Backspace key दबाएं** "
+                                "(सिर्फ़ टिक लगाने से रो डिलीट नहीं होती, सिर्फ़ सिलेक्ट होती है) → रो ग्रिड से गायब हो जाएगी → "
+                                "अब नीचे **'🗑️ Delete Selected Rows'** बटन दबाकर इसे लाइव डेटाबेस से स्थायी रूप से हटाएं।"
+                            )
+
                             edited_master_db = st.data_editor(
                                 editor_source_df,
                                 use_container_width=True,
