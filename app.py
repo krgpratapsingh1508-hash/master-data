@@ -5173,75 +5173,28 @@ else:
                             edited_master_db = ordered_db_display
                         else:
                             # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
-                            # 🗑️ रो डिलीट करने के लिए एक छोटा सा टिक (✔️) कॉलम इसी ग्रिड में जोड़ा गया है —
-                            #    यह डेटा का हिस्सा नहीं है, सिर्फ़ सिलेक्शन के लिए है और सेव के वक़्त अपने आप हट जाता है।
-                            #    (नोट: यह Streamlit के "native" row-select delete से ज़्यादा भरोसेमंद है,
-                            #     क्योंकि यह सीधे बटन-क्लिक पर Python कोड से डिलीट करता है।)
-                            # 🆔 हर रो की असली पहचान (live_db का असली index) एक छिपे हुए कॉलम में रख देते हैं।
-                            #    st.data_editor (num_rows="dynamic") अपने-आप एक नया 0,1,2... index बना देता है,
-                            #    इसलिए पुराने कोड में टिक की हुई रो का असली index कभी-कभी गलत मैच हो जाता था
-                            #    और Delete बटन दबाने पर भी रो डिलीट नहीं होती थी। अब हम index पर भरोसा नहीं करते,
-                            #    बल्कि इस "_row_id" कॉलम की मदद से सही रो पहचानते हैं — इसलिए डिलीट हमेशा सही काम करेगा।
-                            editor_source_df = ordered_db_display.copy()
-                            editor_source_df.insert(0, "_row_id", live_db.index)
-
-                            delete_col_name = " "  # 🔲 अब कॉलम हेडर में "✔️" टेक्स्ट नहीं दिखेगा — सिर्फ़ खाली टिक-बॉक्स कॉलम
-                            editor_source_df.insert(2, delete_col_name, False)
-
-                            # 👀 "_row_id" यूज़र को नहीं दिखाना — सिर्फ़ बाकी सारे कॉलम दिखाएँ (order वैसा ही रहेगा)
-                            visible_columns_order = [c for c in editor_source_df.columns if c != "_row_id"]
-
+                            # 🗑️ रो डिलीट करने के लिए अलग से कोई कस्टम टिक कॉलम नहीं जोड़ा गया है।
+                            #    num_rows="dynamic" होने की वजह से Streamlit खुद-ब-खुद हर रो के बाईं ओर
+                            #    एक सिलेक्शन चेकबॉक्स दिखाता है (माउस ले जाने/क्लिक करने पर दिखता है) —
+                            #    उसी पर टिक लगाकर ऊपर बने 🗑️ (ट्रैश) आइकन से रो को हटाया जा सकता है।
+                            #    रो हटाने के बाद नीचे "💾 Save Grid Changes" बटन दबाना ज़रूरी है, तभी बदलाव
+                            #    स्थायी रूप से CSV फ़ाइल में सेव होंगे।
                             edited_master_db = st.data_editor(
-                                editor_source_df,
+                                ordered_db_display,
                                 use_container_width=True,
-                                disabled=disabled_fields + ["_row_id"],
+                                disabled=disabled_fields,
                                 hide_index=True,
                                 num_rows="dynamic",
-                                column_order=visible_columns_order,
-                                column_config={
-                                    "_row_id": None,  # पक्का हिडन रहे
-                                    delete_col_name: st.column_config.CheckboxColumn(
-                                        delete_col_name,
-                                        help="जिस रो को हटाना है उसका टिक लगाएं, फिर नीचे Delete बटन दबाएँ।",
-                                        default=False,
-                                        width="small"
-                                    )
-                                },
                                 key="p15_supreme_master_live_editor_grid"
                             )
-
-                            rows_marked_for_delete = edited_master_db[edited_master_db[delete_col_name] == True] if delete_col_name in edited_master_db.columns else edited_master_db.iloc[0:0]
-
-                            del_col1, del_col2 = st.columns([3, 1])
-                            with del_col1:
-                                if not rows_marked_for_delete.empty:
-                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो पर टिक लगा है — नीचे Delete बटन दबाने पर ये स्थायी रूप से हट जाएँगी।")
-                            with del_col2:
-                                if st.button(
-                                    "🗑️ Delete Ticked Rows",
-                                    type="primary",
-                                    use_container_width=True,
-                                    disabled=rows_marked_for_delete.empty,
-                                    key="p15_delete_ticked_rows_btn"
-                                ):
-                                    # 🎯 असली डिलीट यहीं "_row_id" कॉलम की मदद से होता है, data_editor के
-                                    #    अपने-आप बदले हुए index की मदद से नहीं — यही पुराना बग था।
-                                    row_ids_to_delete = [
-                                        rid for rid in rows_marked_for_delete["_row_id"].tolist()
-                                        if pd.notna(rid) and rid in live_db.index
-                                    ]
-                                    live_db = live_db.drop(index=row_ids_to_delete).reset_index(drop=True)
-                                    save_live_data(live_db)
-                                    st.error(f"💥 कुल {len(row_ids_to_delete)} रो डेटाबेस से हटा दी गई हैं!")
-                                    st.rerun()
                         
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
-                                clean_edited_master = edited_master_db.drop(columns=["S.No.", "✔️", " ", "_row_id"], errors="ignore")
+                                clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
                                 display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                                 clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
                                 save_live_data(clean_edited_master)
-                                st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                                st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं! (Rows जो आपने हटाई थीं, वो भी अब हट गई हैं)")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
