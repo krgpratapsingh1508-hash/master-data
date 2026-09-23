@@ -5109,7 +5109,7 @@ else:
 
                 st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
                 
-                if ordered_db_display.empty:
+                if live_db.empty:
                     st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
                 else:
                     if st.session_state.admin_lock_state:
