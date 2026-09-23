@@ -5219,6 +5219,10 @@ else:
                                     ]
                                     live_db = live_db.drop(index=row_ids_to_delete).reset_index(drop=True)
                                     save_live_data(live_db)
+                                    # 🧹 डिलीट के बाद पुराना सिलेक्शन (लाल टिक) अपने-आप साफ़ कर देते हैं,
+                                    #    वरना अगली बार ग्रिड में गलत/पुरानी रो पर टिक दिखता रह जाता है।
+                                    if "p15_master_delete_selector" in st.session_state:
+                                        del st.session_state["p15_master_delete_selector"]
                                     st.error(f"💥 कुल {len(row_ids_to_delete)} रो डेटाबेस से हटा दी गई हैं!")
                                     st.rerun()
 
