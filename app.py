@@ -5092,7 +5092,18 @@ else:
 
                 # फ़ील्ड्स और ऑर्डर्स मैपिंग
                 render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
-                ordered_db = live_db[render_columns].copy()
+
+                # 🕓 "पेंडिंग डिलीट" स्टेज: जब तक "Save Grid Changes" बटन नहीं दबाया जाता, तब तक Delete
+                #    सिर्फ़ रो को व्यू से छुपाता है — असली CSV फ़ाइल में कुछ भी परमानेंट डिलीट नहीं होता।
+                if "p15_pending_delete_ids" not in st.session_state:
+                    st.session_state.p15_pending_delete_ids = set()
+
+                live_db_for_display = live_db.drop(
+                    index=[i for i in st.session_state.p15_pending_delete_ids if i in live_db.index],
+                    errors="ignore"
+                )
+
+                ordered_db = live_db_for_display[render_columns].copy()
                 ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
                 ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
@@ -5183,8 +5194,17 @@ else:
                             # 🆔 हर रो की असली पहचान (live_db का असली index) एक छिपे हुए कॉलम "_row_id" में
                             #    रखते हैं, ताकि सही रो ही डिलीट हो — गलत रो डिलीट होने वाली दिक्कत दोबारा न आए।
                             select_source_df = ordered_db_display.copy()
-                            select_source_df.insert(0, "_row_id", live_db.index)
+                            select_source_df.insert(0, "_row_id", live_db_for_display.index)
                             visible_columns_order = [c for c in select_source_df.columns if c != "_row_id"]
+
+                            if st.session_state.p15_pending_delete_ids:
+                                pend_col1, pend_col2 = st.columns([3, 1])
+                                with pend_col1:
+                                    st.info(f"🕓 {len(st.session_state.p15_pending_delete_ids)} रो अभी सिर्फ़ छुपाई गई हैं (Hidden), CSV फ़ाइल में अभी तक permanent delete नहीं हुई हैं। पक्का करने के लिए नीचे **💾 Save Grid Changes** बटन दबाएँ।")
+                                with pend_col2:
+                                    if st.button("↩️ Undo Pending Deletes", use_container_width=True, key="p15_undo_pending_delete_btn"):
+                                        st.session_state.p15_pending_delete_ids = set()
+                                        st.rerun()
 
                             st.caption("🔴 जिस रो को डिलीट करना है, उसे नीचे टेबल में क्लिक करके सिलेक्ट करें (रो लाल हो जाएगी), फिर Delete बटन दबाएँ।")
 
@@ -5212,7 +5232,7 @@ else:
                             del_col1, del_col2 = st.columns([3, 1])
                             with del_col1:
                                 if not rows_marked_for_delete.empty:
-                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो सिलेक्ट हैं — नीचे Delete बटन दबाने पर ये स्थायी रूप से हट जाएँगी।")
+                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो सिलेक्ट हैं — Delete बटन दबाने पर ये टेबल से छुप जाएँगी (अभी CSV में permanent नहीं होंगी, उसके लिए Save Grid Changes दबाना होगा)।")
                             with del_col2:
                                 if st.button(
                                     "🗑️ Delete Selected Rows",
@@ -5225,11 +5245,13 @@ else:
                                         rid for rid in rows_marked_for_delete["_row_id"].tolist()
                                         if pd.notna(rid) and rid in live_db.index
                                     ]
-                                    live_db = live_db.drop(index=row_ids_to_delete).reset_index(drop=True)
-                                    save_live_data(live_db)
+                                    # ⛔ यहाँ अभी save_live_data() नहीं बुलाया जा रहा — रो सिर्फ़ पेंडिंग-लिस्ट में
+                                    #    जुड़ रही है और व्यू से छुप जाएगी। असली/permanent CSV डिलीट सिर्फ़
+                                    #    "💾 Save Grid Changes to Master CSV File" बटन दबाने पर ही होगा।
+                                    st.session_state.p15_pending_delete_ids.update(row_ids_to_delete)
                                     # 🧹 अगली बार टेबल बिल्कुल नई "key" के साथ बनेगी → टिक अपने-आप साफ़
                                     st.session_state.p15_delete_selector_version += 1
-                                    st.error(f"💥 कुल {len(row_ids_to_delete)} रो डेटाबेस से हटा दी गई हैं!")
+                                    st.warning(f"🕓 कुल {len(row_ids_to_delete)} रो अस्थायी रूप से छुपाई गई हैं — Save Grid Changes दबाने पर ही permanent डिलीट होंगी।")
                                     st.rerun()
 
                             # 👆 यही ऊपर वाली टेबल है — इसी से डिलीट होता है, कोई अलग एडिट-लिस्ट नहीं बनाई गई है।
@@ -5241,7 +5263,10 @@ else:
                                 display_to_orig_map = {get_display_name(c): c for c in live_db.columns}
                                 clean_edited_master = clean_edited_master.rename(columns=display_to_orig_map)
                                 save_live_data(clean_edited_master)
-                                st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं!")
+                                # ✅ यही वह पल है जब पेंडिंग डिलीट रो असल में CSV से permanent हटती हैं
+                                #    (ऊपर की टेबल पहले से ही इन्हें छुपाकर दिखा रही थी, अब सेव भी हो गया)
+                                st.session_state.p15_pending_delete_ids = set()
+                                st.success("🎉 संपूर्ण मास्टर चेंजेस लाइव डेटाबेस फ़ाइल में सुरक्षित अपडेट हो गए हैं! (Pending delete रो भी अब permanent हट गई हैं)")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
