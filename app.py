@@ -1946,7 +1946,8 @@ else:
                         return base + (" " + _remark_col_style if col_name == remark_display_label else "")
 
                     def _td_style(col_name):
-                        base = f"border:1px solid #111; {_uniform_row_style} {_row_height_style} text-align:left; vertical-align:top;"
+                        align = "center" if col_name == "S. No." else "left"
+                        base = f"border:1px solid #111; {_uniform_row_style} {_row_height_style} text-align:{align}; vertical-align:top;"
                         return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
 
                     headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
