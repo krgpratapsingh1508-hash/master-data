@@ -1970,7 +1970,19 @@ else:
                     <html>
                     <head>
                         <style>
-                            @page {{ size: A4 {orientation_css}; margin: 8mm; }}
+                            @page {{
+                                size: A4 {orientation_css};
+                                margin: 8mm 8mm 14mm 8mm;
+                            }}
+                            /* 🔢 पेज नंबर — पेज के नीचे बीच में (सपोर्टेड ब्राउज़र्स में अपने-आप हर पेज पर दिखेगा) */
+                            @page {{
+                                @bottom-center {{
+                                    content: "पृष्ठ " counter(page) " / " counter(pages);
+                                    font-size: 10px;
+                                    font-family: Arial, sans-serif;
+                                    color: #333;
+                                }}
+                            }}
                             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
                             .custom-print-header {{
                                 width: 100%; border: 2px solid #0F2A4A; background-color: #EEF2F8;
