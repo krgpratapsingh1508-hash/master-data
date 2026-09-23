@@ -5413,6 +5413,88 @@ else:
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
 
                         # ======================================================================
+                        # 🔁 नया सब-सिस्टम: Database Find & Replace (पूरे डेटाबेस में ढूंढें और बदलें)
+                        #    किसी भी एक कॉलम में मौजूद किसी वैल्यू को नई वैल्यू से बदलने के लिए
+                        # ======================================================================
+                        if role == "full_admin" and not st.session_state.admin_lock_state:
+                            st.markdown("---")
+                            st.markdown("#### 🔁 Database Find & Replace (डेटाबेस में ढूंढें और बदलें)")
+                            st.caption("किसी एक कॉलम को चुनें, जो वैल्यू ढूंढनी है वो लिखें, और जिससे बदलनी है वो लिखें — यह पूरे मास्टर डेटाबेस में लागू होगा।")
+
+                            fr_col1, fr_col2, fr_col3 = st.columns(3)
+                            with fr_col1:
+                                fr_target_col = st.selectbox(
+                                    "🎯 किस कॉलम में बदलना है:",
+                                    options=list(live_db.columns),
+                                    key="p15_find_replace_col"
+                                )
+                            with fr_col2:
+                                fr_find_val = st.text_input("🔍 ढूंढें (Find):", key="p15_find_replace_find_val")
+                            with fr_col3:
+                                fr_replace_val = st.text_input("✏️ इससे बदलें (Replace With):", key="p15_find_replace_new_val")
+
+                            fr_opt1, fr_opt2 = st.columns(2)
+                            with fr_opt1:
+                                fr_match_mode = st.radio(
+                                    "मिलान का तरीक़ा (Match Type):",
+                                    options=["🎯 पूरी वैल्यू बिल्कुल मैच हो (Exact Match)", "🔎 वैल्यू के अंदर कहीं भी मौजूद हो (Contains / Partial)"],
+                                    key="p15_find_replace_match_mode"
+                                )
+                            with fr_opt2:
+                                fr_case_sensitive = st.checkbox("🔠 Case Sensitive (बड़े/छोटे अक्षर का फ़र्क़ माना जाए)", value=False, key="p15_find_replace_case_sensitive")
+
+                            fr_exact_mode = fr_match_mode.startswith("🎯")
+
+                            def _fr_series_for_compare(series):
+                                s = series.astype(str)
+                                return s if fr_case_sensitive else s.str.lower()
+
+                            fr_find_compare = fr_find_val if fr_case_sensitive else fr_find_val.lower()
+
+                            if fr_find_val.strip() != "" and fr_target_col in live_db.columns:
+                                compare_series = _fr_series_for_compare(live_db[fr_target_col])
+                                if fr_exact_mode:
+                                    fr_match_mask = compare_series == fr_find_compare
+                                else:
+                                    fr_match_mask = compare_series.str.contains(re.escape(fr_find_compare), na=False)
+                                fr_match_count = int(fr_match_mask.sum())
+                            else:
+                                fr_match_mask = None
+                                fr_match_count = 0
+
+                            if fr_find_val.strip() != "":
+                                st.info(f"🔍 **{fr_match_count}** रिकॉर्ड्स में `{fr_target_col}` कॉलम का मिलान मिला।")
+
+                            fr_confirm = st.checkbox(
+                                f"हाँ, मैं `{fr_target_col}` कॉलम में `{fr_find_val}` को `{fr_replace_val}` से बदलना चाहता हूँ।",
+                                key="p15_find_replace_confirm_chk",
+                                disabled=(fr_match_count == 0)
+                            )
+
+                            if st.button(
+                                "🔁 Apply Find & Replace to Database",
+                                type="primary",
+                                use_container_width=True,
+                                disabled=(fr_match_count == 0 or not fr_confirm),
+                                key="p15_find_replace_apply_btn"
+                            ):
+                                try:
+                                    if fr_exact_mode:
+                                        live_db.loc[fr_match_mask, fr_target_col] = fr_replace_val
+                                    else:
+                                        col_as_str = live_db[fr_target_col].astype(str)
+                                        if fr_case_sensitive:
+                                            live_db.loc[fr_match_mask, fr_target_col] = col_as_str[fr_match_mask].str.replace(fr_find_val, fr_replace_val, regex=False)
+                                        else:
+                                            live_db.loc[fr_match_mask, fr_target_col] = col_as_str[fr_match_mask].str.replace(fr_find_val, fr_replace_val, case=False, regex=False)
+                                    save_live_data(live_db)
+                                    st.success(f"🎉 सफलता! `{fr_target_col}` कॉलम में कुल {fr_match_count} रिकॉर्ड्स अपडेट होकर मास्टर डेटाबेस में सुरक्षित हो गए हैं।")
+                                    st.session_state["p15_find_replace_confirm_chk"] = False
+                                    st.rerun()
+                                except Exception as fr_err:
+                                    st.error(f"Find & Replace लागू करने में तकनीकी समस्या आई: {fr_err}")
+
+                        # ======================================================================
                         # 🎓 न्यू सब-सिस्टम: Degree + Branch → Subject ऑटो-जेनरेटर
                         #    (Degree के ब्रैकेट में लिखा नंबर अपने-आप Duration कॉलम में चला जाएगा,
                         #     ब्रैकेट/उसका डेटा Degree से हट जाएगा, फिर Degree + Branch जोड़कर
