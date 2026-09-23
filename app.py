@@ -1929,25 +1929,29 @@ else:
                     records_list = final_p2_render.to_dict(orient="records")
                     
                     # 📐 Remark कॉलम के लिए तय की गई चौड़ाई यहाँ प्रिंट टेबल पर लागू होती है
-                    # (height अब "min-height" की तरह है और सिर्फ़ तभी लगती है जब स्लाइडर 0 से ज़्यादा हो —
-                    #  इसी वजह से पहले खाली जगह/खाली रो जैसी दिखने वाली समस्या आ रही थी, अब वो नहीं आएगी)
+                    # (height अब "min-height" की तरह है और सिर्फ़ तभी लगती है जब स्लाइडर 0 से ज़्यादा हो)
                     _remark_col_style = f"width:{remark_width_px}px; max-width:{remark_width_px}px;"
                     _remark_cell_extra = f" min-height:{remark_height_px}px;" if remark_height_px > 0 else ""
                     _remark_cell_style = f"word-wrap:break-word; white-space:normal;{_remark_cell_extra}"
 
+                    # 🟢 फिक्स: सभी रो का साइज़ एक-समान (compact) रखने और पेज 2/3 पर शुरुआत में
+                    # दिखने वाली खाली जगह घटाने के लिए — कम padding + line-height, और हर <tr> को
+                    # "page-break-inside: avoid" ताकि कोई रो बीच में कटे नहीं (टूटी-फूटी रो से बचाव)
+                    _uniform_row_style = "padding:3px 5px; line-height:1.25; page-break-inside:avoid;"
+
                     def _th_style(col_name):
-                        base = "border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
+                        base = f"border:1px solid #111; {_uniform_row_style} background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
                         return base + (" " + _remark_col_style if col_name == remark_display_label else "")
 
                     def _td_style(col_name):
-                        base = "border:1px solid #111; padding:5px; text-align:left; vertical-align:top;"
+                        base = f"border:1px solid #111; {_uniform_row_style} text-align:left; vertical-align:top;"
                         return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
 
                     headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
                     
                     rows_html = ""
                     for row in records_list:
-                        rows_html += "<tr>"
+                        rows_html += "<tr style='page-break-inside: avoid;'>"
                         for col in columns_list:
                             val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
                             rows_html += f"<td style='{_td_style(col)}'>{val}</td>"
@@ -1965,7 +1969,9 @@ else:
                                 box-sizing: border-box; text-align: center;
                             }}
                             {header_style_css}
-                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
+                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; page-break-inside: auto; }}
+                            thead {{ display: table-header-group; }}
+                            tr {{ page-break-inside: avoid; page-break-after: auto; }}
                         </style>
                     </head>
                     <body>
