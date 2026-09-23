@@ -1977,7 +1977,7 @@ else:
                             /* 🔢 पेज नंबर — पेज के नीचे बीच में (सपोर्टेड ब्राउज़र्स में अपने-आप हर पेज पर दिखेगा) */
                             @page {{
                                 @bottom-center {{
-                                    content: "पृष्ठ " counter(page) " / " counter(pages);
+                                    content: "Page No. " counter(page) " / " counter(pages);
                                     font-size: 10px;
                                     font-family: Arial, sans-serif;
                                     color: #333;
