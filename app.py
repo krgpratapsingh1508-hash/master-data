@@ -779,6 +779,200 @@ def get_display_name(internal_col_name):
 def get_panel_title(panel_id):
     return st.session_state.panel_names.get(panel_id, DEFAULT_PANELS[panel_id])
 
+# ==========================================================
+# 🔎 P15 इनलाइन-फ़िल्टर टेबल: हेडर-रो और पहली डेटा-रो के ठीक बीच में हर कॉलम का सर्च बॉक्स
+#    (Streamlit की st.dataframe में यह सुविधा नहीं है, इसलिए यह एक हल्की HTML/JS टेबल है।
+#     फ़िल्टर ब्राउज़र में ही चलता है — टाइप करते ही लाइव, पेज रीलोड/रीरन नहीं होता।)
+#    - कई कॉलम में एक साथ टेक्स्ट भरें तो सभी शर्तें साथ (AND) लागू होती हैं (Contains, केस-इनसेंसिटिव)
+#    - हेडर पर क्लिक करने से Sort (▲/▼); हेडर और सर्च-रो स्क्रॉल करने पर ऊपर चिपकी रहती हैं
+# ==========================================================
+_INLINE_FILTER_TABLE_HTML = """<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:transparent}
+body{font-family:"Source Sans Pro","Segoe UI","Noto Sans Devanagari","Nirmala UI",Arial,sans-serif;font-size:14px;color:#31333f}
+#bar{display:flex;justify-content:space-between;align-items:center;min-height:28px;padding:0 2px 4px;font-size:13px;color:#555}
+#clr{display:none;border:1px solid #d0d4dc;background:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:#31333f}
+#clr:hover{background:#f0f2f6}
+#wrap{border:1px solid #e6e9ef;border-radius:8px;overflow:auto;height:__HEIGHT__px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+table{border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:100%}
+th,td{padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid #eceef3;border-right:1px solid #f1f2f6;text-align:left}
+td{height:35px;line-height:20px}
+td.n{text-align:right;color:#31333f}
+thead th{position:sticky;background:#f7f8fb;z-index:2}
+thead tr.h th{top:0;height:36px;font-weight:400;color:#6b7080;cursor:pointer;user-select:none}
+thead tr.h th:hover{background:#eef0f6}
+thead tr.f th{top:36px;height:40px;padding:4px 5px;background:#fff;cursor:default}
+thead tr.f input{width:100%;height:30px;border:1px solid transparent;background:#f0f2f6;border-radius:6px;padding:0 8px;font-size:13px;font-family:inherit;color:#31333f;outline:none}
+thead tr.f input:focus{border-color:#ff4b4b;background:#fff}
+.ar{font-style:normal;font-size:10px;color:#ff4b4b}
+tbody tr:hover td{background:#f7f9fc}
+</style></head>
+<body>
+<div id="bar"><span id="cnt"></span><button id="clr" type="button">🧹 सर्च साफ़ करें</button></div>
+<div id="wrap"><table id="tbl"><colgroup id="cg"></colgroup><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+<script>
+(function(){
+var D = __DATA__;
+var H = D.headers, R = D.rows, W = D.widths;
+var N = R.length, C = H.length;
+var RH = 35, BUF = 10, HEAD_H = 36, FILT_H = 40;
+var wrap = document.getElementById('wrap');
+var thead = document.getElementById('thead');
+var tbody = document.getElementById('tbody');
+var cnt = document.getElementById('cnt');
+var clr = document.getElementById('clr');
+var filters = []; for (var z = 0; z < C; z++) filters.push('');
+var sortCol = -1, sortDir = 1, view = [], timer = null, ticking = false;
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+var cg = '<col style="width:64px">', total_w = 64;
+for (var w = 0; w < C; w++) { cg += '<col style="width:' + W[w] + 'px">'; total_w += W[w]; }
+document.getElementById('cg').innerHTML = cg;
+document.getElementById('tbl').style.width = total_w + 'px';
+
+var h1 = '<tr class="h"><th>S.No.</th>', h2 = '<tr class="f"><th></th>';
+for (var i = 0; i < C; i++) {
+  h1 += '<th data-c="' + i + '" title="' + esc(H[i]) + '"><span>' + esc(H[i]) + '</span><i class="ar"></i></th>';
+  h2 += '<th><input type="text" data-c="' + i + '" placeholder="🔎 खोजें..." autocomplete="off"></th>';
+}
+thead.innerHTML = h1 + '</tr>' + h2 + '</tr>';
+
+function cmp(x, y){
+  var nx = Number(x), ny = Number(y);
+  if (x.trim() !== '' && y.trim() !== '' && isFinite(nx) && isFinite(ny)) return nx - ny;
+  return x.localeCompare(y, undefined, {numeric: true, sensitivity: 'base'});
+}
+
+function updateArrows(){
+  var ths = thead.querySelectorAll('tr.h th[data-c]');
+  for (var k = 0; k < ths.length; k++) {
+    var c = +ths[k].getAttribute('data-c');
+    ths[k].querySelector('.ar').textContent = (c === sortCol) ? (sortDir === 1 ? ' ▲' : ' ▼') : '';
+  }
+}
+
+function render(){
+  var total = view.length, top = wrap.scrollTop, ch = wrap.clientHeight, hh = HEAD_H + FILT_H;
+  var s = Math.max(0, Math.floor((top - hh) / RH) - BUF);
+  var e = Math.min(total, Math.ceil((top + ch - hh) / RH) + BUF);
+  if (e < s) e = s;
+  var html = '';
+  if (total === 0) {
+    html = '<tr><td colspan="' + (C + 1) + '" style="height:70px;text-align:center;color:#888">कोई रिकॉर्ड मैच नहीं हुआ</td></tr>';
+  } else {
+    if (s > 0) html += '<tr><td colspan="' + (C + 1) + '" style="height:' + (s * RH) + 'px;padding:0;border:0"></td></tr>';
+    for (var p = s; p < e; p++) {
+      var row = R[view[p]];
+      html += '<tr><td class="n">' + (p + 1) + '</td>';
+      for (var c = 0; c < C; c++) {
+        var v = row[c];
+        html += (v.length > 18) ? '<td title="' + esc(v) + '">' + esc(v) + '</td>' : '<td>' + esc(v) + '</td>';
+      }
+      html += '</tr>';
+    }
+    if (e < total) html += '<tr><td colspan="' + (C + 1) + '" style="height:' + ((total - e) * RH) + 'px;padding:0;border:0"></td></tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function recompute(){
+  var act = [];
+  for (var c = 0; c < C; c++) if (filters[c] !== '') act.push(c);
+  var out = [];
+  for (var i = 0; i < N; i++) {
+    var row = R[i], ok = true;
+    for (var k = 0; k < act.length; k++) {
+      if (row[act[k]].toLowerCase().indexOf(filters[act[k]]) === -1) { ok = false; break; }
+    }
+    if (ok) out.push(i);
+  }
+  if (sortCol >= 0) {
+    var sc = sortCol, sd = sortDir;
+    out.sort(function(a, b){
+      var x = R[a][sc], y = R[b][sc];
+      if (x === '' && y === '') return 0;
+      if (x === '') return 1;
+      if (y === '') return -1;
+      return sd * cmp(x, y);
+    });
+  }
+  view = out;
+  if (act.length) {
+    cnt.innerHTML = '🔎 सर्च फ़िल्टर सक्रिय है — कुल <b>' + out.length + '</b> रिकॉर्ड मैच हुए (पूरे <b>' + N + '</b> रिकॉर्ड्स में से)।';
+    clr.style.display = 'inline-block';
+  } else {
+    cnt.innerHTML = '';
+    clr.style.display = 'none';
+  }
+  render();
+}
+
+thead.addEventListener('input', function(ev){
+  var t = ev.target;
+  if (t.tagName !== 'INPUT') return;
+  filters[+t.getAttribute('data-c')] = t.value.trim().toLowerCase();
+  clearTimeout(timer);
+  timer = setTimeout(function(){ wrap.scrollTop = 0; recompute(); }, 120);
+});
+
+thead.addEventListener('click', function(ev){
+  var th = ev.target.closest ? ev.target.closest('tr.h th') : null;
+  if (!th) return;
+  var c = th.getAttribute('data-c');
+  if (c === null) return;
+  c = +c;
+  if (sortCol === c) { if (sortDir === 1) sortDir = -1; else { sortCol = -1; sortDir = 1; } }
+  else { sortCol = c; sortDir = 1; }
+  updateArrows();
+  recompute();
+});
+
+clr.addEventListener('click', function(){
+  var ins = thead.querySelectorAll('tr.f input');
+  for (var k = 0; k < ins.length; k++) ins[k].value = '';
+  for (var z2 = 0; z2 < C; z2++) filters[z2] = '';
+  wrap.scrollTop = 0;
+  recompute();
+});
+
+wrap.addEventListener('scroll', function(){
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(function(){ ticking = false; render(); });
+});
+window.addEventListener('resize', render);
+
+recompute();
+})();
+</script></body></html>"""
+
+
+def render_inline_filter_table(df, height=520):
+    """DataFrame को ऐसी टेबल में दिखाता है जिसमें हेडर-रो और पहली डेटा-रो के बीच हर कॉलम का सर्च बॉक्स होता है।
+    S.No. कॉलम टेबल खुद जोड़ती है (फ़िल्टर/सॉर्ट के बाद 1, 2, 3... दोबारा गिनती है)।"""
+    safe_df = df.fillna("").astype(str)
+    headers = [str(c) for c in safe_df.columns]
+    rows = safe_df.values.tolist()
+
+    widths = []
+    sample = safe_df.head(300)
+    for i, h in enumerate(headers):
+        longest_cell = max([len(v) for v in sample.iloc[:, i].tolist()] or [0])
+        w = max(len(h) * 8 + 40, longest_cell * 8 + 26)
+        widths.append(int(min(max(w, 100), 340)))
+
+    payload = json.dumps({"headers": headers, "rows": rows, "widths": widths}, ensure_ascii=False)
+    # <script> के अंदर सुरक्षित रखने के लिए
+    payload = payload.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+
+    html_doc = _INLINE_FILTER_TABLE_HTML.replace("__HEIGHT__", str(int(height))).replace("__DATA__", payload)
+    components.html(html_doc, height=int(height) + 44, scrolling=False)
+
+
+
 def save_p1_dropdown_schemas():
     P1_SCHEMA_FILE = "p1_dropdown_config_schema.json"
     with open(P1_SCHEMA_FILE, "w", encoding="utf-8") as f:
@@ -5258,6 +5452,8 @@ else:
 
                 ordered_db = live_db_for_display[render_columns].copy()
                 ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
+                # 🛡️ पूरा (बिना सर्च-फ़िल्टर वाला) view — "Save Grid Changes" इसी से सेव होगा, ताकि सर्च चालू होने पर बाकी रिकॉर्ड CSV से गलती से न हट जाएँ
+                ordered_db_display_all = ordered_db_display.copy()
 
                 # ======================================================================
                 # 🔍 हर कॉलम के नाम के ठीक नीचे, टेबल शुरू होने से ठीक पहले सर्च बॉक्स
@@ -5267,7 +5463,9 @@ else:
                 #    टाइप करते ही टेबल लाइव फ़िल्टर होगी (केस-इनसेंसिटिव, "Contains" मैच)।
                 #    कई कॉलम में एक साथ टेक्स्ट भरें तो सभी शर्तें एक साथ (AND) लागू होंगी।
                 # ======================================================================
-                if not live_db.empty:
+                # ℹ️ लॉक (व्यू) मोड में सर्च बॉक्स अब टेबल के अंदर, हेडर और पहली रो के बीच है (render_inline_filter_table)।
+                #    यह ऊपर वाला सर्च-ब्लॉक सिर्फ़ Unlock मोड (रो सिलेक्ट/डिलीट वाली टेबल) के लिए बचा है।
+                if not live_db.empty and not st.session_state.admin_lock_state:
                     search_display_columns = list(ordered_db_display.columns)
                     cols_per_row = 4
                     col_search_values = {}
@@ -5312,8 +5510,8 @@ else:
                     st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
                 else:
                     if st.session_state.admin_lock_state:
-                        # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only)
-                        st.dataframe(ordered_db_display, use_container_width=True, hide_index=True)
+                        # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only) — हेडर और पहली रो के बीच सर्च बॉक्स के साथ
+                        render_inline_filter_table(ordered_db_display.drop(columns=["S.No."], errors="ignore"), height=520)
                     else:
                         # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
                         st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
@@ -5380,7 +5578,7 @@ else:
                                 use_container_width=True, 
                                 hide_index=True
                             )
-                            edited_master_db = ordered_db_display
+                            edited_master_db = ordered_db_display_all
                         else:
                             # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
                             #
@@ -5454,7 +5652,7 @@ else:
                                     st.rerun()
 
                             # 👆 यही ऊपर वाली टेबल है — इसी से डिलीट होता है, कोई अलग एडिट-लिस्ट नहीं बनाई गई है।
-                            edited_master_db = ordered_db_display
+                            edited_master_db = ordered_db_display_all
                         
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
