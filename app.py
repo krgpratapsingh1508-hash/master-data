@@ -5260,31 +5260,27 @@ else:
                 ordered_db_display = ordered_db.rename(columns={c: get_display_name(c) for c in ordered_db.columns})
 
                 # ======================================================================
-                # 🔍 हर कॉलम के नाम के ठीक नीचे सर्च बॉक्स (Per-Column Search Filters)
-                #    हर कॉलम के लिए अलग टेक्स्ट बॉक्स — जो भी टाइप करेंगे, टेबल उसी हिसाब से
-                #    लाइव फ़िल्टर हो जाएगी (केस-इनसेंसिटिव, "Contains" मैच)। कई कॉलम में एक
-                #    साथ टेक्स्ट भरें तो सभी शर्तें एक साथ (AND) लागू होंगी।
+                # 🔍 हर कॉलम के नाम के ठीक नीचे, टेबल शुरू होने से ठीक पहले सर्च बॉक्स
+                #    (कोई अलग बॉक्स/एक्सपैंडर नहीं — यही रो असली टेबल के कॉलम-हेडर की तरह
+                #    काम करती है: हर कॉलम का नाम ऊपर, उसी के नीचे उसी कॉलम का सर्च बॉक्स,
+                #    और उसके ठीक बाद असली डेटा टेबल शुरू हो जाती है)
+                #    टाइप करते ही टेबल लाइव फ़िल्टर होगी (केस-इनसेंसिटिव, "Contains" मैच)।
+                #    कई कॉलम में एक साथ टेक्स्ट भरें तो सभी शर्तें एक साथ (AND) लागू होंगी।
                 # ======================================================================
                 if not live_db.empty:
-                    with st.expander("🔍 हर कॉलम के नीचे सर्च बॉक्स (Column-wise Search)", expanded=True):
-                        search_display_columns = list(ordered_db_display.columns)
-                        cols_per_row = 4
-                        col_search_values = {}
-                        for row_start in range(0, len(search_display_columns), cols_per_row):
-                            row_cols_chunk = search_display_columns[row_start:row_start + cols_per_row]
-                            search_row_widgets = st.columns(len(row_cols_chunk))
-                            for widget_slot, disp_col_name in zip(search_row_widgets, row_cols_chunk):
-                                with widget_slot:
-                                    col_search_values[disp_col_name] = st.text_input(
-                                        disp_col_name,
-                                        key=f"p15_colsearch_{disp_col_name}",
-                                        placeholder="🔎 खोजें..."
-                                    )
-
-                        if st.button("🧹 सभी सर्च बॉक्स साफ़ करें (Clear All Searches)", key="p15_clear_col_search_btn"):
-                            for disp_col_name in search_display_columns:
-                                st.session_state[f"p15_colsearch_{disp_col_name}"] = ""
-                            st.rerun()
+                    search_display_columns = list(ordered_db_display.columns)
+                    cols_per_row = 4
+                    col_search_values = {}
+                    for row_start in range(0, len(search_display_columns), cols_per_row):
+                        row_cols_chunk = search_display_columns[row_start:row_start + cols_per_row]
+                        search_row_widgets = st.columns(len(row_cols_chunk))
+                        for widget_slot, disp_col_name in zip(search_row_widgets, row_cols_chunk):
+                            with widget_slot:
+                                col_search_values[disp_col_name] = st.text_input(
+                                    disp_col_name,
+                                    key=f"p15_colsearch_{disp_col_name}",
+                                    placeholder="🔎 खोजें..."
+                                )
 
                     # फ़िल्टर लागू करें: सिर्फ़ वही रो दिखेंगी जो हर भरे हुए सर्च बॉक्स की शर्त पूरी करें
                     active_filter_mask = pd.Series(True, index=ordered_db_display.index)
@@ -5296,7 +5292,14 @@ else:
                             )
 
                     if not active_filter_mask.all():
-                        st.caption(f"🔎 सर्च फ़िल्टर सक्रिय है — कुल `{active_filter_mask.sum()}` रिकॉर्ड मैच हुए (पूरे `{len(active_filter_mask)}` रिकॉर्ड्स में से)।")
+                        cap_col, clear_col = st.columns([4, 1])
+                        with cap_col:
+                            st.caption(f"🔎 सर्च फ़िल्टर सक्रिय है — कुल `{active_filter_mask.sum()}` रिकॉर्ड मैच हुए (पूरे `{len(active_filter_mask)}` रिकॉर्ड्स में से)।")
+                        with clear_col:
+                            if st.button("🧹 सर्च साफ़ करें", key="p15_clear_col_search_btn", use_container_width=True):
+                                for disp_col_name in search_display_columns:
+                                    st.session_state[f"p15_colsearch_{disp_col_name}"] = ""
+                                st.rerun()
 
                     ordered_db_display = ordered_db_display[active_filter_mask]
                     live_db_for_display = live_db_for_display.loc[ordered_db_display.index]
