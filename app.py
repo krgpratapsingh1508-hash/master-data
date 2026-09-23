@@ -5466,8 +5466,31 @@ else:
                 # ℹ️ लॉक (व्यू) मोड में सर्च बॉक्स अब टेबल के अंदर, हेडर और पहली रो के बीच है (render_inline_filter_table)।
                 #    यह ऊपर वाला सर्च-ब्लॉक सिर्फ़ Unlock मोड (रो सिलेक्ट/डिलीट वाली टेबल) के लिए बचा है।
                 if not live_db.empty and not st.session_state.admin_lock_state:
+                    # 🎨 यह CSS सिर्फ़ इसी सर्च-ब्लॉक के अंदर के text_input बॉक्सों को
+                    #    लॉक मोड वाली इनलाइन टेबल (render_inline_filter_table) जैसा
+                    #    ग्रे राउंडेड लुक देता है — कॉलम-नाम पतले भूरे रंग में ऊपर,
+                    #    उसके ठीक नीचे राउंडेड सर्च बॉक्स, फ़ोकस पर लाल बॉर्डर।
+                    st.markdown("""
+                        <style>
+                        .p15-inline-search-block [data-testid="stHorizontalBlock"] { gap: 6px !important; margin-bottom: 2px !important; }
+                        .p15-inline-search-block [data-testid="stTextInput"] label p {
+                            font-size: 13px !important; font-weight: 400 !important;
+                            color: #6b7080 !important; margin-bottom: 2px !important;
+                        }
+                        .p15-inline-search-block [data-testid="stTextInput"] input {
+                            background: #f0f2f6 !important; border: 1px solid transparent !important;
+                            border-radius: 6px !important; padding: 4px 8px !important;
+                            font-size: 13px !important; height: 32px !important;
+                        }
+                        .p15-inline-search-block [data-testid="stTextInput"] input:focus {
+                            border-color: #ff4b4b !important; background: #fff !important;
+                        }
+                        </style>
+                    """, unsafe_allow_html=True)
+                    st.markdown('<div class="p15-inline-search-block">', unsafe_allow_html=True)
+
                     search_display_columns = list(ordered_db_display.columns)
-                    cols_per_row = 4
+                    cols_per_row = 6  # जितना हो सके एक ही लाइन जैसा दिखे, इसलिए ग्रुप बड़ा रखा
                     col_search_values = {}
                     for row_start in range(0, len(search_display_columns), cols_per_row):
                         row_cols_chunk = search_display_columns[row_start:row_start + cols_per_row]
@@ -5479,6 +5502,8 @@ else:
                                     key=f"p15_colsearch_{disp_col_name}",
                                     placeholder="🔎 खोजें..."
                                 )
+
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                     # फ़िल्टर लागू करें: सिर्फ़ वही रो दिखेंगी जो हर भरे हुए सर्च बॉक्स की शर्त पूरी करें
                     active_filter_mask = pd.Series(True, index=ordered_db_display.index)
