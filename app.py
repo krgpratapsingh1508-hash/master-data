@@ -1849,13 +1849,13 @@ else:
                             )
                         with size_c2:
                             remark_height_px = st.slider(
-                                "↕️ Remark की पंक्ति की ऊँचाई (Row Height in px — सिर्फ़ प्रिंट में लागू होगी):",
-                                min_value=20, max_value=150, value=st.session_state.get("p2_remark_height_px", 32),
+                                "↕️ Remark के लिए अतिरिक्त ऊँचाई (Extra Height in px — 0 = कोई खाली जगह नहीं, सिर्फ़ प्रिंट में लागू होगी):",
+                                min_value=0, max_value=100, value=st.session_state.get("p2_remark_height_px", 0),
                                 step=4, key="p2_remark_height_px"
                             )
                 else:
                     remark_width_px = st.session_state.get("p2_remark_width_px", 180)
-                    remark_height_px = st.session_state.get("p2_remark_height_px", 32)
+                    remark_height_px = st.session_state.get("p2_remark_height_px", 0)
 
                 # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
                 lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
@@ -1928,16 +1928,19 @@ else:
                     columns_list = list(final_p2_render.columns)
                     records_list = final_p2_render.to_dict(orient="records")
                     
-                    # 📐 Remark कॉलम के लिए तय की गई चौड़ाई/ऊँचाई यहाँ प्रिंट टेबल पर लागू होती है
+                    # 📐 Remark कॉलम के लिए तय की गई चौड़ाई यहाँ प्रिंट टेबल पर लागू होती है
+                    # (height अब "min-height" की तरह है और सिर्फ़ तभी लगती है जब स्लाइडर 0 से ज़्यादा हो —
+                    #  इसी वजह से पहले खाली जगह/खाली रो जैसी दिखने वाली समस्या आ रही थी, अब वो नहीं आएगी)
                     _remark_col_style = f"width:{remark_width_px}px; max-width:{remark_width_px}px;"
-                    _remark_cell_style = f"height:{remark_height_px}px; word-wrap:break-word; white-space:normal;"
+                    _remark_cell_extra = f" min-height:{remark_height_px}px;" if remark_height_px > 0 else ""
+                    _remark_cell_style = f"word-wrap:break-word; white-space:normal;{_remark_cell_extra}"
 
                     def _th_style(col_name):
-                        base = "border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;"
+                        base = "border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
                         return base + (" " + _remark_col_style if col_name == remark_display_label else "")
 
                     def _td_style(col_name):
-                        base = "border:1px solid #111; padding:5px; text-align:left;"
+                        base = "border:1px solid #111; padding:5px; text-align:left; vertical-align:top;"
                         return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
 
                     headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
