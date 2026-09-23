@@ -1834,15 +1834,47 @@ else:
 
                 final_p2_render = render_column_name_editor(final_p2_render, "p2_grid")
 
-                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
+                # ==================================================================
+                # 📐 Remark कॉलम का साइज़ (Width / Height) खुद तय करें
+                # ==================================================================
                 remark_display_label = st.session_state.get("p2_grid_rename_map", {}).get("Remark", "Remark")
+                if remark_display_label in final_p2_render.columns:
+                    with st.expander("📐 Remark कॉलम का साइज़ सेट करें (Set Remark Column Width/Height)", expanded=False):
+                        size_c1, size_c2 = st.columns(2)
+                        with size_c1:
+                            remark_width_px = st.slider(
+                                "↔️ Remark कॉलम की चौड़ाई (Width in px):",
+                                min_value=60, max_value=500, value=st.session_state.get("p2_remark_width_px", 180),
+                                step=10, key="p2_remark_width_px"
+                            )
+                        with size_c2:
+                            remark_height_px = st.slider(
+                                "↕️ Remark की पंक्ति की ऊँचाई (Row Height in px — सिर्फ़ प्रिंट में लागू होगी):",
+                                min_value=20, max_value=150, value=st.session_state.get("p2_remark_height_px", 32),
+                                step=4, key="p2_remark_height_px"
+                            )
+                else:
+                    remark_width_px = st.session_state.get("p2_remark_width_px", 180)
+                    remark_height_px = st.session_state.get("p2_remark_height_px", 32)
+
+                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
                 lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
                 if remark_display_label in final_p2_render.columns:
+                    # स्क्रीन ग्रिड में Remark कॉलम की चौड़ाई लागू करना (small/medium/large के रूप में मैप करके)
+                    remark_width_bucket = "small" if remark_width_px < 130 else ("large" if remark_width_px > 280 else "medium")
+                    try:
+                        remark_col_config = {
+                            remark_display_label: st.column_config.TextColumn(remark_display_label, width=remark_width_bucket)
+                        }
+                    except Exception:
+                        remark_col_config = None
+
                     edited_p2_render = st.data_editor(
                         final_p2_render,
                         use_container_width=True,
                         hide_index=True,
                         disabled=lockable_cols,
+                        column_config=remark_col_config,
                         key="p2_remark_live_editor_grid"
                     )
                     if st.button("💾 Remark सुरक्षित करें (Save Remarks)", key="p2_save_remark_btn", use_container_width=True):
@@ -1896,14 +1928,26 @@ else:
                     columns_list = list(final_p2_render.columns)
                     records_list = final_p2_render.to_dict(orient="records")
                     
-                    headers_html = "".join([f"<th style='border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;'>{col}</th>" for col in columns_list])
+                    # 📐 Remark कॉलम के लिए तय की गई चौड़ाई/ऊँचाई यहाँ प्रिंट टेबल पर लागू होती है
+                    _remark_col_style = f"width:{remark_width_px}px; max-width:{remark_width_px}px;"
+                    _remark_cell_style = f"height:{remark_height_px}px; word-wrap:break-word; white-space:normal;"
+
+                    def _th_style(col_name):
+                        base = "border:1px solid #111; padding:6px; background:#f2f2f2; font-weight:bold; text-align:center;"
+                        return base + (" " + _remark_col_style if col_name == remark_display_label else "")
+
+                    def _td_style(col_name):
+                        base = "border:1px solid #111; padding:5px; text-align:left;"
+                        return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
+
+                    headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
                     
                     rows_html = ""
                     for row in records_list:
                         rows_html += "<tr>"
                         for col in columns_list:
                             val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
-                            rows_html += f"<td style='border:1px solid #111; padding:5px; text-align:left;'>{val}</td>"
+                            rows_html += f"<td style='{_td_style(col)}'>{val}</td>"
                         rows_html += "</tr>"
                     
                     clean_table_html = f"""
