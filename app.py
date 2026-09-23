@@ -1702,7 +1702,7 @@ else:
                     "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
                     "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
                     "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
-                    "Scholarship Name", "Payment Date"
+                    "Scholarship Name", "Payment Date", "Remark"
                 ]
 
                 if st.session_state.p2_show_columns_section:
@@ -1790,8 +1790,87 @@ else:
                 
                 st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
                 
-                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका
-                st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+                # ==================================================================
+                # ✏️ कॉलम नाम एडिटर — जिस भी कॉलम का नाम (हेडर) बदलना हो, यहाँ से बदलें
+                # (सिर्फ़ स्क्रीन/प्रिंट/डाउनलोड में दिखने वाला नाम बदलता है, असली डेटा कॉलम सुरक्षित रहता है)
+                # ==================================================================
+                def render_column_name_editor(df_in, section_key):
+                    """
+                    Har column ke liye ek chhota text box deta hai jisse uska display
+                    naam (header) badla ja sake. Return: renamed dataframe.
+                    Original data / underlying column names change nahi hote — sirf
+                    is table (screen + print + download) me dikhne wala label badalta hai.
+                    """
+                    rename_map_key = f"{section_key}_rename_map"
+                    if rename_map_key not in st.session_state:
+                        st.session_state[rename_map_key] = {}
+
+                    with st.expander("✏️ कॉलम नाम एडिटर (Edit Column Header Names)", expanded=False):
+                        st.caption("नीचे जिस कॉलम का नाम बदलना है, उसके सामने नया नाम लिखें। खाली छोड़ने पर पुराना नाम ही रहेगा।")
+                        editable_cols = [c for c in df_in.columns if c != "S. No."]
+                        new_names = {}
+                        n_per_row = 3
+                        for i in range(0, len(editable_cols), n_per_row):
+                            row_cols = st.columns(n_per_row)
+                            for j, orig_col in enumerate(editable_cols[i:i + n_per_row]):
+                                with row_cols[j]:
+                                    current_label = st.session_state[rename_map_key].get(orig_col, orig_col)
+                                    new_val = st.text_input(
+                                        f"'{orig_col}' का नया नाम:",
+                                        value=current_label,
+                                        key=f"{section_key}_rename_{orig_col}"
+                                    )
+                                    new_names[orig_col] = new_val.strip() if new_val.strip() else orig_col
+                        if st.button("✅ नाम लागू करें (Apply Names)", key=f"{section_key}_apply_rename_btn"):
+                            st.session_state[rename_map_key] = new_names
+                            st.rerun()
+                        if st.session_state[rename_map_key]:
+                            if st.button("↩️ मूल नाम पर वापस जाएँ (Reset Names)", key=f"{section_key}_reset_rename_btn"):
+                                st.session_state[rename_map_key] = {}
+                                st.rerun()
+
+                    active_map = {k: v for k, v in st.session_state[rename_map_key].items() if k in df_in.columns}
+                    return df_in.rename(columns=active_map) if active_map else df_in.copy()
+
+                final_p2_render = render_column_name_editor(final_p2_render, "p2_grid")
+
+                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
+                remark_display_label = st.session_state.get("p2_grid_rename_map", {}).get("Remark", "Remark")
+                lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
+                if remark_display_label in final_p2_render.columns:
+                    edited_p2_render = st.data_editor(
+                        final_p2_render,
+                        use_container_width=True,
+                        hide_index=True,
+                        disabled=lockable_cols,
+                        key="p2_remark_live_editor_grid"
+                    )
+                    if st.button("💾 Remark सुरक्षित करें (Save Remarks)", key="p2_save_remark_btn", use_container_width=True):
+                        try:
+                            app_no_col = "Admission Application Number" if "Admission Application Number" in edited_p2_render.columns \
+                                else ("Application Number" if "Application Number" in edited_p2_render.columns else None)
+                            if app_no_col is None:
+                                st.error("Remark सेव करने के लिए 'Application Number' कॉलम चुना होना ज़रूरी है (ऊपर 'Select Columns to Display & Print' में जोड़ें).")
+                            else:
+                                remark_sync_counter = 0
+                                for _, r_row in edited_p2_render.iterrows():
+                                    target_app_no = str(r_row[app_no_col]).strip()
+                                    remark_val = str(r_row[remark_display_label]).strip()
+                                    idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_no].index
+                                    if not idx_matches.empty:
+                                        if "Remark" not in live_db.columns:
+                                            live_db["Remark"] = ""
+                                        for match_idx in idx_matches:
+                                            live_db.at[match_idx, "Remark"] = remark_val
+                                            remark_sync_counter += 1
+                                save_live_data(live_db)
+                                st.success(f"🎉 {remark_sync_counter} छात्र रिकॉर्ड्स की Remark मुख्य डेटाबेस में सुरक्षित हो गई है।")
+                                st.rerun()
+                        except Exception as remark_err:
+                            st.error(f"Remark सेव करने में समस्या आई: {remark_err}")
+                    final_p2_render = edited_p2_render
+                else:
+                    st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
 
                 # ==================================================================
                 # 📥 Excel Download — ऊपर चुने गए कॉलम्स + Sort Order + Filters के अनुसार ही (जैसा ग्रिड में दिख रहा है)
