@@ -1945,8 +1945,14 @@ else:
                         base = f"border:1px solid #111; {_uniform_row_style} background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
                         return base + (" " + _remark_col_style if col_name == remark_display_label else "")
 
-                    def _td_style(col_name):
-                        align = "center" if col_name == "S. No." else "left"
+                    # 🟢 नया: जिस भी सेल की वैल्यू सिर्फ़ एक नंबर (जैसे "13", "8319564700") हो,
+                    # वह अपने आप बीच में (center) दिखेगी — बाकी टेक्स्ट वाली सेल्स पहले जैसे left में ही रहेंगी
+                    def _is_pure_number(v):
+                        v = v.strip()
+                        return v != "" and v.replace(".", "", 1).replace("-", "", 1).isdigit()
+
+                    def _td_style(col_name, cell_val=""):
+                        align = "center" if (col_name == "S. No." or _is_pure_number(cell_val)) else "left"
                         base = f"border:1px solid #111; {_uniform_row_style} {_row_height_style} text-align:{align}; vertical-align:top;"
                         return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
 
@@ -1957,7 +1963,7 @@ else:
                         rows_html += f"<tr style='page-break-inside: avoid; {_row_height_style}'>"
                         for col in columns_list:
                             val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
-                            rows_html += f"<td style='{_td_style(col)}'>{val}</td>"
+                            rows_html += f"<td style='{_td_style(col, val)}'>{val}</td>"
                         rows_html += "</tr>"
                     
                     clean_table_html = f"""
