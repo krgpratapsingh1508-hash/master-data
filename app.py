@@ -5188,6 +5188,14 @@ else:
 
                             st.caption("🔴 जिस रो को डिलीट करना है, उसे नीचे टेबल में क्लिक करके सिलेक्ट करें (रो लाल हो जाएगी), फिर Delete बटन दबाएँ।")
 
+                            # 🔁 हर डिलीट के बाद इस काउंटर को बढ़ाकर सिलेक्शन-टेबल की "key" बदल देते हैं।
+                            #    सिर्फ़ session_state से पुराना सिलेक्शन हटाना काफ़ी नहीं था — इससे टिक कभी-कभी
+                            #    स्क्रीन पर दिखता रह जाता था। key बदलने से Streamlit इसे बिल्कुल नई/खाली टेबल
+                            #    मानता है, इसलिए टिक हमेशा गारंटी के साथ अपने-आप हट जाएगा।
+                            if "p15_delete_selector_version" not in st.session_state:
+                                st.session_state.p15_delete_selector_version = 0
+                            selector_key = f"p15_master_delete_selector_{st.session_state.p15_delete_selector_version}"
+
                             select_event = st.dataframe(
                                 select_source_df,
                                 use_container_width=True,
@@ -5195,7 +5203,7 @@ else:
                                 column_order=visible_columns_order,
                                 on_select="rerun",
                                 selection_mode="multi-row",
-                                key="p15_master_delete_selector"
+                                key=selector_key
                             )
 
                             selected_positions = list(select_event.selection.rows) if select_event and select_event.selection else []
@@ -5219,23 +5227,13 @@ else:
                                     ]
                                     live_db = live_db.drop(index=row_ids_to_delete).reset_index(drop=True)
                                     save_live_data(live_db)
-                                    # 🧹 डिलीट के बाद पुराना सिलेक्शन (लाल टिक) अपने-आप साफ़ कर देते हैं,
-                                    #    वरना अगली बार ग्रिड में गलत/पुरानी रो पर टिक दिखता रह जाता है।
-                                    if "p15_master_delete_selector" in st.session_state:
-                                        del st.session_state["p15_master_delete_selector"]
+                                    # 🧹 अगली बार टेबल बिल्कुल नई "key" के साथ बनेगी → टिक अपने-आप साफ़
+                                    st.session_state.p15_delete_selector_version += 1
                                     st.error(f"💥 कुल {len(row_ids_to_delete)} रो डेटाबेस से हटा दी गई हैं!")
                                     st.rerun()
 
-                            st.markdown("---")
-                            st.caption("✏️ सेल की वैल्यू एडिट करने के लिए नीचे वाली ग्रिड इस्तेमाल करें:")
-                            edited_master_db = st.data_editor(
-                                ordered_db_display,
-                                use_container_width=True,
-                                disabled=disabled_fields,
-                                hide_index=True,
-                                num_rows="dynamic",
-                                key="p15_supreme_master_live_editor_grid"
-                            )
+                            # 👆 यही ऊपर वाली टेबल है — इसी से डिलीट होता है, कोई अलग एडिट-लिस्ट नहीं बनाई गई है।
+                            edited_master_db = ordered_db_display
                         
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
