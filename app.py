@@ -5537,7 +5537,7 @@ else:
                         render_inline_filter_table(ordered_db_display.drop(columns=["S.No."], errors="ignore"), height=520)
                     else:
                         # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
-                        st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** सेल पर क्लिक करके सीधे टेक्स्ट बदलें। रो डिलीट करने के लिए उसका \"🗑️ हटाएँ\" बॉक्स टिक करें, फिर Delete बटन दबाएँ।")
+                        st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
                         
                         disabled_fields = ["S.No."]
                         # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
@@ -5603,23 +5603,18 @@ else:
                             )
                             edited_master_db = ordered_db_display_all
                         else:
-                            # 🔓 अनलॉक मोड: अब यह असली st.data_editor है — सेल पर क्लिक करके सीधे टेक्स्ट
-                            #    एडिट कर सकते हैं, और सबसे पहले वाले "🗑️ हटाएँ" चेकबॉक्स-कॉलम को टिक
-                            #    करके रो को डिलीट के लिए मार्क कर सकते हैं (पहले सिर्फ़ रो-क्लिक-सिलेक्ट था,
-                            #    कोई असली सेल-एडिटिंग काम नहीं करती थी)।
+                            # 🔓 अनलॉक मोड: यहाँ आप माउस कर्सर से कॉलम को अपनी मर्जी से आगे-पीछे हिला सकते हैं
+                            #
+                            # 🔴 रो डिलीट करने के लिए Streamlit की असली "native" row-selection
+                            #    (लाल हाइलाइट वाली, खाली चेकबॉक्स) इस्तेमाल की गई है — जिस रो पर
+                            #    क्लिक करेंगे वह लाल हो जाएगी/चेकबॉक्स टिक हो जाएगा, और यह चयन Python कोड को भी
+                            #    मिलता है (st.dataframe के on_select फीचर से)। इसी में हेडर पर एक
+                            #    बिल्ट-इन "सभी चुनें" चेकबॉक्स भी अपने-आप आता है — अलग से कुछ नहीं जोड़ा गया।
                             #
                             # 🆔 हर रो की असली पहचान (live_db का असली index) एक छिपे हुए कॉलम "_row_id" में
-                            #    रखते हैं, ताकि सही रो ही डिलीट/अपडेट हो — गलत रो पर असर न पड़े।
+                            #    रखते हैं, ताकि सही रो ही डिलीट हो — गलत रो डिलीट होने वाली दिक्कत दोबारा न आए।
                             select_source_df = ordered_db_display.copy()
                             select_source_df.insert(0, "_row_id", live_db_for_display.index)
-                            # ☑️ "सभी चुनें" बटन दबाने पर यह सभी रो के लिए True हो जाता है (नीचे बटन देखें)
-                            if "p15_select_all_delete_flag" not in st.session_state:
-                                st.session_state.p15_select_all_delete_flag = False
-                            # 🔁 हर डिलीट/सभी-चुनें/सभी-अनचुनें के बाद इस काउंटर को बढ़ाकर एडिटर की "key"
-                            #    बदल देते हैं ताकि पुराना टिक/एडिट-स्टेट अपने-आप साफ़ हो जाए।
-                            if "p15_delete_selector_version" not in st.session_state:
-                                st.session_state.p15_delete_selector_version = 0
-                            select_source_df.insert(1, "🗑️ हटाएँ", st.session_state.p15_select_all_delete_flag)
                             visible_columns_order = [c for c in select_source_df.columns if c != "_row_id"]
 
                             if st.session_state.p15_pending_delete_ids:
@@ -5631,45 +5626,33 @@ else:
                                         st.session_state.p15_pending_delete_ids = set()
                                         st.rerun()
 
-                            st.caption("✏️ किसी भी सेल पर क्लिक करके सीधे टेक्स्ट बदल सकते हैं। 🔴 जिस रो को डिलीट करना है, उसका सबसे पहले वाला \"🗑️ हटाएँ\" बॉक्स टिक करें, फिर नीचे Delete बटन दबाएँ।")
+                            st.caption("🔴 जिस रो को डिलीट करना है, उसे नीचे टेबल में क्लिक करके सिलेक्ट करें (रो लाल हो जाएगी), फिर Delete बटन दबाएँ।")
 
-                            # ☑️ सभी रो को एक साथ चुनने/हटाने के लिए (पहले st.dataframe के बिल्ट-इन
-                            #    "select all" हेडर-टिक से मिलती थी — data_editor में वो नहीं आता, इसलिए
-                            #    यहाँ मैनुअल बटन से वही सुविधा वापस दी गई है)
-                            sel_all_col1, sel_all_col2, _sel_all_spacer = st.columns([1, 1, 3])
-                            with sel_all_col1:
-                                if st.button("☑️ सभी चुनें", use_container_width=True, key="p15_select_all_rows_btn"):
-                                    st.session_state.p15_select_all_delete_flag = True
-                                    st.session_state.p15_delete_selector_version += 1
-                                    st.rerun()
-                            with sel_all_col2:
-                                if st.button("⬜ सभी अनचुनें", use_container_width=True, key="p15_deselect_all_rows_btn"):
-                                    st.session_state.p15_select_all_delete_flag = False
-                                    st.session_state.p15_delete_selector_version += 1
-                                    st.rerun()
-
+                            # 🔁 हर डिलीट के बाद इस काउंटर को बढ़ाकर सिलेक्शन-टेबल की "key" बदल देते हैं।
+                            #    सिर्फ़ session_state से पुराना सिलेक्शन हटाना काफ़ी नहीं था — इससे टिक कभी-कभी
+                            #    स्क्रीन पर दिखता रह जाता था। key बदलने से Streamlit इसे बिल्कुल नई/खाली टेबल
+                            #    मानता है, इसलिए टिक हमेशा गारंटी के साथ अपने-आप हट जाएगा।
+                            if "p15_delete_selector_version" not in st.session_state:
+                                st.session_state.p15_delete_selector_version = 0
                             selector_key = f"p15_master_delete_selector_{st.session_state.p15_delete_selector_version}"
 
-
-                            editor_disabled_cols = list(disabled_fields) + ["_row_id"]
-                            edited_select_df = st.data_editor(
+                            select_event = st.dataframe(
                                 select_source_df,
                                 use_container_width=True,
                                 hide_index=True,
                                 column_order=visible_columns_order,
-                                disabled=editor_disabled_cols,
-                                column_config={
-                                    "🗑️ हटाएँ": st.column_config.CheckboxColumn("🗑️ हटाएँ", default=False),
-                                },
+                                on_select="rerun",
+                                selection_mode="multi-row",
                                 key=selector_key
                             )
 
-                            rows_marked_for_delete = edited_select_df[edited_select_df["🗑️ हटाएँ"] == True]
+                            selected_positions = list(select_event.selection.rows) if select_event and select_event.selection else []
+                            rows_marked_for_delete = select_source_df.iloc[selected_positions] if selected_positions else select_source_df.iloc[0:0]
 
                             del_col1, del_col2 = st.columns([3, 1])
                             with del_col1:
                                 if not rows_marked_for_delete.empty:
-                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो टिक हैं — Delete बटन दबाने पर ये टेबल से छुप जाएँगी (अभी CSV में permanent नहीं होंगी, उसके लिए Save Grid Changes दबाना होगा)।")
+                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो सिलेक्ट हैं — Delete बटन दबाने पर ये टेबल से छुप जाएँगी (अभी CSV में permanent नहीं होंगी, उसके लिए Save Grid Changes दबाना होगा)।")
                             with del_col2:
                                 if st.button(
                                     "🗑️ Delete Selected Rows",
@@ -5687,21 +5670,12 @@ else:
                                     #    "💾 Save Grid Changes to Master CSV File" बटन दबाने पर ही होगा।
                                     st.session_state.p15_pending_delete_ids.update(row_ids_to_delete)
                                     # 🧹 अगली बार टेबल बिल्कुल नई "key" के साथ बनेगी → टिक अपने-आप साफ़
-                                    st.session_state.p15_select_all_delete_flag = False
                                     st.session_state.p15_delete_selector_version += 1
                                     st.warning(f"🕓 कुल {len(row_ids_to_delete)} रो अस्थायी रूप से छुपाई गई हैं — Save Grid Changes दबाने पर ही permanent डिलीट होंगी।")
                                     st.rerun()
 
-                            # ✏️ सेल-एडिट को असली मास्टर डेटा (सर्च-फ़िल्टर के बिना, पूरी लिस्ट) में मर्ज करें,
-                            #    ताकि सर्च चालू होने पर भी सिर्फ़ दिख रही रो के बदलाव सही जगह जुड़ें और
-                            #    बाकी (न दिख रही) रो पर कोई असर न पड़े।
-                            edited_master_db = ordered_db_display_all.copy()
-                            edit_value_cols = [c for c in edited_select_df.columns if c not in ("_row_id", "🗑️ हटाएँ", "S.No.")]
-                            for _, _erow in edited_select_df.iterrows():
-                                _rid = _erow["_row_id"]
-                                if pd.notna(_rid) and _rid in edited_master_db.index:
-                                    for _c in edit_value_cols:
-                                        edited_master_db.at[_rid, _c] = _erow[_c]
+                            # 👆 यही ऊपर वाली टेबल है — इसी से डिलीट होता है, कोई अलग एडिट-लिस्ट नहीं बनाई गई है।
+                            edited_master_db = ordered_db_display_all
                         
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
