@@ -5455,75 +5455,8 @@ else:
                 # 🛡️ पूरा (बिना सर्च-फ़िल्टर वाला) view — "Save Grid Changes" इसी से सेव होगा, ताकि सर्च चालू होने पर बाकी रिकॉर्ड CSV से गलती से न हट जाएँ
                 ordered_db_display_all = ordered_db_display.copy()
 
-                # ======================================================================
-                # 🔍 हर कॉलम के नाम के ठीक नीचे, टेबल शुरू होने से ठीक पहले सर्च बॉक्स
-                #    (कोई अलग बॉक्स/एक्सपैंडर नहीं — यही रो असली टेबल के कॉलम-हेडर की तरह
-                #    काम करती है: हर कॉलम का नाम ऊपर, उसी के नीचे उसी कॉलम का सर्च बॉक्स,
-                #    और उसके ठीक बाद असली डेटा टेबल शुरू हो जाती है)
-                #    टाइप करते ही टेबल लाइव फ़िल्टर होगी (केस-इनसेंसिटिव, "Contains" मैच)।
-                #    कई कॉलम में एक साथ टेक्स्ट भरें तो सभी शर्तें एक साथ (AND) लागू होंगी।
-                # ======================================================================
-                # ℹ️ लॉक (व्यू) मोड में सर्च बॉक्स अब टेबल के अंदर, हेडर और पहली रो के बीच है (render_inline_filter_table)।
-                #    यह ऊपर वाला सर्च-ब्लॉक सिर्फ़ Unlock मोड (रो सिलेक्ट/डिलीट वाली टेबल) के लिए बचा है।
-                if not live_db.empty and not st.session_state.admin_lock_state:
-                    # 🎨 सिर्फ़ ग्रे राउंडेड लुक (लॉक मोड जैसा) — कोई forced-width/nowrap ट्रिक
-                    #    नहीं, क्योंकि वह आपके Streamlit वर्शन में टूट रही थी। यह हिस्सा हर
-                    #    वर्शन में सुरक्षित तरीक़े से काम करता है।
-                    st.markdown("""
-                        <style>
-                        .p15-inline-search-block [data-testid="stTextInput"] label p {
-                            font-size: 13px !important; font-weight: 400 !important;
-                            color: #6b7080 !important; margin-bottom: 2px !important;
-                        }
-                        .p15-inline-search-block [data-testid="stTextInput"] input {
-                            background: #f0f2f6 !important; border: 1px solid transparent !important;
-                            border-radius: 6px !important; padding: 4px 8px !important;
-                            font-size: 13px !important; height: 32px !important;
-                        }
-                        .p15-inline-search-block [data-testid="stTextInput"] input:focus {
-                            border-color: #ff4b4b !important; background: #fff !important;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
-                    st.markdown('<div class="p15-inline-search-block">', unsafe_allow_html=True)
-
-                    search_display_columns = list(ordered_db_display.columns)
-                    cols_per_row = 4
-                    col_search_values = {}
-                    for row_start in range(0, len(search_display_columns), cols_per_row):
-                        row_cols_chunk = search_display_columns[row_start:row_start + cols_per_row]
-                        search_row_widgets = st.columns(len(row_cols_chunk))
-                        for widget_slot, disp_col_name in zip(search_row_widgets, row_cols_chunk):
-                            with widget_slot:
-                                col_search_values[disp_col_name] = st.text_input(
-                                    disp_col_name,
-                                    key=f"p15_colsearch_{disp_col_name}",
-                                    placeholder="🔎 खोजें..."
-                                )
-
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                    # फ़िल्टर लागू करें: सिर्फ़ वही रो दिखेंगी जो हर भरे हुए सर्च बॉक्स की शर्त पूरी करें
-                    active_filter_mask = pd.Series(True, index=ordered_db_display.index)
-                    for disp_col_name, search_text in col_search_values.items():
-                        search_text = (search_text or "").strip()
-                        if search_text:
-                            active_filter_mask &= ordered_db_display[disp_col_name].astype(str).str.contains(
-                                search_text, case=False, na=False, regex=False
-                            )
-
-                    if not active_filter_mask.all():
-                        cap_col, clear_col = st.columns([4, 1])
-                        with cap_col:
-                            st.caption(f"🔎 सर्च फ़िल्टर सक्रिय है — कुल `{active_filter_mask.sum()}` रिकॉर्ड मैच हुए (पूरे `{len(active_filter_mask)}` रिकॉर्ड्स में से)।")
-                        with clear_col:
-                            if st.button("🧹 सर्च साफ़ करें", key="p15_clear_col_search_btn", use_container_width=True):
-                                for disp_col_name in search_display_columns:
-                                    st.session_state[f"p15_colsearch_{disp_col_name}"] = ""
-                                st.rerun()
-
-                    ordered_db_display = ordered_db_display[active_filter_mask]
-                    live_db_for_display = live_db_for_display.loc[ordered_db_display.index]
+                # ℹ️ Unlock मोड में अलग से कोई कॉलम-सर्च ब्लॉक नहीं दिखाया जा रहा (यूज़र के कहने पर हटाया गया)।
+                #    सर्च सिर्फ़ Lock (व्यू) मोड की इनलाइन टेबल में ही उपलब्ध है (render_inline_filter_table)।
 
                 ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
