@@ -5599,74 +5599,67 @@ else:
                                         st.session_state.p15_pending_delete_ids = set()
                                         st.rerun()
 
-                            st.caption("✏️ किसी भी सेल पर क्लिक करके सीधे वैल्यू बदलें।")
+                            # 🔁 एक ही टॉगल (👀 एडमिट टेक्स्ट FUNCTION) से तय होता है कि अभी एडिट टेबल दिखे या डिलीट टेबल —
+                            #    दोनों एक साथ कभी नहीं दिखतीं। "👀 एडमिट टेक्स्ट FUNCTION: active" हो तो एडिट टेबल, वरना डिलीट टेबल।
+                            if st.session_state.admin_unhide_edit:
+                                st.caption("✏️ किसी भी सेल पर क्लिक करके सीधे वैल्यू बदलें।")
 
-                            # 🛠️ एडिटिंग: st.data_editor से सेल पर डबल-क्लिक करके डेटा बदला जा सकता है।
-                            edited_select_df = st.data_editor(
-                                select_source_df,
-                                use_container_width=True,
-                                hide_index=True,
-                                column_order=visible_columns_order,
-                                disabled=edit_disabled_fields,
-                                key=f"p15_master_editor_{st.session_state.get('p15_delete_selector_version', 0)}"
-                            )
-                            edited_master_db = edited_select_df.drop(columns=["_row_id"], errors="ignore")
-
-                            st.markdown("---")
-
-                            # 🔴 रो डिलीट करने के लिए Streamlit की असली "native" row-selection
-                            #    (लाल हाइलाइट वाली, खाली चेकबॉक्स) इस्तेमाल की गई है — जिस रो पर
-                            #    क्लिक करेंगे वह लाल हो जाएगी/चेकबॉक्स टिक हो जाएगा, और यह चयन Python कोड को भी
-                            #    मिलता है (st.dataframe के on_select फीचर से)। इसी में हेडर पर एक
-                            #    बिल्ट-इन "सभी चुनें" चेकबॉक्स भी अपने-आप आता है — अलग से कुछ नहीं जोड़ा गया।
-                            st.caption("🔴 जिस रो को डिलीट करना है, उसे नीचे टेबल में क्लिक करके सिलेक्ट करें (रो लाल हो जाएगी), फिर Delete बटन दबाएं।")
-
-                            # 🔁 हर डिलीट के बाद इस काउंटर को बज़ाकर सिलेक्शन-टेबल की "key" बदल देते हैं।
-                            #    सिर्फ़ session_state से पुराना सिलेक्शन हटाना काफ़ी नहीं था — इससे टिक कभी-कभी
-                            #    स्क्रीन पर दिखता रह जाता था। key बदलने से Streamlit इसे बिल्कुल नई/खाली टेबल
-                            #    मानता है, इसलिए टिक हमेशा गारंटी के साथ अपने-आप हट जाएगा।
-                            if "p15_delete_selector_version" not in st.session_state:
-                                st.session_state.p15_delete_selector_version = 0
-                            selector_key = f"p15_master_delete_selector_{st.session_state.p15_delete_selector_version}"
-
-                            select_event = st.dataframe(
-                                select_source_df,
-                                use_container_width=True,
-                                hide_index=True,
-                                column_order=visible_columns_order,
-                                on_select="rerun",
-                                selection_mode="multi-row",
-                                key=selector_key
-                            )
-
-                            selected_positions = list(select_event.selection.rows) if select_event and select_event.selection else []
-                            rows_marked_for_delete = select_source_df.iloc[selected_positions] if selected_positions else select_source_df.iloc[0:0]
-
-                            del_col1, del_col2 = st.columns([3, 1])
-                            with del_col1:
-                                if not rows_marked_for_delete.empty:
-                                    st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो सिलेक्ट हैं — Delete बटन दबाने पर ये टेबल से छुप जाएंगी (अभी CSV में permanent नहीं होंगी, उसके लिए Save Grid Changes दबाना होगा)।")
-                            with del_col2:
-                                if st.button(
-                                    "🗑️ Delete Selected Rows",
-                                    type="primary",
+                                edited_select_df = st.data_editor(
+                                    select_source_df,
                                     use_container_width=True,
-                                    disabled=rows_marked_for_delete.empty,
-                                    key="p15_delete_selected_rows_btn"
-                                ):
-                                    row_ids_to_delete = [
-                                        rid for rid in rows_marked_for_delete["_row_id"].tolist()
-                                        if pd.notna(rid) and rid in live_db.index
-                                    ]
-                                    # ⛔ यहां अभी save_live_data() नहीं बुलाया जा रहा — रो सिर्फ़ पेंडिंग-लिस्ट में
-                                    #    जुड़ रही है और व्यू से छुप जाएगा। असली/permanent CSV डिलीट सिर्फ़
-                                    #    "💾 Save Grid Changes to Master CSV File" बटन दबाने पर ही होगा।
-                                    st.session_state.p15_pending_delete_ids.update(row_ids_to_delete)
-                                    # 🧹 अगली बार टेबल बिल्कुल नई "key" के साथ बनेगी → टिक अपने-आप साफ़
-                                    st.session_state.p15_delete_selector_version += 1
-                                    st.warning(f"🕓 कुल {len(row_ids_to_delete)} रो अस्थायी रूप से छुपाई गई हैं — Save Grid Changes दबाने पर ही permanent डिलीट होंगी।")
-                                    st.rerun()
-                        
+                                    hide_index=True,
+                                    column_order=visible_columns_order,
+                                    disabled=edit_disabled_fields,
+                                    key=f"p15_master_editor_{st.session_state.get('p15_delete_selector_version', 0)}"
+                                )
+                                edited_master_db = edited_select_df.drop(columns=["_row_id"], errors="ignore")
+                            else:
+                                # 🔴 रो डिलीट करने के लिए Streamlit की असली "native" row-selection
+                                #    (लाल हाइलाइट वाली, खाली चेकबॉक्स) इस्तेमाल की गई है — जिस रो पर
+                                #    क्लिक करेंगे वह लाल हो जाएगी/चेकबॉक्स टिक हो जाएगा, और यह चयन Python कोड को भी
+                                #    मिलता है (st.dataframe के on_select फीचर से)।
+                                st.caption("🔴 जिस रो को डिलीट करना है, उसे नीचे टेबल में क्लिक करके सिलेक्ट करें (रो लाल हो जाएगी), फिर Delete बटन दबाएं।")
+
+                                if "p15_delete_selector_version" not in st.session_state:
+                                    st.session_state.p15_delete_selector_version = 0
+                                selector_key = f"p15_master_delete_selector_{st.session_state.p15_delete_selector_version}"
+
+                                select_event = st.dataframe(
+                                    select_source_df,
+                                    use_container_width=True,
+                                    hide_index=True,
+                                    column_order=visible_columns_order,
+                                    on_select="rerun",
+                                    selection_mode="multi-row",
+                                    key=selector_key
+                                )
+
+                                selected_positions = list(select_event.selection.rows) if select_event and select_event.selection else []
+                                rows_marked_for_delete = select_source_df.iloc[selected_positions] if selected_positions else select_source_df.iloc[0:0]
+
+                                del_col1, del_col2 = st.columns([3, 1])
+                                with del_col1:
+                                    if not rows_marked_for_delete.empty:
+                                        st.warning(f"⚠️ कुल {len(rows_marked_for_delete)} रो सिलेक्ट हैं — Delete बटन दबाने पर ये टेबल से छुप जाएंगी (अभी CSV में permanent नहीं होंगी, उसके लिए Save Grid Changes दबाना होगा)।")
+                                with del_col2:
+                                    if st.button(
+                                        "🗑️ Delete Selected Rows",
+                                        type="primary",
+                                        use_container_width=True,
+                                        disabled=rows_marked_for_delete.empty,
+                                        key="p15_delete_selected_rows_btn"
+                                    ):
+                                        row_ids_to_delete = [
+                                            rid for rid in rows_marked_for_delete["_row_id"].tolist()
+                                            if pd.notna(rid) and rid in live_db.index
+                                        ]
+                                        st.session_state.p15_pending_delete_ids.update(row_ids_to_delete)
+                                        st.session_state.p15_delete_selector_version += 1
+                                        st.warning(f"🕓 कुल {len(row_ids_to_delete)} रो अस्थायी रूप से छुपाई गई हैं — Save Grid Changes दबाने पर ही permanent डिलीट होंगी।")
+                                        st.rerun()
+
+                                edited_master_db = select_source_df.drop(columns=["_row_id"], errors="ignore")
+
                         if st.button("💾 Save Grid Changes to Master CSV File", type="primary", use_container_width=True, key="p15_save_master_csv_btn"):
                             try:
                                 clean_edited_master = edited_master_db.drop(columns=["S.No."], errors="ignore")
