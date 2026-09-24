@@ -5466,58 +5466,40 @@ else:
                 # ℹ️ लॉक (व्यू) मोड में सर्च बॉक्स अब टेबल के अंदर, हेडर और पहली रो के बीच है (render_inline_filter_table)।
                 #    यह ऊपर वाला सर्च-ब्लॉक सिर्फ़ Unlock मोड (रो सिलेक्ट/डिलीट वाली टेबल) के लिए बचा है।
                 if not live_db.empty and not st.session_state.admin_lock_state:
-                    # 🎨 यह CSS सिर्फ़ इसी सर्च-ब्लॉक के अंदर के text_input बॉक्सों को
-                    #    लॉक मोड वाली इनलाइन टेबल (render_inline_filter_table) जैसा
-                    #    ग्रे राउंडेड लुक देता है — कॉलम-नाम पतले भूरे रंग में ऊपर,
-                    #    उसके ठीक नीचे राउंडेड सर्च बॉक्स, फ़ोकस पर लाल बॉर्डर।
-                    # 🎨 यह CSS पूरी सर्च-रो को लॉक मोड वाली इनलाइन टेबल के हेडर-सर्च जैसा
-                    #    एक ही सीधी, साइड-स्क्रॉल होने वाली लाइन में दिखाता है (42 कॉलम एक
-                    #    रो में — जैसे असली टेबल में भी साइड स्क्रॉलबार से देखे जाते हैं)।
+                    # 🎨 सिर्फ़ ग्रे राउंडेड लुक (लॉक मोड जैसा) — कोई forced-width/nowrap ट्रिक
+                    #    नहीं, क्योंकि वह आपके Streamlit वर्शन में टूट रही थी। यह हिस्सा हर
+                    #    वर्शन में सुरक्षित तरीक़े से काम करता है।
                     st.markdown("""
                         <style>
-                        .p15-inline-search-block [data-testid="stHorizontalBlock"] {
-                            flex-wrap: nowrap !important;
-                            overflow-x: auto !important;
-                            gap: 6px !important;
-                            padding-bottom: 6px !important;
-                            border: 1px solid #e6e9ef !important;
-                            border-radius: 8px 8px 0 0 !important;
-                            background: #f7f8fb !important;
-                            margin-bottom: 0 !important;
-                        }
-                        .p15-inline-search-block [data-testid="column"] {
-                            min-width: 160px !important;
-                            width: 160px !important;
-                            flex: 0 0 160px !important;
-                        }
                         .p15-inline-search-block [data-testid="stTextInput"] label p {
                             font-size: 13px !important; font-weight: 400 !important;
                             color: #6b7080 !important; margin-bottom: 2px !important;
-                            white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
                         }
                         .p15-inline-search-block [data-testid="stTextInput"] input {
-                            background: #fff !important; border: 1px solid transparent !important;
+                            background: #f0f2f6 !important; border: 1px solid transparent !important;
                             border-radius: 6px !important; padding: 4px 8px !important;
                             font-size: 13px !important; height: 32px !important;
                         }
                         .p15-inline-search-block [data-testid="stTextInput"] input:focus {
-                            border-color: #ff4b4b !important;
+                            border-color: #ff4b4b !important; background: #fff !important;
                         }
                         </style>
                     """, unsafe_allow_html=True)
                     st.markdown('<div class="p15-inline-search-block">', unsafe_allow_html=True)
 
                     search_display_columns = list(ordered_db_display.columns)
+                    cols_per_row = 4
                     col_search_values = {}
-                    # ⬇️ सभी 42 कॉलम एक ही स्क्रॉल होने वाली रो में — ग्रुप में बाँटा नहीं गया
-                    search_row_widgets = st.columns(len(search_display_columns))
-                    for widget_slot, disp_col_name in zip(search_row_widgets, search_display_columns):
-                        with widget_slot:
-                            col_search_values[disp_col_name] = st.text_input(
-                                disp_col_name,
-                                key=f"p15_colsearch_{disp_col_name}",
-                                placeholder="🔎 खोजें..."
-                            )
+                    for row_start in range(0, len(search_display_columns), cols_per_row):
+                        row_cols_chunk = search_display_columns[row_start:row_start + cols_per_row]
+                        search_row_widgets = st.columns(len(row_cols_chunk))
+                        for widget_slot, disp_col_name in zip(search_row_widgets, row_cols_chunk):
+                            with widget_slot:
+                                col_search_values[disp_col_name] = st.text_input(
+                                    disp_col_name,
+                                    key=f"p15_colsearch_{disp_col_name}",
+                                    placeholder="🔎 खोजें..."
+                                )
 
                     st.markdown('</div>', unsafe_allow_html=True)
 
