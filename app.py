@@ -3552,7 +3552,7 @@ else:
                     "7th Sem.", "8th Sem.", "9th Sem.", "10th Sem.", "11th Sem.", "12th Sem.",
                     "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"
                 ]
-                col_p10_f1, col_p10_f2 = st.columns(2)
+                col_p10_f1, col_p10_f2, col_p10_f3 = st.columns(3)
                 with col_p10_f1:
                     chosen_option_p10 = st.selectbox(
                         "📅 Select Semester / Year Scope:", options=custom_year_options_p10, key="p10_archive_year_filter"
@@ -3581,16 +3581,37 @@ else:
                 else:
                     subject_scope_df_p10 = p10_authorized_db
 
+                # 🟢 2nd dropdown: user pehle ye tay karega ki kis COLUMN ke data par filter lagana hai
+                # (jaise "Subject", "Category", "Status" etc.) — fir 3rd dropdown me usi column ka
+                # unique data list ho kar aayega, use chun kar list filter ho jayegi.
+                p10_filter_column_options = [c for c in archive_view_cols if c in p10_authorized_db.columns]
+                if "Subject" in p10_filter_column_options:
+                    default_col_idx_p10 = p10_filter_column_options.index("Subject")
+                else:
+                    default_col_idx_p10 = 0
+
                 with col_p10_f2:
-                    unique_subjects_p10 = sorted(list(set(
-                        subject_scope_df_p10["Subject"].dropna().astype(str).str.strip()
-                    )))
-                    # 🟢 Fix: agar pehle se selected subject naye scope me maujood nahi hai,
-                    # to wo apne aap "All Subjects" par reset ho jayega (taaki galat/khaali list na dikhe)
-                    prev_selected_subject_p10 = st.session_state.get("p10_archive_subject_filter", "All Subjects")
-                    subject_options_p10 = ["All Subjects"] + [s for s in unique_subjects_p10 if s != ""]
-                    if prev_selected_subject_p10 not in subject_options_p10:
-                        st.session_state["p10_archive_subject_filter"] = "All Subjects"
+                    selected_column_p10 = st.selectbox(
+                        "🗂️ Select Column:",
+                        options=p10_filter_column_options,
+                        index=default_col_idx_p10 if p10_filter_column_options else 0,
+                        key="p10_archive_column_filter"
+                    )
+
+                unique_subjects_p10 = sorted(list(set(
+                    subject_scope_df_p10[selected_column_p10].dropna().astype(str).str.strip()
+                ))) if selected_column_p10 else []
+
+                # 🟢 Fix: agar pehle se selected value naye column/scope me maujood nahi hai (ya column hi
+                # badal gaya hai), to wo apne aap "All Subjects" par reset ho jayega (taaki galat/khaali list na dikhe)
+                prev_selected_column_p10 = st.session_state.get("p10_archive_column_prev", None)
+                prev_selected_subject_p10 = st.session_state.get("p10_archive_subject_filter", "All Subjects")
+                subject_options_p10 = ["All Subjects"] + [s for s in unique_subjects_p10 if s != ""]
+                if prev_selected_column_p10 != selected_column_p10 or prev_selected_subject_p10 not in subject_options_p10:
+                    st.session_state["p10_archive_subject_filter"] = "All Subjects"
+                st.session_state["p10_archive_column_prev"] = selected_column_p10
+
+                with col_p10_f3:
                     selected_subject_p10 = st.selectbox(
                         "📚 Select Subject Filter:",
                         options=subject_options_p10,
@@ -3599,10 +3620,12 @@ else:
 
                 render_archive = p10_authorized_db[archive_view_cols].copy()
 
-                # 1️⃣ पहले Subject के आधार पर फ़िल्टर करें (agar subject select kiya ho)
-                if selected_subject_p10 != "All Subjects":
+                # 1️⃣ पहले selected COLUMN के आधार पर फ़िल्टर करें (agar value select ki ho)
+                # 🟢 Ab ye filter hardcoded "Subject" column par nahi, balki upar chune gaye
+                # "Select Column" (selected_column_p10) par kaam karta hai.
+                if selected_subject_p10 != "All Subjects" and selected_column_p10 in render_archive.columns:
                     render_archive = render_archive[
-                        render_archive["Subject"].astype(str).str.strip() == selected_subject_p10
+                        render_archive[selected_column_p10].astype(str).str.strip() == selected_subject_p10
                     ]
 
                 # 2️⃣ फिर Semester / Year scope के आधार पर फ़िल्टर करें
@@ -3621,7 +3644,7 @@ else:
                 render_archive = render_archive.reset_index(drop=True)
                 render_archive.insert(0, "S. No.", range(1, len(render_archive) + 1))
                 
-                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ ('{chosen_option_p10}' | Subject: '{selected_subject_p10}'): **{len(render_archive)}**")
+                st.write(f"💾 पंजी लेजर में कुल सक्रिय छात्र प्रविष्टियाँ ('{chosen_option_p10}' | {selected_column_p10}: '{selected_subject_p10}'): **{len(render_archive)}**")
                 
                 # Strict read-only dataframe display to protect long-term archived columns
                 st.dataframe(render_archive, use_container_width=True, hide_index=True)
