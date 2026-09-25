@@ -5582,7 +5582,26 @@ else:
                 ordered_db_display.insert(0, "S.No.", range(1, len(ordered_db_display) + 1))
 
                 st.markdown(f"**📈 मुख्य लाइव डेटाबेस रिकॉर्ड्स की कुल संख्या:** `{len(ordered_db_display)}`")
-                
+
+                # ==================================================================
+                # 📥 P15 Master Database — Excel (.xlsx) Download System
+                # जो भी रिकॉर्ड्स अभी ग्रिड में दिख रहे हैं (सर्च फ़िल्टर लगा हो तो सिर्फ़ वही),
+                # उन्हीं को उसी कॉलम-ऑर्डर में फॉर्मेटेड .xlsx फ़ाइल में डाउनलोड कर देता है।
+                # ==================================================================
+                if not ordered_db_display.empty:
+                    try:
+                        p15_excel_bytes = dataframe_to_excel_bytes(ordered_db_display, "Master Database")
+                        st.download_button(
+                            label=f"📥 Download Excel File (.xlsx) — कुल {len(ordered_db_display)} रिकॉर्ड्स",
+                            data=p15_excel_bytes,
+                            file_name=f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="p15_master_db_download_excel_btn"
+                        )
+                    except Exception as p15_xl_err:
+                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
+
                 if live_db.empty:
                     st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
                 else:
@@ -5755,56 +5774,6 @@ else:
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"डेटाबेस अपडेट चक्र में तकनीकी समस्या आई: {e}")
-
-                        # ======================================================================
-                        # 📥 नया सब-सिस्टम: Master Database → Excel (.xlsx) Password-Protected Download
-                        #    ऊपर List View में जो कॉलम्स/ऑर्डर दिख रहे हैं ठीक वही पूरा मास्टर डेटाबेस
-                        #    यहाँ से Excel (.xlsx) फ़ाइल में डाउनलोड किया जा सकता है — लेकिन डाउनलोड बटन
-                        #    तभी ऐक्टिव होगा जब सही सुरक्षा पासवर्ड डाला जाएगा।
-                        # ======================================================================
-                        st.markdown("---")
-                        st.markdown("#### 📥 Master Database Excel Download (Password Protected)")
-
-                        with st.expander("🔑 सुरक्षित Excel डाउनलोड गेटवे खोलें", expanded=False):
-                            st.caption("नीचे सही पासवर्ड डालने पर ही पूरे मास्टर डेटाबेस की Excel (.xlsx) फ़ाइल डाउनलोड करने वाला बटन ऐक्टिव होगा।")
-
-                            P15_DOWNLOAD_SECURE_PASSWORD = "master@download15"  # 🔐 यहाँ से डाउनलोड पासवर्ड बदल सकते हैं
-
-                            p15_download_password_input = st.text_input(
-                                "🛡️ Excel डाउनलोड पासवर्ड दर्ज करें:",
-                                type="password",
-                                key="p15_download_pass_widget"
-                            )
-                            p15_download_pass_correct = (
-                                p15_download_password_input != "" and p15_download_password_input == P15_DOWNLOAD_SECURE_PASSWORD
-                            )
-
-                            if p15_download_password_input and not p15_download_pass_correct:
-                                st.error("❌ गलत पासवर्ड! Excel डाउनलोड बटन अभी भी लॉक है।")
-                            elif p15_download_pass_correct:
-                                st.success("🔓 पासवर्ड सत्यापित! अब आप नीचे बटन से पूरा मास्टर डेटाबेस Excel में डाउनलोड कर सकते हैं।")
-
-                            if p15_download_pass_correct and not ordered_db_display_all.empty:
-                                try:
-                                    p15_master_excel_bytes = dataframe_to_excel_bytes(ordered_db_display_all, "Master Database")
-                                    st.download_button(
-                                        label="📥 Download Master Database (.xlsx)",
-                                        data=p15_master_excel_bytes,
-                                        file_name=f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                        use_container_width=True,
-                                        type="primary",
-                                        key="p15_master_download_excel_btn"
-                                    )
-                                except Exception as p15_xl_err:
-                                    st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
-                            else:
-                                st.button(
-                                    "📥 Download Master Database (.xlsx)",
-                                    use_container_width=True,
-                                    disabled=True,
-                                    key="p15_master_download_excel_btn_locked"
-                                )
 
                         # ======================================================================
                         # 🔁 नया सब-सिस्टम: Database Find & Replace (पूरे डेटाबेस में ढूंढें और बदलें)
