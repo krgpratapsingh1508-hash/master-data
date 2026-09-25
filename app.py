@@ -298,6 +298,15 @@ CRED_FILE = "user_credentials_v15.json"
 MAP_FILE = "column_mapping_schema.json"
 PANEL_NAME_FILE = "panel_names_schema.json"
 TWIN_MAP_FILE = "twin_column_mapping_schema.json"
+
+# 🔒 P11: PERMANENT FIXED COLUMN MAPPINGS (हमेशा सक्रिय रहेंगी, चाहे JSON फ़ाइल रीसेट/डिलीट क्यों न हो जाए)
+# 🟢 इसमें बदलाव किए बिना ये 2 मैपिंग हर बार ऐप स्टार्ट होने पर अपने आप लागू (enforce) हो जाएँगी:
+#    1. Application Number  ↔  Admission Application Number
+#    2. Payment Date        ↔  Admission Date
+PERMANENT_TWIN_MAPPINGS = {
+    "Application Number": "Admission Application Number",
+    "Payment Date": "Admission Date"
+}
 PRE_LOGIN_CONFIG_FILE = "pre_login_view_config.json"
 DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 
@@ -563,13 +572,23 @@ def linkify_notice_line(line_text):
 
 # 🆕 P11 डायनेमिक कॉलम मैपिंग लोडर फंक्शन
 def load_twin_mappings():
+    # 🔒 पहले सेव्ड JSON फ़ाइल से मैपिंग्स उठाओ (अगर मौजूद हो)
     if os.path.exists(TWIN_MAP_FILE):
         try:
             with open(TWIN_MAP_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                loaded = json.load(f)
         except:
-            return {}
-    return {}
+            loaded = {}
+    else:
+        loaded = {}
+
+    # 🔒 PERMANENT FIX: चाहे JSON फ़ाइल खाली हो, डिलीट हो जाए या corrupt हो जाए,
+    # ये 2 डिफ़ॉल्ट मैपिंग हमेशा जबरदस्ती (force) लागू रहेंगी — इन्हें कभी भी
+    # ओवरराइट/डिलीट नहीं किया जा सकता, ताकि सिस्टम रीस्टार्ट/रीडिप्लॉय के बाद भी
+    # यह कनेक्शन हमेशा जुड़ा हुआ मिले।
+    merged = dict(loaded)
+    merged.update(PERMANENT_TWIN_MAPPINGS)
+    return merged
 
 # 🆕 P11 डायनेमिक कॉलम मैपिंग सेवर फंक्शन
 def save_twin_mappings(mapping_dict):
@@ -4397,18 +4416,33 @@ else:
             if not current_twins:
                 st.info("💡 वर्तमान में कोई डायनेमिक मैपिंग सेट नहीं है। डेटाबेस अपने डिफ़ॉल्ट रूप में काम कर रहा है।")
             else:
-                active_maps_list = [{"S.No.": i+1, "Source Column Connection": k, "Target Column Linked": v} for i, (k, v) in enumerate(current_twins.items())]
+                active_maps_list = [
+                    {
+                        "S.No.": i + 1,
+                        "Source Column Connection": k,
+                        "Target Column Linked": v,
+                        "Type": "🔒 Permanent (Fixed)" if k in PERMANENT_TWIN_MAPPINGS else "✏️ Custom"
+                    }
+                    for i, (k, v) in enumerate(current_twins.items())
+                ]
                 st.dataframe(pd.DataFrame(active_maps_list), use_container_width=True, hide_index=True)
+                st.caption("🔒 **Permanent (Fixed)** मैपिंग्स कोड में हमेशा के लिए सेट हैं — ये कभी डिलीट नहीं होंगी, चाहे JSON फ़ाइल रीसेट/डिलीट हो जाए।")
+                
+                # 🔒 PERMANENT FIX: सिर्फ वही मैपिंग्स डिलीट की जा सकती हैं जो Permanent list में नहीं हैं
+                deletable_twins = {k: v for k, v in current_twins.items() if k not in PERMANENT_TWIN_MAPPINGS}
                 
                 st.markdown("##### 🗑️ मैपिंग हटाएं (Remove Link)")
-                mapping_to_delete = st.selectbox("हटाने के लिए मैपिंग चुनें:", options=list(current_twins.keys()), format_func=lambda x: f"{x} ↔ {current_twins[x]}")
-                
-                if st.button("🗑️ सिंक कनेक्शन तोड़ें (Delete Mapping)", type="secondary", use_container_width=True):
-                    if mapping_to_delete in current_twins:
-                        del current_twins[mapping_to_delete]
-                        save_twin_mappings(current_twins)
-                        st.error("💥 मैपिंग सफलतापूर्वक हटा दी गई है!")
-                        st.rerun()
+                if not deletable_twins:
+                    st.info("🔒 इस समय सिर्फ Permanent (Fixed) मैपिंग्स सक्रिय हैं, जिन्हें हटाया नहीं जा सकता।")
+                else:
+                    mapping_to_delete = st.selectbox("हटाने के लिए मैपिंग चुनें:", options=list(deletable_twins.keys()), format_func=lambda x: f"{x} ↔ {deletable_twins[x]}")
+                    
+                    if st.button("🗑️ सिंक कनेक्शन तोड़ें (Delete Mapping)", type="secondary", use_container_width=True):
+                        if mapping_to_delete in current_twins and mapping_to_delete not in PERMANENT_TWIN_MAPPINGS:
+                            del current_twins[mapping_to_delete]
+                            save_twin_mappings(current_twins)
+                            st.error("💥 मैपिंग सफलतापूर्वक हटा दी गई है!")
+                            st.rerun()
 
         # ----------------------------------------------------------------------
         # P12: DASH BOARD EDITER MODULE (Pre-Login & Notice Customizer Combined)
