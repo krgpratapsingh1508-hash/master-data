@@ -170,6 +170,21 @@ def dataframe_to_excel_bytes(df_out, sheet_name="Sheet1"):
     return buf.getvalue()
 
 
+def encrypt_excel_bytes_with_password(excel_bytes, password):
+    """
+    Plain .xlsx bytes ko password-protected (Excel 'Open' password) .xlsx bytes me convert karta hai.
+    Isse khulne par Excel/Google Sheets password maangega. Requires: msoffcrypto-tool
+    (requirements.txt me `msoffcrypto-tool` add karein).
+    """
+    import msoffcrypto
+    from msoffcrypto.format.ooxml import OOXMLFile
+    plain_buf = io.BytesIO(excel_bytes)
+    encrypted_buf = io.BytesIO()
+    office_file = OOXMLFile(plain_buf)
+    office_file.encrypt(password, encrypted_buf)
+    return encrypted_buf.getvalue()
+
+
 def read_uploaded_file_as_csv_df(uploaded_file):
     """CSV / XLS / XLSX kuch bhi ho -> (convert to CSV if needed) -> DataFrame (sab text)."""
     name = uploaded_file.name.lower()
@@ -5591,16 +5606,19 @@ else:
                 if not ordered_db_display.empty:
                     try:
                         p15_excel_bytes = dataframe_to_excel_bytes(ordered_db_display, "Master Database")
+                        # 🔒 Password-protected .xlsx: file khulte hi Excel/Sheets password maangega
+                        p15_excel_bytes = encrypt_excel_bytes_with_password(p15_excel_bytes, "15081999")
                         st.download_button(
-                            label=f"📥 Download Excel File (.xlsx) — कुल {len(ordered_db_display)} रिकॉर्ड्स",
+                            label=f"📥 Download Excel File (.xlsx) — कुल {len(ordered_db_display)} रिकॉर्ड्स 🔒",
                             data=p15_excel_bytes,
                             file_name=f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             use_container_width=True,
                             key="p15_master_db_download_excel_btn"
                         )
+                        st.caption("🔒 यह फ़ाइल पासवर्ड-प्रोटेक्टेड है — खोलते समय पासवर्ड माँगा जाएगा।")
                     except Exception as p15_xl_err:
-                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
+                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` और `msoffcrypto-tool` जोड़ें)")
 
                 if live_db.empty:
                     st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
