@@ -3557,15 +3557,6 @@ else:
                     chosen_option_p10 = st.selectbox(
                         "📅 Select Semester / Year Scope:", options=custom_year_options_p10, key="p10_archive_year_filter"
                     )
-                with col_p10_f2:
-                    unique_subjects_p10 = sorted(list(set(
-                        p10_authorized_db["Subject"].dropna().astype(str).str.strip()
-                    )))
-                    selected_subject_p10 = st.selectbox(
-                        "📚 Select Subject Filter:",
-                        options=["All Subjects"] + [s for s in unique_subjects_p10 if s != ""],
-                        key="p10_archive_subject_filter"
-                    )
 
                 # 📚 सेमेस्टर-टू-ईयर लाइव मैपिंग इंजन (CCE panel jaisa hi)
                 # 🟢 ध्यान दें: 1st Sem. और 2nd Sem. दोनों 1st Year में ही मैप होते हैं,
@@ -3579,6 +3570,32 @@ else:
                     "11th Sem.": "6th Year", "12th Sem.": "6th Year"
                 }
                 target_db_year_p10 = sem_to_year_map_p10.get(chosen_option_p10, chosen_option_p10)
+
+                # 🟢 Pehle Year/Sem scope tay hota hai, ab usi scope ke andar maujood Subjects ki list banayenge
+                # taaki "Select Subject Filter" dropdown me sirf usi saal/semester ke Subjects hi dikhein
+                if chosen_option_p10 != "All Years":
+                    subject_scope_df_p10 = p10_authorized_db[
+                        p10_authorized_db["Current Year"].astype(str).str.strip().str.upper() ==
+                        str(target_db_year_p10).strip().upper()
+                    ]
+                else:
+                    subject_scope_df_p10 = p10_authorized_db
+
+                with col_p10_f2:
+                    unique_subjects_p10 = sorted(list(set(
+                        subject_scope_df_p10["Subject"].dropna().astype(str).str.strip()
+                    )))
+                    # 🟢 Fix: agar pehle se selected subject naye scope me maujood nahi hai,
+                    # to wo apne aap "All Subjects" par reset ho jayega (taaki galat/khaali list na dikhe)
+                    prev_selected_subject_p10 = st.session_state.get("p10_archive_subject_filter", "All Subjects")
+                    subject_options_p10 = ["All Subjects"] + [s for s in unique_subjects_p10 if s != ""]
+                    if prev_selected_subject_p10 not in subject_options_p10:
+                        st.session_state["p10_archive_subject_filter"] = "All Subjects"
+                    selected_subject_p10 = st.selectbox(
+                        "📚 Select Subject Filter:",
+                        options=subject_options_p10,
+                        key="p10_archive_subject_filter"
+                    )
 
                 render_archive = p10_authorized_db[archive_view_cols].copy()
 
