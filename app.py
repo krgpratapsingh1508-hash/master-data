@@ -196,11 +196,11 @@ def read_uploaded_file_as_csv_df(uploaded_file):
 # ==========================================================
 PRINT_HEADER_LINES = [
     # (key,   css_class,       label,                 default_px, default_colour, extra_css)
-    ("l1",   "h-line-1",    "1. कॉलेज का नाम",       16, "#0F2A4A", "font-weight: bold; margin-bottom: 5px;"),
-    ("ugpg", "h-line-ugpg", "2. UG / PG",             13, "#A97A25", "font-weight: bold; margin-bottom: 5px; letter-spacing: 0.3px;"),
-    ("l2",   "h-line-2",    "3. रिपोर्ट का टाइटल",    14, "#333333", "font-weight: bold; margin-bottom: 5px;"),
-    ("l3",   "h-line-3",    "4. Session / Subject",   12, "#555555", "font-style: italic;"),
-    ("l4",   "h-line-4",    "5. Filter Value",        12, "#0F2A4A", "font-style: italic; margin-top: 3px;"),
+    ("l1",   "h-line-1",    "1. कॉलेज का नाम",       20, "#E82D0A", "font-weight: bold; margin-bottom: 5px;"),
+    ("ugpg", "h-line-ugpg", "2. UG / PG",             20, "#A97A25", "font-weight: bold; margin-bottom: 5px; letter-spacing: 0.3px;"),
+    ("l2",   "h-line-2",    "3. रिपोर्ट का टाइटल",    18, "#333333", "font-weight: bold; margin-bottom: 5px;"),
+    ("l3",   "h-line-3",    "4. Session / Subject",   16, "#555555", "font-style: italic;"),
+    ("l4",   "h-line-4",    "5. Filter Value",        16, "#0F2A4A", "font-style: italic; margin-top: 3px;"),
 ]
 PRINT_HEADER_MIN_PX = 8
 PRINT_HEADER_MAX_PX = 60
@@ -1876,11 +1876,11 @@ else:
 
                     col_tb1, col_tb2, col_tb3, col_tb4, col_tb5 = st.columns(5)
                     with col_tb1:
-                        custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
+                        custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
                     with col_tb2:
                         custom_header_ugpg = st.text_input("2. Select Under Graduate/Post Graduate:", value=default_header_ugpg, key="p2_custom_head_line_ugpg_final_fixed")
                     with col_tb3:
-                        custom_header_2 = st.text_input("3. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION CONTROL & FEES PAYMENT REPORT SHEET", key="p2_custom_head_line_2_final_fixed")
+                        custom_header_2 = st.text_input("3. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION LIST", key="p2_custom_head_line_2_final_fixed")
                     with col_tb4:
                         custom_header_3 = st.text_input("4. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
                     with col_tb5:
