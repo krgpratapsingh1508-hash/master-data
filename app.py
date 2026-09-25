@@ -307,6 +307,12 @@ PERMANENT_TWIN_MAPPINGS = {
     "Application Number": "Admission Application Number",
     "Payment Date": "Admission Date"
 }
+
+# 🙈 P15: सिर्फ़ P15 की Master Grid से छुपाई जाने वाली कॉलम्स (permanent, code-level hide)
+# 🟢 ध्यान दें: ये सिर्फ P15 की लिस्ट/ग्रिड से hide होती हैं — असली डेटा, P1 फॉर्म, और
+# P11 वाला Twin-Sync इंजन (जो इन्हीं कॉलम्स को "Admission Application Number" /
+# "Admission Date" से सिंक करता है) पूरी तरह सुरक्षित और सामान्य रूप से काम करता रहेगा।
+P15_HIDDEN_GRID_COLUMNS = ["Application Number", "Payment Date"]
 PRE_LOGIN_CONFIG_FILE = "pre_login_view_config.json"
 DYNAMIC_LISTS_FILE = "p1_dynamic_lists_schema.json"
 
@@ -5492,7 +5498,7 @@ else:
                     # 🚨 यदि लिस्ट लॉक है, तो ड्रॉपडाउन को भी डिसेबल (फ्रीज) कर दें
                     target_col = st.selectbox(
                         "मूव करने के लिए कॉलम चुनें:", 
-                        options=st.session_state.admin_columns_order, 
+                        options=[c for c in st.session_state.admin_columns_order if c not in P15_HIDDEN_GRID_COLUMNS], 
                         disabled=st.session_state.admin_lock_state,
                         key="p15_column_shifter_select_box_final"
                     )
@@ -5512,7 +5518,9 @@ else:
                             st.rerun()
 
                 # फ़ील्ड्स और ऑर्डर्स मैपिंग
-                render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns]
+                # 🙈 Permanent Fix: "Application Number" aur "Payment Date" ab P15 ki master grid me nahi dikhenge
+                # (In dono ka data aur P11 wala Twin-Sync engine bilkul pehle jaisa hi normal kaam karta rahega)
+                render_columns = [col for col in st.session_state.admin_columns_order if col in live_db.columns and col not in P15_HIDDEN_GRID_COLUMNS]
 
                 # 🕓 "पेंडिंग डिलीट" स्टेज: जब तक "Save Grid Changes" बटन नहीं दबाया जाता, तब तक Delete
                 #    सिर्फ़ रो को व्यू से छुपाता है — असली CSV फ़ाइल में कुछ भी परमानेंट डिलीट नहीं होता।
