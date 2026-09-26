@@ -464,6 +464,10 @@ def classify_ug_pg(eligibility_val):
     return "Other"
 
 def load_pre_login_config():
+    return _load_pre_login_config_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_pre_login_config_cached():
     if os.path.exists(PRE_LOGIN_CONFIG_FILE):
         try:
             with open(PRE_LOGIN_CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -475,11 +479,16 @@ def load_pre_login_config():
 def save_pre_login_config(config_dict):
     with open(PRE_LOGIN_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config_dict, f, ensure_ascii=False, indent=4)
+    _load_pre_login_config_cached.clear()
 
 # 🟢 P12 SYLLABUS MANAGER: har Subject + Year ke combination ke liye File-upload YA
 # Link — dono me se koi bhi ek tarika chuna ja sakta hai. Data yahan nested format me
 # save hota hai: { Subject: { Year: {"type","value","file_name"} } }
 def load_syllabus_data():
+    return _load_syllabus_data_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_syllabus_data_cached():
     if os.path.exists(SYLLABUS_FILE):
         try:
             with open(SYLLABUS_FILE, "r", encoding="utf-8") as f:
@@ -491,6 +500,7 @@ def load_syllabus_data():
 def save_syllabus_data(data_dict):
     with open(SYLLABUS_FILE, "w", encoding="utf-8") as f:
         json.dump(data_dict, f, ensure_ascii=False, indent=4)
+    _load_syllabus_data_cached.clear()
 
 # 🟢 FIX: Ab har Subject ke liye utne hi Years dikhenge jitni uski asli "Duration"
 # (jaise 3 saal ka course ho to sirf 1st/2nd/3rd Year hi dikhega, 4th/5th/6th nahi) —
@@ -513,6 +523,10 @@ def get_subject_syllabus_year_count(subject_name, df):
         return len(SYLLABUS_YEAR_OPTIONS)
 
 def load_dynamic_lists():
+    return _load_dynamic_lists_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_dynamic_lists_cached():
     if os.path.exists(DYNAMIC_LISTS_FILE):
         try:
             with open(DYNAMIC_LISTS_FILE, "r", encoding="utf-8") as f:
@@ -525,7 +539,9 @@ def load_dynamic_lists():
 def save_dynamic_lists(lists_dict):
     with open(DYNAMIC_LISTS_FILE, "w", encoding="utf-8") as f:
         json.dump(lists_dict, f, ensure_ascii=False, indent=4)
+    _load_dynamic_lists_cached.clear()
 
+@st.cache_data(show_spinner=False)
 def load_credentials():
     if os.path.exists(CRED_FILE):
         try:
@@ -536,6 +552,10 @@ def load_credentials():
         return DEFAULT_CREDENTIALS.copy()
 
 def load_panel_names():
+    return _load_panel_names_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_panel_names_cached():
     if os.path.exists(PANEL_NAME_FILE):
         try:
             with open(PANEL_NAME_FILE, "r", encoding="utf-8") as f: return json.load(f)
@@ -545,7 +565,9 @@ def load_panel_names():
 def save_panel_names(panel_dict):
     with open(PANEL_NAME_FILE, "w", encoding="utf-8") as f:
         json.dump(panel_dict, f, ensure_ascii=False, indent=4)
+    _load_panel_names_cached.clear()
 
+@st.cache_data(show_spinner=False)
 def load_column_mappings():
     if os.path.exists(MAP_FILE):
         try:
@@ -554,6 +576,10 @@ def load_column_mappings():
     return {}
 
 def load_notice_board():
+    return _load_notice_board_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_notice_board_cached():
     if os.path.exists(NOTICE_FILE):
         try:
             with open(NOTICE_FILE, "r", encoding="utf-8") as f:
@@ -565,6 +591,7 @@ def load_notice_board():
 def save_notice_board(text):
     with open(NOTICE_FILE, "w", encoding="utf-8") as f:
         json.dump({"notice_text": text}, f, ensure_ascii=False, indent=4)
+    _load_notice_board_cached.clear()
 
 # 🟢 NOTICE BOARD LINK FEATURE:
 # Agar Notice me admin koi link (http://..., https://..., ya www....) type karta hai,
@@ -598,6 +625,10 @@ def linkify_notice_line(line_text):
 
 # 🆕 P11 डायनेमिक कॉलम मैपिंग लोडर फंक्शन
 def load_twin_mappings():
+    return _load_twin_mappings_cached()
+
+@st.cache_data(show_spinner=False)
+def _load_twin_mappings_cached():
     # 🔒 पहले सेव्ड JSON फ़ाइल से मैपिंग्स उठाओ (अगर मौजूद हो)
     if os.path.exists(TWIN_MAP_FILE):
         try:
@@ -620,8 +651,13 @@ def load_twin_mappings():
 def save_twin_mappings(mapping_dict):
     with open(TWIN_MAP_FILE, "w", encoding="utf-8") as f:
         json.dump(mapping_dict, f, ensure_ascii=False, indent=4)
+    _load_twin_mappings_cached.clear()
 
 def load_live_data():
+    return _load_live_data_cached().copy()
+
+@st.cache_data(show_spinner=False)
+def _load_live_data_cached():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         df_empty = pd.DataFrame(columns=DEFAULT_COLUMNS)
         df_empty.to_csv(DB_FILE, index=False)
@@ -650,6 +686,7 @@ def load_live_data():
 def save_live_data(df_to_save):
     if df_to_save.empty:
         df_to_save.fillna("").astype(str).to_csv(DB_FILE, index=False)
+        _load_live_data_cached.clear()
         return
 
     df_temp = df_to_save.copy()
@@ -673,8 +710,13 @@ def save_live_data(df_to_save):
     # 🛑 नो न्यू कॉलम पॉलिसी: केवल ओरिजिनल DEFAULT_COLUMNS ही सीएसवी फ़ाइल में सेव होंगे
     final_cols_to_save = [col for col in DEFAULT_COLUMNS if col in df_temp.columns]
     df_temp[final_cols_to_save].fillna("").astype(str).to_csv(DB_FILE, index=False)
+    _load_live_data_cached.clear()
 
 def load_stage_data():
+    return _load_stage_data_cached().copy()
+
+@st.cache_data(show_spinner=False)
+def _load_stage_data_cached():
     if not os.path.exists(STAGE_FILE) or os.path.getsize(STAGE_FILE) == 0:
         return pd.DataFrame(columns=DEFAULT_COLUMNS + ["Uploaded File Name"])
     try:
@@ -701,7 +743,9 @@ def load_stage_data():
 
 def save_stage_data(df_to_save):
     df_to_save.fillna("").astype(str).to_csv(STAGE_FILE, index=False)
+    _load_stage_data_cached.clear()
 
+@st.cache_data(show_spinner=False)
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as image_file:
