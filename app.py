@@ -216,8 +216,8 @@ def read_uploaded_file_as_csv_df(uploaded_file):
 # ==========================================================
 PRINT_HEADER_LINES = [
     # (key,   css_class,       label,                 default_px, default_colour, extra_css)
-    ("l1",   "h-line-1",    "1. कॉलेज का नाम",       20, "#E82D0A", "font-weight: bold; margin-bottom: 5px;"),
-    ("ugpg", "h-line-ugpg", "2. UG / PG",             20, "#A97A25", "font-weight: bold; margin-bottom: 5px; letter-spacing: 0.3px;"),
+    ("l1",   "h-line-1",    "1. कॉलेज का नाम",       18, "#E82D0A", "font-weight: bold; margin-bottom: 5px;"),
+    ("ugpg", "h-line-ugpg", "2. UG / PG",             18, "#A97A25", "font-weight: bold; margin-bottom: 5px; letter-spacing: 0.3px;"),
     ("l2",   "h-line-2",    "3. रिपोर्ट का टाइटल",    18, "#333333", "font-weight: bold; margin-bottom: 5px;"),
     ("l3",   "h-line-3",    "4. Session / Subject",   16, "#555555", "font-style: italic;"),
     ("l4",   "h-line-4",    "5. Filter Value",        16, "#0F2A4A", "font-style: italic; margin-top: 3px;"),
