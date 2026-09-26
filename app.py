@@ -2775,11 +2775,11 @@ else:
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # आपके द्वारा मांगे गए सटीक 22 कॉलम का फ़्रेमवर्क
+                # आपके द्वारा मांगे गए सटीक 24 कॉलम का फ़्रेमवर्क
                 cce_requested_cols = [
                     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
                     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
-                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", 
+                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", "Branch","Major Subject",
                     "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status",
                     "CCE Marks Obtained", "CCE Attendance Status"
                 ]
