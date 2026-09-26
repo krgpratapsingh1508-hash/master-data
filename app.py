@@ -170,19 +170,24 @@ def dataframe_to_excel_bytes(df_out, sheet_name="Sheet1"):
     return buf.getvalue()
 
 
-def encrypt_excel_bytes_with_password(excel_bytes, password):
+def make_password_protected_zip(file_bytes, inner_filename, password):
     """
-    Plain .xlsx bytes ko password-protected (Excel 'Open' password) .xlsx bytes me convert karta hai.
-    Isse khulne par Excel/Google Sheets password maangega. Requires: msoffcrypto-tool
-    (requirements.txt me `msoffcrypto-tool` add karein).
+    Diye gaye file bytes (e.g. .xlsx) ko ek AES-256 password-protected .zip me
+    daal kar bytes return karta hai. Extract karte waqt sahi password na daalne par
+    extraction fail ho jaata hai — yeh genuinely enforce hota hai (real, tested
+    encryption; Excel-native 'open password' jaisi buggy library nahi).
+    Requires: pyzipper (requirements.txt me `pyzipper` add karein).
     """
-    import msoffcrypto
-    from msoffcrypto.format.ooxml import OOXMLFile
-    plain_buf = io.BytesIO(excel_bytes)
-    encrypted_buf = io.BytesIO()
-    office_file = OOXMLFile(plain_buf)
-    office_file.encrypt(password, encrypted_buf)
-    return encrypted_buf.getvalue()
+    import pyzipper
+    zip_buf = io.BytesIO()
+    with pyzipper.AESZipFile(
+        zip_buf, "w",
+        compression=pyzipper.ZIP_DEFLATED,
+        encryption=pyzipper.WZ_AES
+    ) as zf:
+        zf.setpassword(password.encode("utf-8"))
+        zf.writestr(inner_filename, file_bytes)
+    return zip_buf.getvalue()
 
 
 def read_uploaded_file_as_csv_df(uploaded_file):
@@ -5606,19 +5611,20 @@ else:
                 if not ordered_db_display.empty:
                     try:
                         p15_excel_bytes = dataframe_to_excel_bytes(ordered_db_display, "Master Database")
-                        # 🔒 Password-protected .xlsx: file khulte hi Excel/Sheets password maangega
-                        p15_excel_bytes = encrypt_excel_bytes_with_password(p15_excel_bytes, "15081999")
+                        p15_inner_filename = f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx"
+                        # 🔒 Password-protected .zip (asli, tested AES encryption) — andar wahi .xlsx file hai
+                        p15_zip_bytes = make_password_protected_zip(p15_excel_bytes, p15_inner_filename, "15081999")
                         st.download_button(
-                            label=f"📥 Download Excel File (.xlsx) — कुल {len(ordered_db_display)} रिकॉर्ड्स 🔒",
-                            data=p15_excel_bytes,
-                            file_name=f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            label=f"📥 Download Excel File (.zip, password-protected) — कुल {len(ordered_db_display)} रिकॉर्ड्स 🔒",
+                            data=p15_zip_bytes,
+                            file_name=f"master_database_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.zip",
+                            mime="application/zip",
                             use_container_width=True,
                             key="p15_master_db_download_excel_btn"
                         )
-                        st.caption("🔒 यह फ़ाइल पासवर्ड-प्रोटेक्टेड है — खोलते समय पासवर्ड माँगा जाएगा।")
+                        st.caption("🔒 यह ZIP पासवर्ड-प्रोटेक्टेड है — extract करते समय सही पासवर्ड डालना ज़रूरी होगा, तभी अंदर की Excel फ़ाइल खुलेगी।")
                     except Exception as p15_xl_err:
-                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` और `msoffcrypto-tool` जोड़ें)")
+                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p15_xl_err} (requirements.txt में `openpyxl` और `pyzipper` जोड़ें)")
 
                 if live_db.empty:
                     st.warning("💡 वर्तमान में मास्टर डेटाबेस पूरी तरह खाली है। कृपया पहले Panel 1 से नया डेटा लोड करें।")
