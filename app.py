@@ -2775,11 +2775,11 @@ else:
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # आपके द्वारा मांगे गए सटीक 24 कॉलम का फ़्रेमवर्क
+                # आपके द्वारा मांगे गए सटीक 22 कॉलम का फ़्रेमवर्क
                 cce_requested_cols = [
                     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
                     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
-                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject", "Branch","Major Subject",
+                    "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject",
                     "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status",
                     "CCE Marks Obtained", "CCE Attendance Status"
                 ]
@@ -4406,7 +4406,7 @@ else:
             all_22_columns = [
                 "Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", 
                 "Admission Year", "Admission Session", "Eligibility Name", "Admission Date", "Unique ID", 
-                "Application Enrollment No.", "Mother Name", "Date of Birth", "Category", "Subject","Branch","Major Subject", 
+                "Application Enrollment No.", "Mother Name", "Date of Birth", "Category", "Subject", 
                 "Duration", "Mobile Number", "Email ID", "Address", "Status", "Current Year", "Payment Date"
             ]
             
@@ -4418,11 +4418,11 @@ else:
                 "Panel 4: Roll No. panel": ["Admission Application Number", "Unique ID", "Student Name", "Roll No."],
                 "Panel 5: Enrollment panel": ["Admission Application Number", "Student Name", "Subject", "Enrollment No."],
                 "Panel 6: Scholarship panel": ["Admission Application Number", "Unique ID", "Student Name", "Category", "Scholarship Name", "Scholarship Status"],
-                "Panel 7: CCE panel": all_24_columns,
-                "Panel 8: Promotion panel": all_24_columns,
+                "Panel 7: CCE panel": all_22_columns,
+                "Panel 8: Promotion panel": all_22_columns,
                 "Panel 9: Result panel": ["Admission Application Number", "Roll No.", "Enrollment No.", "Student Name", "Father Name", "Marks Obtained", "Result Status", "Exam Remarks"],
-                "Panel 10: Register panel": all_24_columns,
-                "Panel 15: Super-Admin Master Control": all_24_columns
+                "Panel 10: Register panel": all_22_columns,
+                "Panel 15: Super-Admin Master Control": all_22_columns
             }
             
             current_twins = load_twin_mappings()
