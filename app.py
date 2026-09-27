@@ -2877,10 +2877,31 @@ else:
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("📄 2. Generate University Official Blank Foil Sheets")
                 
+                # 🟢 P7: Subject Filter se pehle "Column Scroll List" — user pehle yeh chunega
+                # ki kis column (Subject / Branch / Minor Subjects / MDC Subjects /
+                # Vocational Subjects / PW/Ap/CE Subjects) ke aadhar par filter karna hai,
+                # us column ke unique values ki list neeche dropdown me aa jaayegi.
+                p7_filter_column_options = [
+                    "Subject", "Branch", "Minor Subjects", "MDC Subjects",
+                    "Vocational Subjects", "PW/Ap/CE Subjects"
+                ]
+                p7_available_filter_columns = [c for c in p7_filter_column_options if c in render_df.columns]
+                if not p7_available_filter_columns:
+                    p7_available_filter_columns = ["Subject"]
+
+                selected_filter_column = st.selectbox(
+                    "🗂️ Select Column to Filter By (Subject / Branch / Minor / MDC / Vocational / PW-Ap-CE):",
+                    options=p7_available_filter_columns,
+                    key="p7_foil_filter_column_select"
+                )
+
                 col_p7_1, col_p7_2 = st.columns(2)
                 with col_p7_1:
-                    unique_subjects = sorted(list(set(render_df['Subject'].dropna().astype(str).str.strip())))
-                    selected_subject = st.selectbox("📚 Select Subject Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
+                    if selected_filter_column in render_df.columns:
+                        unique_subjects = sorted(list(set(render_df[selected_filter_column].dropna().astype(str).str.strip())))
+                    else:
+                        unique_subjects = []
+                    selected_subject = st.selectbox(f"📚 Select {selected_filter_column} Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
                 with col_p7_2:
                     custom_year_options = [
                         "All Years", "1st Sem.", "2nd Sem.", "3rd Sem.", "4th Sem.", "5th Sem.", "6th Sem.", 
@@ -2919,9 +2940,9 @@ else:
                     }
                     target_db_year = sem_to_year_map.get(chosen_option, chosen_option)
                     
-                    # 1. पहले विषय (Subject) के आधार पर फ़िल्टर करें
-                    if selected_subject != "All Subjects":
-                        foil_data_df = foil_data_df[foil_data_df["Subject"].astype(str).str.strip() == selected_subject]
+                    # 1. पहले चुने गए Column (Subject / Branch / Minor / MDC / Vocational / PW-Ap-CE) के आधार पर फ़िल्टर करें
+                    if selected_subject != "All Subjects" and selected_filter_column in foil_data_df.columns:
+                        foil_data_df = foil_data_df[foil_data_df[selected_filter_column].astype(str).str.strip() == selected_subject]
                     
                     # 🟢 2. Semester / Year Scope के आधार पर फ़िल्टर करें
                     # 🟢 Fix: पहले यहाँ "Year == साल" के साथ "Status == 'Regular Student'" (exact match)
@@ -2958,7 +2979,7 @@ else:
                     records_list = foil_data_df.to_dict(orient="records")
 
                     if len(records_list) == 0:
-                        st.warning(f"🔍 चयनित Subject और '{chosen_option}' ({target_db_year}) के आधार पर कोई डेटा नहीं मिला।")
+                        st.warning(f"🔍 चयनित {selected_filter_column} और '{chosen_option}' ({target_db_year}) के आधार पर कोई डेटा नहीं मिला।")
                     else:
                         def num_to_words(m_str):
                             m_str = str(m_str).strip()
