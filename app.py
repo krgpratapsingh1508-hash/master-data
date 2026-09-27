@@ -2780,6 +2780,7 @@ else:
                     "Admission Year", "Admission Session", "Eligibility Name", "Admission Application Number", 
                     "Admission Date", "Unique ID", "Roll No.", "Application Enrollment No.", "Enrollment No.", 
                     "Student Name", "Father Name", "Mother Name", "Date of Birth", "Category", "Subject",
+                    "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
                     "Duration", "Mobile Number", "Email ID", "Address", "Current Year", "Status",
                     "CCE Marks Obtained", "CCE Attendance Status"
                 ]
@@ -2882,8 +2883,8 @@ else:
                 # Vocational Subjects / PW/Ap/CE Subjects) ke aadhar par filter karna hai,
                 # us column ke unique values ki list neeche dropdown me aa jaayegi.
                 p7_filter_column_options = [
-                    "Subject", "Branch", "Minor Subjects", "MDC Subjects",
-                    "Vocational Subjects", "PW/Ap/CE Subjects"
+                    "Subject", "Branch", "Minor Subjects", "Vocational Subjects",
+                    "MDC Subjects", "PW/Ap/CE Subjects"
                 ]
                 p7_available_filter_columns = [c for c in p7_filter_column_options if c in render_df.columns]
                 if not p7_available_filter_columns:
