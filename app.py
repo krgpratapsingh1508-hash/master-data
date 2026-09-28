@@ -696,17 +696,13 @@ def save_live_data(df_to_save):
     twin_maps = load_twin_mappings()
     for source_col, target_col in twin_maps.items():
         if source_col in df_temp.columns and target_col in df_temp.columns:
-            for idx, row in df_temp.iterrows():
-                src_val = str(row.get(source_col, "")).strip()
-                tgt_val = str(row.get(target_col, "")).strip()
-                
-                if src_val != "" and tgt_val == "":
-                    df_temp.at[idx, target_col] = src_val
-                elif tgt_val != "" and src_val == "":
-                    df_temp.at[idx, source_col] = tgt_val
-                elif src_val != tgt_val and src_val != "":
-                    # यदि दोनों कॉलम में अलग डेटा है, तो प्राथमिक रूप से सोर्स कॉलम का डेटा सिंक करें
-                    df_temp.at[idx, target_col] = src_val
+            # ⚡ पहले हर row पर iterrows() loop चलता था (धीमा); अब वही नियम पूरे कॉलम पर एक साथ
+            _s = df_temp[source_col].astype(str).str.strip()
+            _t = df_temp[target_col].astype(str).str.strip()
+            _m_tgt = (_s != "") & (_s != _t)      # source भरा है और target खाली/अलग -> target = source
+            _m_src = (_t != "") & (_s == "")      # source खाली, target भरा -> source = target
+            df_temp.loc[_m_tgt, target_col] = _s[_m_tgt]
+            df_temp.loc[_m_src, source_col] = _t[_m_src]
 
     # 🛑 नो न्यू कॉलम पॉलिसी: केवल ओरिजिनल DEFAULT_COLUMNS ही सीएसवी फ़ाइल में सेव होंगे
     final_cols_to_save = [col for col in DEFAULT_COLUMNS if col in df_temp.columns]
@@ -805,6 +801,33 @@ for k in DEFAULT_PANELS.keys():
 # ==========================================================
 # 🧠 स्टेप 3.5: मास्टर रिपॉजिटरी लोड और ऑटो-ईयर कैलकुलेशन इंजन (Duration Based)
 # ==========================================================
+import numpy as _np_fast
+
+def _vectorized_current_year(df, highest_admission_year):
+    """calculate_current_academic_year जैसा ही नियम, पर पूरे DataFrame पर एक साथ (row-by-row apply से कई गुना तेज़)।"""
+    n = len(df)
+    empty = pd.Series([""] * n, index=df.index)
+    dur_s = df["Duration"].astype(str).str.strip() if "Duration" in df.columns else empty
+    adm_s = df["Admission Year"].astype(str).str.strip() if "Admission Year" in df.columns else empty
+    dur = pd.to_numeric(dur_s, errors="coerce")
+    adm = pd.to_numeric(adm_s, errors="coerce")
+    bad = (dur_s.eq("") | dur_s.str.lower().eq("nan") | dur_s.eq("0")
+           | ~_np_fast.isfinite(dur) | ~_np_fast.isfinite(adm))
+    dur_i = _np_fast.trunc(dur.where(~bad, 0))
+    adm_i = _np_fast.trunc(adm.where(~bad, 0))
+    diff = highest_admission_year - adm_i
+    ordinals = {0: "1st Year", 1: "2nd Year", 2: "3rd Year", 3: "4th Year", 4: "5th Year", 5: "6th Year"}
+    lbl = diff.map(ordinals)
+    lbl = lbl.where(lbl.notna(), (diff + 1).astype("int64").astype(str) + "th Year")
+    status = df["Status"].astype(str).str.strip().str.upper() if "Status" in df.columns else empty
+    after = _np_fast.where(status.eq("EX-STUDENT"), "EX-STUDENT", "Passout").astype(object)
+    inside = (diff >= 0) & (diff < dur_i)
+    res = _np_fast.select(
+        [bad.to_numpy(), inside.to_numpy(), (diff >= dur_i).to_numpy()],
+        [_np_fast.full(n, "plz Fill the Duretion", dtype=object), lbl.to_numpy(dtype=object), after],
+        default="1st Year")
+    return pd.Series(res, index=df.index)
+
 # 1. डेटाबेस से मूल डेटा लोड करें
 live_db = load_live_data()
 
@@ -855,7 +878,8 @@ if not live_db.empty and "Admission Year" in live_db.columns:
                     return "plz Fill the Duretion"
             
             # पूरे डेटाबेस ग्रिड को लाइव अपडेट करें
-            live_db["Current Year"] = live_db.apply(calculate_current_academic_year, axis=1)
+            # ⚡ पहले हर row पर Python function चलता था (धीमा) — अब वही नियम vectorized (पूरे कॉलम पर एक साथ) चलते हैं
+            live_db["Current Year"] = _vectorized_current_year(live_db, highest_admission_year)
             if "Year" in live_db.columns:
                 live_db["Year"] = live_db["Current Year"]
                 
@@ -1788,7 +1812,9 @@ else:
                     p21_db = p2_authorized_db.copy()      # index = live_db ka asli index (isi se save hoga)
                     if _P21_COL not in p21_db.columns:
                         p21_db[_P21_COL] = ""
-                    for _c in p21_db.columns:
+                    for _c in ["Admission Year", "Subject", "Student Name", "Father Name", "Admission Application Number", _P21_COL]:
+                        if _c not in p21_db.columns:
+                            p21_db[_c] = ""
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit") else "")
 
