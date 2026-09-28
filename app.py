@@ -1763,15 +1763,14 @@ else:
                 # ==============================================================
                 # 🗂️ P2 ke andar 2 sub-panel: 2.1 (Document Submit Status) aur 2.2 (purana poora P2)
                 # ==============================================================
-                p2_tab_21, p2_tab_22 = st.tabs([
-                    "📄 2.1 Document Submit Status",
-                    "🎓 2.2 Admission Control & Payment Tracker"
-                ])
+                # ⚡ st.tabs me dono tab ka code har baar chalta hai (2.2 ka bhi, jo bhaari hai) — isliye radio: sirf chuna hua sub-panel chalta hai
+                _P2_SUBS = ["📄 2.1 Document Submit Status", "🎓 2.2 Admission Control & Payment Tracker"]
+                _p2_sub = st.radio("P2 sub-panel:", _P2_SUBS, horizontal=True, key="p2_sub_panel_choice", label_visibility="collapsed")
 
                 # ==============================================================
                 # 📄 2.1 — P2 ki list + "Document Submit Status" column + har row ke left me Submit / Not Submit button
                 # ==============================================================
-                with p2_tab_21:
+                if _p2_sub == _P2_SUBS[0]:
                     st.subheader("📄 2.1 Document Submit Status")
                     st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
 
@@ -1895,7 +1894,7 @@ else:
                 # ==============================================================
                 # 🎓 2.2 — P2 me jo kuch pehle se tha, wo sab bilkul waisa hi (sirf ek level andar)
                 # ==============================================================
-                with p2_tab_22:
+                if _p2_sub == _P2_SUBS[1]:
                     # 🟢 Fix: "Student Abc Id" ko galti se "Student Abc ld" (typo) mein rename kar diya jaata tha,
                     # jisse yeh column aage 'Student Abc Id' naam se dhoondhne par nahi milta tha aur khaali dikhta tha.
                     column_mapping_fixes = {
