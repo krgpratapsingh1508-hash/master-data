@@ -2121,8 +2121,15 @@ else:
                         "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
                         "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
                         "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
-                        "Scholarship Name", "Payment Date", "Remark"
+                        "Scholarship Name", "Payment Date", "Document Submit Status", "Remark"
                     ]
+                    # 🆕 2.1 me mark hua "Document Submit Status" ab 2.2 me bhi ek column ke roop me dikhta hai.
+                    # Purane session me multiselect ki saved list me ye column nahi hota, isliye ek baar automatically jod dete hain.
+                    _ms_key = "p2_columns_multiselect_dropdown_v20"
+                    if not st.session_state.get("_p2_docstatus_col_added"):
+                        if _ms_key in st.session_state and "Document Submit Status" not in st.session_state[_ms_key]:
+                            st.session_state[_ms_key] = list(st.session_state[_ms_key]) + ["Document Submit Status"]
+                        st.session_state["_p2_docstatus_col_added"] = True
 
                     if st.session_state.p2_show_columns_section:
                         # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
