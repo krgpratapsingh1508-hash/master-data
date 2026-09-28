@@ -1793,8 +1793,8 @@ else:
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit") else "")
 
-                    # ---- filters
-                    f21_1, f21_2, f21_3, f21_4 = st.columns(4)
+                    # ---- upar ke dropdown filters
+                    f21_1, f21_2, f21_3 = st.columns(3)
                     with f21_1:
                         _yrs = ["All Years"] + sorted([y for y in p21_db["Admission Year"].unique() if y and y.lower() != "nan"])
                         p21_year = st.selectbox("Admission Year:", _yrs, key="p21_filter_year")
@@ -1804,8 +1804,6 @@ else:
                         p21_subject = st.selectbox("Subject:", _subs, key="p21_filter_subject")
                     with f21_3:
                         p21_status_f = st.selectbox("Status:", ["All", "Submit", "Not Submit", "Not Marked"], key="p21_filter_status")
-                    with f21_4:
-                        p21_search = st.text_input("🔎 Name / Application No. search:", key="p21_filter_search").strip().lower()
 
                     p21_view = p21_db.copy()
                     if p21_year != "All Years":
@@ -1818,37 +1816,64 @@ else:
                         p21_view = p21_view[p21_view[_P21_COL] == "Not Submit"]
                     elif p21_status_f == "Not Marked":
                         p21_view = p21_view[p21_view[_P21_COL] == ""]
-                    if p21_search:
-                        _hay = (p21_view["Student Name"] + " " + p21_view["Father Name"] + " " +
-                                p21_view["Admission Application Number"]).str.lower()
-                        p21_view = p21_view[_hay.str.contains(p21_search, regex=False)]
+
+                    # ---- 🔎 P15 jaisa inline column-search: header ke theek neeche har column ka search box
+                    #      (widget values session_state me pehle se hoti hain, isliye filter list/count/pagination se PEHLE lag jata hai)
+                    _cf_defs = [("p21_cf_name", "Student Name"), ("p21_cf_father", "Father Name"),
+                                ("p21_cf_app", "Admission Application Number"), ("p21_cf_subj", "Subject"),
+                                ("p21_cf_status", _P21_COL)]
+
+                    def _p21_clear_cf():
+                        for _k, _ in _cf_defs:
+                            st.session_state[_k] = ""
+
+                    _cf_active = False
+                    for _k, _col in _cf_defs:
+                        _q = str(st.session_state.get(_k, "") or "").strip().lower()
+                        if _q:
+                            _cf_active = True
+                            p21_view = p21_view[p21_view[_col].str.lower().str.contains(_q, regex=False)]
 
                     _n_sub = int((p21_view[_P21_COL] == "Submit").sum())
                     _n_not = int((p21_view[_P21_COL] == "Not Submit").sum())
                     _n_unm = int((p21_view[_P21_COL] == "").sum())
                     st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❌ Not Submit: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
+                    if _cf_active:
+                        st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
-                    if p21_view.empty:
-                        st.info("इन फ़िल्टर्स के अनुसार कोई छात्र नहीं मिला।")
-                    else:
-                        # ---- pagination (buttons zyada hone se page heavy na ho)
+                    # ---- pagination (buttons zyada hone se page heavy na ho)
+                    _start = 0
+                    p21_page_df = p21_view.iloc[0:0]
+                    if not p21_view.empty:
                         pg1, pg2 = st.columns(2)
                         with pg1:
                             p21_page_size = st.selectbox("एक पेज पर कितनी rows:", [25, 50, 100], key="p21_page_size")
                         _total_pages = max(1, (len(p21_view) + p21_page_size - 1) // p21_page_size)
+                        # filter lagne par pages kam ho jaayein to page number automatically 1 par
+                        if int(st.session_state.get("p21_page_no", 1)) > _total_pages:
+                            st.session_state["p21_page_no"] = 1
                         with pg2:
                             p21_page_no = st.number_input(f"पेज नंबर (1 – {_total_pages}):", min_value=1, max_value=_total_pages,
                                                           value=1, step=1, key="p21_page_no")
                         _start = (int(p21_page_no) - 1) * p21_page_size
                         p21_page_df = p21_view.iloc[_start:_start + p21_page_size]
 
-                        _W = [1.1, 1.4, 0.6, 2.2, 2.0, 1.8, 2.2, 1.8]
-                        _h = st.columns(_W)
-                        for _hc, _lbl in zip(_h, ["Submit", "Not Submit", "S. No.", "Student Name", "Father Name",
-                                                  "Application No.", "Subject", _P21_COL]):
-                            _hc.markdown(f"**{_lbl}**")
-                        st.markdown("---")
+                    # ---- header row
+                    _W = [1.1, 1.4, 0.6, 2.2, 2.0, 1.8, 2.2, 1.8]
+                    _h = st.columns(_W)
+                    for _hc, _lbl in zip(_h, ["Submit", "Not Submit", "S. No.", "Student Name", "Father Name",
+                                              "Application No.", "Subject", _P21_COL]):
+                        _hc.markdown(f"**{_lbl}**")
 
+                    # ---- search-box row (header aur pehli data-row ke beech) — hamesha dikhti hai, taaki khaali result me bhi saaf kar sakein
+                    _fr = st.columns(_W)
+                    for _ci, (_k, _col) in zip([3, 4, 5, 6, 7], _cf_defs):
+                        _fr[_ci].text_input(_col, key=_k, placeholder="🔎 खोजें...", label_visibility="collapsed")
+                    st.markdown("---")
+
+                    if p21_view.empty:
+                        st.info("इन फ़िल्टर्स के अनुसार कोई छात्र नहीं मिला।")
+                    else:
                         _pretty = {"Submit": "✅ Submit", "Not Submit": "❌ Not Submit", "": "—"}
                         for _n, (_ridx, _r) in enumerate(p21_page_df.iterrows(), start=_start + 1):
                             _ridx = int(_ridx)
