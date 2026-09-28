@@ -1792,11 +1792,11 @@ else:
                 _p2_sub = st.radio("P2 sub-panel:", _P2_SUBS, horizontal=True, key="p2_sub_panel_choice", label_visibility="collapsed")
 
                 # ==============================================================
-                # 📄 2.1 — P2 ki list + "Document Submit Status" column + har row ke left me Submit / Not Submit button
+                # 📄 2.1 — P2 ki list + "Document Submit Status" column + har row ke left me Submit / Not Submit Document button
                 # ==============================================================
                 if _p2_sub == _P2_SUBS[0]:
                     st.subheader("📄 2.1 Document Submit Status")
-                    st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
+                    st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit Document बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
 
                     _P21_COL = "Document Submit Status"
 
@@ -1816,7 +1816,7 @@ else:
                         if _c not in p21_db.columns:
                             p21_db[_c] = ""
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
-                    p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit") else "")
+                    p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
 
                     p21_view = p21_db.copy()
 
@@ -1838,9 +1838,9 @@ else:
                             p21_view = p21_view[p21_view[_col].str.lower().str.contains(_q, regex=False)]
 
                     _n_sub = int((p21_view[_P21_COL] == "Submit").sum())
-                    _n_not = int((p21_view[_P21_COL] == "Not Submit").sum())
+                    _n_not = int((p21_view[_P21_COL] == "Not Submit Document").sum())
                     _n_unm = int((p21_view[_P21_COL] == "").sum())
-                    st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❎ Not Submit: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
+                    st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❎ Not Submit Document: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
@@ -1871,7 +1871,7 @@ else:
                         "[class*='st-key-p21_btn_'] button p{font-size:.95rem !important;margin:0 !important;}"
                         "</style>",
                         unsafe_allow_html=True)
-                    st.caption("✅ = Submit   |   ❎ = Not Submit")
+                    st.caption("✅ = Submit   |   ❎ = Not Submit Document")
                     _h = st.columns(_W)
                     for _hc, _lbl in zip(_h, ["✅", "❎", "S. No.", "Student Name", "Father Name",
                                               "Application No.", "Subject", _P21_COL]):
@@ -1886,7 +1886,7 @@ else:
                     if p21_view.empty:
                         st.info("इन फ़िल्टर्स के अनुसार कोई छात्र नहीं मिला।")
                     else:
-                        _pretty = {"Submit": "✅ Submit", "Not Submit": "❎ Not Submit", "": "—"}
+                        _pretty = {"Submit": "✅ Submit", "Not Submit Document": "❎ Not Submit Document", "": "—"}
                         for _n, (_ridx, _r) in enumerate(p21_page_df.iterrows(), start=_start + 1):
                             _ridx = int(_ridx)
                             _cur = _r[_P21_COL]
@@ -1894,9 +1894,9 @@ else:
                             _c[0].button("✅", key=f"p21_btn_sub_{_ridx}", help="Submit",
                                          type="primary" if _cur == "Submit" else "secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Submit"))
-                            _c[1].button("❎", key=f"p21_btn_not_{_ridx}", help="Not Submit",
-                                         type="primary" if _cur == "Not Submit" else "secondary",
-                                         on_click=_p21_set_status, args=(_ridx, "Not Submit"))
+                            _c[1].button("❎", key=f"p21_btn_not_{_ridx}", help="Not Submit Document",
+                                         type="primary" if _cur == "Not Submit Document" else "secondary",
+                                         on_click=_p21_set_status, args=(_ridx, "Not Submit Document"))
                             _c[2].write(_n)
                             _c[3].write(_r["Student Name"])
                             _c[4].write(_r["Father Name"])
