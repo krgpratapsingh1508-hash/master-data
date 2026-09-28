@@ -1818,29 +1818,7 @@ else:
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit") else "")
 
-                    # ---- upar ke dropdown filters
-                    f21_1, f21_2, f21_3 = st.columns(3)
-                    with f21_1:
-                        _yrs = ["All Years"] + sorted([y for y in p21_db["Admission Year"].unique() if y and y.lower() != "nan"])
-                        p21_year = st.selectbox("Admission Year:", _yrs, key="p21_filter_year")
-                    with f21_2:
-                        _sub_src = p21_db if p21_year == "All Years" else p21_db[p21_db["Admission Year"] == p21_year]
-                        _subs = ["All Subjects"] + sorted([s for s in _sub_src["Subject"].unique() if s and s.lower() != "nan"])
-                        p21_subject = st.selectbox("Subject:", _subs, key="p21_filter_subject")
-                    with f21_3:
-                        p21_status_f = st.selectbox("Status:", ["All", "Submit", "Not Submit", "Not Marked"], key="p21_filter_status")
-
                     p21_view = p21_db.copy()
-                    if p21_year != "All Years":
-                        p21_view = p21_view[p21_view["Admission Year"] == p21_year]
-                    if p21_subject != "All Subjects":
-                        p21_view = p21_view[p21_view["Subject"] == p21_subject]
-                    if p21_status_f == "Submit":
-                        p21_view = p21_view[p21_view[_P21_COL] == "Submit"]
-                    elif p21_status_f == "Not Submit":
-                        p21_view = p21_view[p21_view[_P21_COL] == "Not Submit"]
-                    elif p21_status_f == "Not Marked":
-                        p21_view = p21_view[p21_view[_P21_COL] == ""]
 
                     # ---- 🔎 P15 jaisa inline column-search: header ke theek neeche har column ka search box
                     #      (widget values session_state me pehle se hoti hain, isliye filter list/count/pagination se PEHLE lag jata hai)
