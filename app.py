@@ -1840,7 +1840,7 @@ else:
                     _n_sub = int((p21_view[_P21_COL] == "Submit").sum())
                     _n_not = int((p21_view[_P21_COL] == "Not Submit").sum())
                     _n_unm = int((p21_view[_P21_COL] == "").sum())
-                    st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❌ Not Submit: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
+                    st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❎ Not Submit: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
@@ -1862,9 +1862,18 @@ else:
                         p21_page_df = p21_view.iloc[_start:_start + p21_page_size]
 
                     # ---- header row
-                    _W = [1.1, 1.4, 0.6, 2.2, 2.0, 1.8, 2.2, 1.8]
+                    _W = [0.7, 0.7, 0.6, 2.3, 2.1, 1.9, 2.3, 1.8]
+                    st.markdown(
+                        "<style>"
+                        "[class*='st-key-p21_btn_'] button{min-height:1.9rem !important;height:1.9rem !important;"
+                        "padding:0 .55rem !important;font-size:.95rem !important;line-height:1 !important;"
+                        "border-radius:6px !important;width:auto !important;}"
+                        "[class*='st-key-p21_btn_'] button p{font-size:.95rem !important;margin:0 !important;}"
+                        "</style>",
+                        unsafe_allow_html=True)
+                    st.caption("✅ = Submit   |   ❎ = Not Submit")
                     _h = st.columns(_W)
-                    for _hc, _lbl in zip(_h, ["Submit", "Not Submit", "S. No.", "Student Name", "Father Name",
+                    for _hc, _lbl in zip(_h, ["✅", "❎", "S. No.", "Student Name", "Father Name",
                                               "Application No.", "Subject", _P21_COL]):
                         _hc.markdown(f"**{_lbl}**")
 
@@ -1877,15 +1886,15 @@ else:
                     if p21_view.empty:
                         st.info("इन फ़िल्टर्स के अनुसार कोई छात्र नहीं मिला।")
                     else:
-                        _pretty = {"Submit": "✅ Submit", "Not Submit": "❌ Not Submit", "": "—"}
+                        _pretty = {"Submit": "✅ Submit", "Not Submit": "❎ Not Submit", "": "—"}
                         for _n, (_ridx, _r) in enumerate(p21_page_df.iterrows(), start=_start + 1):
                             _ridx = int(_ridx)
                             _cur = _r[_P21_COL]
                             _c = st.columns(_W)
-                            _c[0].button("✅ Submit", key=f"p21_btn_sub_{_ridx}", use_container_width=True,
+                            _c[0].button("✅", key=f"p21_btn_sub_{_ridx}", help="Submit",
                                          type="primary" if _cur == "Submit" else "secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Submit"))
-                            _c[1].button("❌ Not Submit", key=f"p21_btn_not_{_ridx}", use_container_width=True,
+                            _c[1].button("❎", key=f"p21_btn_not_{_ridx}", help="Not Submit",
                                          type="primary" if _cur == "Not Submit" else "secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Not Submit"))
                             _c[2].write(_n)
