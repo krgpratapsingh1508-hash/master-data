@@ -1850,7 +1850,7 @@ else:
                     if not p21_view.empty:
                         pg1, pg2 = st.columns(2)
                         with pg1:
-                            p21_page_size = st.selectbox("एक पेज पर कितनी rows:", [25, 50, 100], key="p21_page_size")
+                            p21_page_size = st.selectbox("एक पेज पर कितनी rows:", [5, 10, 25, 50, 100], key="p21_page_size")
                         _total_pages = max(1, (len(p21_view) + p21_page_size - 1) // p21_page_size)
                         # filter lagne par pages kam ho jaayein to page number automatically 1 par
                         if int(st.session_state.get("p21_page_no", 1)) > _total_pages:
