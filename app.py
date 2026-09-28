@@ -1796,7 +1796,7 @@ else:
                 # ==============================================================
                 if _p2_sub == _P2_SUBS[0]:
                     st.subheader("📄 2.1 Document Submit Status")
-                    st.caption("हर छात्र के बाईं ओर ✅ / ❌ बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
+                    st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
 
                     _P21_COL = "Document Submit Status"
 
@@ -1812,7 +1812,7 @@ else:
                     p21_db = p2_authorized_db.copy()      # index = live_db ka asli index (isi se save hoga)
                     if _P21_COL not in p21_db.columns:
                         p21_db[_P21_COL] = ""
-                    for _c in ["Admission Year", "Subject", "Student Name", "Father Name", "Admission Application Number"]:
+                    for _c in ["Admission Year", "Subject", "Student Name", "Father Name", "Admission Application Number", _P21_COL]:
                         if _c not in p21_db.columns:
                             p21_db[_c] = ""
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
