@@ -417,7 +417,8 @@ DEFAULT_COLUMNS = [
     "Current Year", "Application Number", "Student Abc Id", "Gender", "Admission Category", "Degree",
     "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility",
-    "CCE Marks Obtained", "CCE Attendance Status", "Promotion Status", "Marks Obtained", "Result Status", "Exam Remarks"
+    "CCE Marks Obtained", "CCE Attendance Status", "Promotion Status", "Marks Obtained", "Result Status", "Exam Remarks",
+    "Document Submit Status"
 ]
 
 # ==========================================================
@@ -1759,576 +1760,687 @@ else:
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
             else:
-                # 🟢 Fix: "Student Abc Id" ko galti se "Student Abc ld" (typo) mein rename kar diya jaata tha,
-                # jisse yeh column aage 'Student Abc Id' naam se dhoondhne par nahi milta tha aur khaali dikhta tha.
-                column_mapping_fixes = {
-                    "Unique Id": "Unique ID",
-                    "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
-                    "Email Id": "Email ID", "Year": "Current Year",
-                    "Application Number": "Admission Application Number"
-                }
-                p2_authorized_db = p2_authorized_db.rename(columns=column_mapping_fixes)
-                p2_authorized_db = p2_authorized_db.loc[:, ~p2_authorized_db.columns.duplicated()].copy()
+                # ==============================================================
+                # 🗂️ P2 ke andar 2 sub-panel: 2.1 (Document Submit Status) aur 2.2 (purana poora P2)
+                # ==============================================================
+                p2_tab_21, p2_tab_22 = st.tabs([
+                    "📄 2.1 Document Submit Status",
+                    "🎓 2.2 Admission Control & Payment Tracker"
+                ])
 
-                # सभी कॉलम के डेटा को साफ़ और स्ट्रिंग (String) में बदलें
-                for c in p2_authorized_db.columns:
-                    p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
+                # ==============================================================
+                # 📄 2.1 — P2 ki list + "Document Submit Status" column + har row ke left me Submit / Not Submit button
+                # ==============================================================
+                with p2_tab_21:
+                    st.subheader("📄 2.1 Document Submit Status")
+                    st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
 
-                # ==================================================================
-                # 🎛️ Advanced Matrix Filters System
-                # ==================================================================
-                st.markdown('<div class="print-hide">', unsafe_allow_html=True)
-                st.subheader("🔍 Advanced Matrix Filters System")
-                
-                col_p2_1, col_p2_2, col_p2_3, col_p2_4, col_p2_5 = st.columns(5)
-                
-                with col_p2_1:
-                    year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
-                    p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
-                
-                temp_db_after_year = p2_authorized_db.copy()
-                if p2_filter_year != "All Years":
-                    temp_db_after_year = temp_db_after_year[temp_db_after_year["Admission Year"] == p2_filter_year]
+                    _P21_COL = "Document Submit Status"
 
-                # 🆕 बॉक्स 2: Under Graduate / Post Graduate फ़िल्टर — "Eligibility Name" कॉलम के टेक्स्ट से पहचानता है
-                with col_p2_2:
-                    if "Eligibility Name" in temp_db_after_year.columns:
-                        ugpg_seen = sorted({classify_ug_pg(d) for d in temp_db_after_year["Eligibility Name"].unique()} - {""})
+                    def _p21_set_status(row_idx, new_status):
+                        """Ek student ki Document Submit Status ko database me turant save karta hai."""
+                        _fresh_db = load_live_data()
+                        if _P21_COL not in _fresh_db.columns:
+                            _fresh_db[_P21_COL] = ""
+                        if row_idx in _fresh_db.index:
+                            _fresh_db.at[row_idx, _P21_COL] = new_status
+                            save_live_data(_fresh_db)
+
+                    p21_db = p2_authorized_db.copy()      # index = live_db ka asli index (isi se save hoga)
+                    if _P21_COL not in p21_db.columns:
+                        p21_db[_P21_COL] = ""
+                    for _c in p21_db.columns:
+                        p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
+                    p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit") else "")
+
+                    # ---- filters
+                    f21_1, f21_2, f21_3, f21_4 = st.columns(4)
+                    with f21_1:
+                        _yrs = ["All Years"] + sorted([y for y in p21_db["Admission Year"].unique() if y and y.lower() != "nan"])
+                        p21_year = st.selectbox("Admission Year:", _yrs, key="p21_filter_year")
+                    with f21_2:
+                        _sub_src = p21_db if p21_year == "All Years" else p21_db[p21_db["Admission Year"] == p21_year]
+                        _subs = ["All Subjects"] + sorted([s for s in _sub_src["Subject"].unique() if s and s.lower() != "nan"])
+                        p21_subject = st.selectbox("Subject:", _subs, key="p21_filter_subject")
+                    with f21_3:
+                        p21_status_f = st.selectbox("Status:", ["All", "Submit", "Not Submit", "Not Marked"], key="p21_filter_status")
+                    with f21_4:
+                        p21_search = st.text_input("🔎 Name / Application No. search:", key="p21_filter_search").strip().lower()
+
+                    p21_view = p21_db.copy()
+                    if p21_year != "All Years":
+                        p21_view = p21_view[p21_view["Admission Year"] == p21_year]
+                    if p21_subject != "All Subjects":
+                        p21_view = p21_view[p21_view["Subject"] == p21_subject]
+                    if p21_status_f == "Submit":
+                        p21_view = p21_view[p21_view[_P21_COL] == "Submit"]
+                    elif p21_status_f == "Not Submit":
+                        p21_view = p21_view[p21_view[_P21_COL] == "Not Submit"]
+                    elif p21_status_f == "Not Marked":
+                        p21_view = p21_view[p21_view[_P21_COL] == ""]
+                    if p21_search:
+                        _hay = (p21_view["Student Name"] + " " + p21_view["Father Name"] + " " +
+                                p21_view["Admission Application Number"]).str.lower()
+                        p21_view = p21_view[_hay.str.contains(p21_search, regex=False)]
+
+                    _n_sub = int((p21_view[_P21_COL] == "Submit").sum())
+                    _n_not = int((p21_view[_P21_COL] == "Not Submit").sum())
+                    _n_unm = int((p21_view[_P21_COL] == "").sum())
+                    st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❌ Not Submit: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
+
+                    if p21_view.empty:
+                        st.info("इन फ़िल्टर्स के अनुसार कोई छात्र नहीं मिला।")
                     else:
-                        ugpg_seen = []
-                    ugpg_list = ["All"] + ugpg_seen
-                    p2_filter_ugpg = st.selectbox("2. Select Under Graduate/Post Graduate:", options=ugpg_list, key="p2_scroll_filter_ugpg_v18")
+                        # ---- pagination (buttons zyada hone se page heavy na ho)
+                        pg1, pg2 = st.columns(2)
+                        with pg1:
+                            p21_page_size = st.selectbox("एक पेज पर कितनी rows:", [25, 50, 100], key="p21_page_size")
+                        _total_pages = max(1, (len(p21_view) + p21_page_size - 1) // p21_page_size)
+                        with pg2:
+                            p21_page_no = st.number_input(f"पेज नंबर (1 – {_total_pages}):", min_value=1, max_value=_total_pages,
+                                                          value=1, step=1, key="p21_page_no")
+                        _start = (int(p21_page_no) - 1) * p21_page_size
+                        p21_page_df = p21_view.iloc[_start:_start + p21_page_size]
 
-                temp_db_for_sub = temp_db_after_year.copy()
-                if p2_filter_ugpg != "All" and "Eligibility Name" in temp_db_for_sub.columns:
-                    temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
+                        _W = [1.1, 1.4, 0.6, 2.2, 2.0, 1.8, 2.2, 1.8]
+                        _h = st.columns(_W)
+                        for _hc, _lbl in zip(_h, ["Submit", "Not Submit", "S. No.", "Student Name", "Father Name",
+                                                  "Application No.", "Subject", _P21_COL]):
+                            _hc.markdown(f"**{_lbl}**")
+                        st.markdown("---")
 
-                with col_p2_3:
-                    subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
-                    p2_filter_subject = st.selectbox("3. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
+                        _pretty = {"Submit": "✅ Submit", "Not Submit": "❌ Not Submit", "": "—"}
+                        for _n, (_ridx, _r) in enumerate(p21_page_df.iterrows(), start=_start + 1):
+                            _ridx = int(_ridx)
+                            _cur = _r[_P21_COL]
+                            _c = st.columns(_W)
+                            _c[0].button("✅ Submit", key=f"p21_btn_sub_{_ridx}", use_container_width=True,
+                                         type="primary" if _cur == "Submit" else "secondary",
+                                         on_click=_p21_set_status, args=(_ridx, "Submit"))
+                            _c[1].button("❌ Not Submit", key=f"p21_btn_not_{_ridx}", use_container_width=True,
+                                         type="primary" if _cur == "Not Submit" else "secondary",
+                                         on_click=_p21_set_status, args=(_ridx, "Not Submit"))
+                            _c[2].write(_n)
+                            _c[3].write(_r["Student Name"])
+                            _c[4].write(_r["Father Name"])
+                            _c[5].write(_r["Admission Application Number"])
+                            _c[6].write(_r["Subject"])
+                            _c[7].write(_pretty[_cur])
+
+                # ==============================================================
+                # 🎓 2.2 — P2 me jo kuch pehle se tha, wo sab bilkul waisa hi (sirf ek level andar)
+                # ==============================================================
+                with p2_tab_22:
+                    # 🟢 Fix: "Student Abc Id" ko galti se "Student Abc ld" (typo) mein rename kar diya jaata tha,
+                    # jisse yeh column aage 'Student Abc Id' naam se dhoondhne par nahi milta tha aur khaali dikhta tha.
+                    column_mapping_fixes = {
+                        "Unique Id": "Unique ID",
+                        "Date Of Birth": "Date of Birth", "Duretion": "Duration", 
+                        "Email Id": "Email ID", "Year": "Current Year",
+                        "Application Number": "Admission Application Number"
+                    }
+                    p2_authorized_db = p2_authorized_db.rename(columns=column_mapping_fixes)
+                    p2_authorized_db = p2_authorized_db.loc[:, ~p2_authorized_db.columns.duplicated()].copy()
+
+                    # सभी कॉलम के डेटा को साफ़ और स्ट्रिंग (String) में बदलें
+                    for c in p2_authorized_db.columns:
+                        p2_authorized_db[c] = p2_authorized_db[c].astype(str).str.strip()
+
+                    # ==================================================================
+                    # 🎛️ Advanced Matrix Filters System
+                    # ==================================================================
+                    st.markdown('<div class="print-hide">', unsafe_allow_html=True)
+                    st.subheader("🔍 Advanced Matrix Filters System")
                 
-                with col_p2_4:
-                    # 🟢 Fix: "Subject" ko yahan se hata diya gaya hai kyunki uska apna dedicated
-                    # dropdown (3. Select Subject) upar hi maujood hai — dono jagah Subject rakhne se
-                    # confusing double-filtering hoti thi. Ab "Subject" ki jagah is dropdown mein
-                    # nahi dikhega (jab bhi "All Subjects" ho ya na ho, "Column Filter Target" hamesha
-                    # baaki dusre columns hi dikhayega).
-                    ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type", "Subject"]
-                    available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
-                    p2_selected_col = st.selectbox("4. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
+                    col_p2_1, col_p2_2, col_p2_3, col_p2_4, col_p2_5 = st.columns(5)
                 
-                dependent_db = p2_authorized_db.copy()
-                if p2_filter_year != "All Years":
-                    dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
-                if p2_filter_ugpg != "All" and "Eligibility Name" in dependent_db.columns:
-                    dependent_db = dependent_db[dependent_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
-                if p2_filter_subject != "All Subjects":
-                    dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
-
-                with col_p2_5:
-                    raw_vals = dependent_db[p2_selected_col].unique()
-                    val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
-                    p2_selected_val = st.selectbox(f"5. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
+                    with col_p2_1:
+                        year_list = ["All Years"] + sorted([y for y in p2_authorized_db["Admission Year"].unique() if y and y.lower() != "nan"])
+                        p2_filter_year = st.selectbox("1. Select Admission Year:", options=year_list, key="p2_scroll_filter_year_v18")
                 
-                # Payment Date Range Filter
-                st.markdown("---")
-                if "p2_show_date_filter_section" not in st.session_state:
-                    st.session_state.p2_show_date_filter_section = True
-                hdr_dt_1, hdr_dt_2 = st.columns([6, 1])
-                with hdr_dt_1:
-                    st.subheader("📆 Filter Records By Payment Date Range")
-                with hdr_dt_2:
-                    st.write("")
-                    if st.button("🙈 Hide" if st.session_state.p2_show_date_filter_section else "👁️ Unhide",
-                                 key="p2_toggle_date_filter_section", use_container_width=True):
-                        st.session_state.p2_show_date_filter_section = not st.session_state.p2_show_date_filter_section
+                    temp_db_after_year = p2_authorized_db.copy()
+                    if p2_filter_year != "All Years":
+                        temp_db_after_year = temp_db_after_year[temp_db_after_year["Admission Year"] == p2_filter_year]
 
-                start_date = pd.to_datetime("2024-01-01")
-                end_date = pd.to_datetime("2026-12-31")
+                    # 🆕 बॉक्स 2: Under Graduate / Post Graduate फ़िल्टर — "Eligibility Name" कॉलम के टेक्स्ट से पहचानता है
+                    with col_p2_2:
+                        if "Eligibility Name" in temp_db_after_year.columns:
+                            ugpg_seen = sorted({classify_ug_pg(d) for d in temp_db_after_year["Eligibility Name"].unique()} - {""})
+                        else:
+                            ugpg_seen = []
+                        ugpg_list = ["All"] + ugpg_seen
+                        p2_filter_ugpg = st.selectbox("2. Select Under Graduate/Post Graduate:", options=ugpg_list, key="p2_scroll_filter_ugpg_v18")
 
-                if st.session_state.p2_show_date_filter_section:
-                    use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
+                    temp_db_for_sub = temp_db_after_year.copy()
+                    if p2_filter_ugpg != "All" and "Eligibility Name" in temp_db_for_sub.columns:
+                        temp_db_for_sub = temp_db_for_sub[temp_db_for_sub["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
+
+                    with col_p2_3:
+                        subject_list = ["All Subjects"] + sorted([s for s in temp_db_for_sub["Subject"].unique() if s and s.lower() != "nan"])
+                        p2_filter_subject = st.selectbox("3. Select Subject:", options=subject_list, key="p2_scroll_filter_subject_v18")
+                
+                    with col_p2_4:
+                        # 🟢 Fix: "Subject" ko yahan se hata diya gaya hai kyunki uska apna dedicated
+                        # dropdown (3. Select Subject) upar hi maujood hai — dono jagah Subject rakhne se
+                        # confusing double-filtering hoti thi. Ab "Subject" ki jagah is dropdown mein
+                        # nahi dikhega (jab bhi "All Subjects" ho ya na ho, "Column Filter Target" hamesha
+                        # baaki dusre columns hi dikhayega).
+                        ignore_cols = ["Target Panel Visibility", "Uploaded File Name", "Uploaded File Type", "Subject"]
+                        available_cols = [c for c in p2_authorized_db.columns if c not in ignore_cols]
+                        p2_selected_col = st.selectbox("4. Select Column Filter Target:", options=available_cols, key="p2_scroll_filter_column_name_v18")
+                
+                    dependent_db = p2_authorized_db.copy()
+                    if p2_filter_year != "All Years":
+                        dependent_db = dependent_db[dependent_db["Admission Year"] == p2_filter_year]
+                    if p2_filter_ugpg != "All" and "Eligibility Name" in dependent_db.columns:
+                        dependent_db = dependent_db[dependent_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
+                    if p2_filter_subject != "All Subjects":
+                        dependent_db = dependent_db[dependent_db["Subject"] == p2_filter_subject]
+
+                    with col_p2_5:
+                        raw_vals = dependent_db[p2_selected_col].unique()
+                        val_list = ["All Values"] + sorted([v for v in raw_vals if v and v.lower() != "nan"])
+                        p2_selected_val = st.selectbox(f"5. Filter Value for '{p2_selected_col}':", options=val_list, key="p2_scroll_filter_value_data_v18")
+                
+                    # Payment Date Range Filter
+                    st.markdown("---")
+                    if "p2_show_date_filter_section" not in st.session_state:
+                        st.session_state.p2_show_date_filter_section = True
+                    hdr_dt_1, hdr_dt_2 = st.columns([6, 1])
+                    with hdr_dt_1:
+                        st.subheader("📆 Filter Records By Payment Date Range")
+                    with hdr_dt_2:
+                        st.write("")
+                        if st.button("🙈 Hide" if st.session_state.p2_show_date_filter_section else "👁️ Unhide",
+                                     key="p2_toggle_date_filter_section", use_container_width=True):
+                            st.session_state.p2_show_date_filter_section = not st.session_state.p2_show_date_filter_section
+
+                    start_date = pd.to_datetime("2024-01-01")
+                    end_date = pd.to_datetime("2026-12-31")
+
+                    if st.session_state.p2_show_date_filter_section:
+                        use_date_filter = st.checkbox("Enable Payment Date Range Filter (तारीख सीमा फ़िल्टर सक्रिय करें)", value=False, key="p2_enable_date_filter_secure_v18")
+
+                        if use_date_filter:
+                            col_dt1, col_dt2 = st.columns(2)
+                            with col_dt1:
+                                start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
+                            with col_dt2:
+                                end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
+                    else:
+                        st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                    use_date_filter = st.session_state.get("p2_enable_date_filter_secure_v18", False)
+                    start_date = st.session_state.get("p2_start_date_secure_v18", pd.to_datetime("2024-01-01"))
+                    end_date = st.session_state.get("p2_end_date_secure_v18", pd.to_datetime("2026-12-31"))
+                
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # ==================================================================
+                    # ⚡ Filters Execution Engine
+                    # ==================================================================
+                    admission_display_db = p2_authorized_db.copy()
+                
+                    if p2_filter_year != "All Years":
+                        admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
+                
+                    if p2_filter_ugpg != "All" and "Eligibility Name" in admission_display_db.columns:
+                        admission_display_db = admission_display_db[admission_display_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
+                
+                    if p2_filter_subject != "All Subjects":
+                        admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
+                
+                    if p2_selected_val != "All Values":
+                        admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
 
                     if use_date_filter:
-                        col_dt1, col_dt2 = st.columns(2)
-                        with col_dt1:
-                            start_date = st.date_input("कब से (From Date):", value=pd.to_datetime("2024-01-01"), key="p2_start_date_secure_v18")
-                        with col_dt2:
-                            end_date = st.date_input("कब तक (To Date):", value=pd.to_datetime("2026-12-31"), key="p2_end_date_secure_v18")
-                else:
-                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
-
-                use_date_filter = st.session_state.get("p2_enable_date_filter_secure_v18", False)
-                start_date = st.session_state.get("p2_start_date_secure_v18", pd.to_datetime("2024-01-01"))
-                end_date = st.session_state.get("p2_end_date_secure_v18", pd.to_datetime("2026-12-31"))
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-
-                # ==================================================================
-                # ⚡ Filters Execution Engine
-                # ==================================================================
-                admission_display_db = p2_authorized_db.copy()
-                
-                if p2_filter_year != "All Years":
-                    admission_display_db = admission_display_db[admission_display_db["Admission Year"] == p2_filter_year]
-                
-                if p2_filter_ugpg != "All" and "Eligibility Name" in admission_display_db.columns:
-                    admission_display_db = admission_display_db[admission_display_db["Eligibility Name"].apply(classify_ug_pg) == p2_filter_ugpg]
-                
-                if p2_filter_subject != "All Subjects":
-                    admission_display_db = admission_display_db[admission_display_db["Subject"] == p2_filter_subject]
-                
-                if p2_selected_val != "All Values":
-                    admission_display_db = admission_display_db[admission_display_db[p2_selected_col] == p2_selected_val]
-
-                if use_date_filter:
-                    try:
-                        admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], dayfirst=True, errors="coerce")
-                        admission_display_db = admission_display_db[
-                            (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
-                            (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
-                        ]
-                        admission_display_db = admission_display_db.drop(columns=["_parsed_date"], errors="ignore")
-                    except Exception as date_err:
-                        st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
-
-                # ==================================================================
-                # ✍️ Print Header Text Boxes Customizer
-                # ==================================================================
-                st.markdown("---")
-                if "p2_show_header_customizer_section" not in st.session_state:
-                    st.session_state.p2_show_header_customizer_section = True
-                hdr_pc_1, hdr_pc_2 = st.columns([6, 1])
-                with hdr_pc_1:
-                    st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
-                with hdr_pc_2:
-                    st.write("")
-                    if st.button("🙈 Hide" if st.session_state.p2_show_header_customizer_section else "👁️ Unhide",
-                                 key="p2_toggle_header_customizer_section", use_container_width=True):
-                        st.session_state.p2_show_header_customizer_section = not st.session_state.p2_show_header_customizer_section
-
-                # 🔄 Header 3 & Header 4 ऑटो-सिंक इंजन — जब भी ऊपर "Advanced Matrix Filters System" में
-                # Year/Subject (बॉक्स 3 के लिए) या Column Filter Target/Filter Value (बॉक्स 4 के लिए) बदलें,
-                # ये टेक्स्ट बॉक्स अपने आप नई चुनी हुई वैल्यू के हिसाब से रीफ़्रेश हो जाएंगे।
-                # (पहले सिर्फ पहली बार वाली default value सेट होती थी, बाद में year/subject बदलने पर भी
-                # बॉक्स पुरानी वैल्यू पर ही अटका रहता था — यही bug अब ठीक कर दिया गया है)
-                default_header_3 = f"Session: {p2_filter_year} | Subject: {p2_filter_subject}"
-                default_header_4 = f"{p2_selected_col}: {p2_selected_val}" if p2_selected_val != "All Values" else ""
-                default_header_ugpg = p2_filter_ugpg if p2_filter_ugpg != "All" else ""
-
-                _h3_track_key = "_p2_h3_last_filters"
-                if st.session_state.get(_h3_track_key) != (p2_filter_year, p2_filter_subject):
-                    st.session_state["p2_custom_head_line_3_final_fixed"] = default_header_3
-                    st.session_state[_h3_track_key] = (p2_filter_year, p2_filter_subject)
-
-                _h4_track_key = "_p2_h4_last_filters"
-                if st.session_state.get(_h4_track_key) != (p2_selected_col, p2_selected_val):
-                    st.session_state["p2_custom_head_line_4_final_fixed"] = default_header_4
-                    st.session_state[_h4_track_key] = (p2_selected_col, p2_selected_val)
-
-                # 🆕 हेडर लाइन 2 (Under Graduate/Post Graduate) — मैट्रिक्स फ़िल्टर बॉक्स 2 से अपने आप सिंक होगी।
-                # जब "All" चुना हो तो यह खाली रहेगी और प्रिंट में पूरी तरह गायब हो जाएगी (नीचे वाली लाइन ऊपर खिसक आएगी)।
-                _h_ugpg_track_key = "_p2_h_ugpg_last_filter"
-                if st.session_state.get(_h_ugpg_track_key) != p2_filter_ugpg:
-                    st.session_state["p2_custom_head_line_ugpg_final_fixed"] = default_header_ugpg
-                    st.session_state[_h_ugpg_track_key] = p2_filter_ugpg
-
-                if st.session_state.p2_show_header_customizer_section:
-                    st.caption("नीचे दिए गए बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा। "
-                                "बॉक्स 2, 4 और 5 अपने आप ऊपर चुने गए Under Graduate/Post Graduate, Year/Subject और Column Filter Target/Filter Value के हिसाब से अपडेट होते हैं "
-                                "(बॉक्स 2 सिर्फ तभी दिखेगा जब 'Select Under Graduate/Post Graduate' में 'All' के अलावा कोई खास वैल्यू चुनी गई हो, और बॉक्स 5 सिर्फ तभी जब 'Filter Value for...' में 'All Values' के अलावा कोई खास वैल्यू चुनी गई हो — जरूरत न हो तो ये खाली/print में गायब रहेंगे, और उनकी जगह खाली रो नहीं बनेगी, बाकी लाइनें अपने आप ऊपर खिसक आएँगी)।")
-
-                    col_tb1, col_tb2, col_tb3, col_tb4, col_tb5 = st.columns(5)
-                    with col_tb1:
-                        custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
-                    with col_tb2:
-                        custom_header_ugpg = st.text_input("2. Select Under Graduate/Post Graduate:", value=default_header_ugpg, key="p2_custom_head_line_ugpg_final_fixed")
-                    with col_tb3:
-                        custom_header_2 = st.text_input("3. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION LIST", key="p2_custom_head_line_2_final_fixed")
-                    with col_tb4:
-                        custom_header_3 = st.text_input("4. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
-                    with col_tb5:
-                        custom_header_4 = st.text_input(f"5. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
-
-                    render_print_header_style_controls()
-                else:
-                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
-
-                custom_header_1 = st.session_state.get("p2_custom_head_line_1_final_fixed", "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)")
-                custom_header_ugpg = st.session_state.get("p2_custom_head_line_ugpg_final_fixed", default_header_ugpg)
-                custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
-                custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
-                custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
-                header_style_css = build_print_header_css()  # 🎨 Font size + colour (print header)
-                
-                # ==================================================================
-                # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
-                # ==================================================================
-                st.markdown("---")
-                if "p2_show_columns_section" not in st.session_state:
-                    st.session_state.p2_show_columns_section = True
-                hdr_cs_1, hdr_cs_2 = st.columns([6, 1])
-                with hdr_cs_1:
-                    st.subheader("👁️ Select Columns to Display & Print")
-                with hdr_cs_2:
-                    st.write("")
-                    if st.button("🙈 Hide" if st.session_state.p2_show_columns_section else "👁️ Unhide",
-                                 key="p2_toggle_columns_section", use_container_width=True):
-                        st.session_state.p2_show_columns_section = not st.session_state.p2_show_columns_section
-
-                # 🟢 फिक्स: यहाँ पहले कॉलम नाम असली डेटा कॉलम्स से मेल नहीं खाते थे
-                # (जैसे "Date Of Birth" vs असली कॉलम "Date of Birth", "Email" vs "Email ID",
-                # "Enrollment No" vs "Enrollment No.") — इसी वजह से DOB, Email और Enrollment No
-                # हमेशा खाली दिखते थे। अब नाम बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किए गए हैं।
-                all_possible_p2_cols = [
-                    "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
-                    "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
-                    "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
-                    "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
-                    "Scholarship Name", "Payment Date", "Remark"
-                ]
-
-                if st.session_state.p2_show_columns_section:
-                    # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
-                    chosen_render_cols = st.multiselect(
-                        "रिपोर्ट में देखने के लिए आवश्यक कॉलम्स चुनें:",
-                        options=all_possible_p2_cols,
-                        default=all_possible_p2_cols, # डिफ़ॉल्ट रूप से सभी सेलेक्ट रहेंगे
-                        key="p2_columns_multiselect_dropdown_v20"
-                    )
-
-                    # 🖨️ नया फ़ीचर: प्रिंट ओरिएंटेशन चुनने का विकल्प (Portrait / Landscape)
-                    print_orientation = st.selectbox(
-                        "🖨️ प्रिंट पेज का लेआउट चुनें (Choose Print Orientation):",
-                        options=["Portrait (खड़ा पेज - कम कॉलम्स के लिए उत्तम)", "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"],
-                        index=1, # डिफ़ॉल्ट रूप से Landscape सेट रहेगा
-                        key="p2_print_orientation_selector"
-                    )
-                else:
-                    st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
-
-                chosen_render_cols = st.session_state.get("p2_columns_multiselect_dropdown_v20", all_possible_p2_cols)
-                print_orientation = st.session_state.get(
-                    "p2_print_orientation_selector",
-                    "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"
-                )
-
-                # सीएसएस के लिए वैल्यू सेट करना
-                orientation_css = "portrait" if "Portrait" in print_orientation else "landscape"
-
-                # सुरक्षा नियम: यदि सब डिलीट कर दें तो कम से कम नाम और नंबर जरूर दिखे
-                if not chosen_render_cols:
-                    chosen_render_cols = ["Admission Application Number", "Student Name"]
-
-                # 🔀 List Order Selector — P10 जैसा ही Sort Order सिस्टम अब P2 में भी
-                p2_sort_order_choice = st.selectbox(
-                    "🔀 लिस्ट किस क्रम में प्रिंट करें (Sort Order):",
-                    options=[
-                        "डिफ़ॉल्ट क्रम (जैसा डेटा है)",
-                        "Student Name (अल्फाबेटिक A-Z क्रम में)",
-                        "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
-                    ],
-                    key="p2_sort_order_choice"
-                )
-                if p2_sort_order_choice.startswith("Subject"):
-                    # 🔤 पहले Subject के अल्फाबेटिक क्रम में, फिर उसी Subject के अंदर Student Name A-Z
-                    admission_display_db["_sort_key_1"] = admission_display_db.get("Subject", "").astype(str).str.strip().str.upper()
-                    admission_display_db["_sort_key_2"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
-                    admission_display_db = admission_display_db.sort_values(
-                        by=["_sort_key_1", "_sort_key_2"], ascending=[True, True]
-                    ).drop(columns=["_sort_key_1", "_sort_key_2"]).reset_index(drop=True)
-                elif p2_sort_order_choice.startswith("Student Name"):
-                    # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
-                    admission_display_db["_sort_key"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
-                    admission_display_db = admission_display_db.sort_values(
-                        by=["_sort_key"], ascending=[True]
-                    ).drop(columns=["_sort_key"]).reset_index(drop=True)
-                # "डिफ़ॉल्ट क्रम" चुनने पर कोई sort नहीं होगा — डेटा जैसा है वैसा ही क्रम रहेगा
-
-                st.markdown("---")
-                
-                # ==================================================================
-                # 📊 Data Grid Overview (स्क्रीन पर दिखने वाली एकमात्र मुख्य तालिका)
-                # ==================================================================
-                # 🟢 सुधार: दोनों नाम विविधताओं को सुरक्षित रूप से सिंक करें
-                if "Admission Application Number" in admission_display_db.columns:
-                    admission_display_db["Application Number"] = admission_display_db["Admission Application Number"]
-                elif "Application Number" in admission_display_db.columns:
-                    admission_display_db["Admission Application Number"] = admission_display_db["Application Number"]
-
-                for col in chosen_render_cols:
-                    if col not in admission_display_db.columns:
-                        if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
-                            admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
-                        else:
-                            admission_display_db[col] = ""
-                        
-                final_p2_render = admission_display_db[chosen_render_cols].copy()
-                
-                # 🟢 पुराना रीनेम कोड हटाकर इसे पूरी तरह साफ़ और सुरक्षित किया गया
-                final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
-                
-                if not final_p2_render.empty:
-                    final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
-                
-                st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
-                
-                # ==================================================================
-                # ✏️ कॉलम नाम एडिटर — जिस भी कॉलम का नाम (हेडर) बदलना हो, यहाँ से बदलें
-                # (सिर्फ़ स्क्रीन/प्रिंट/डाउनलोड में दिखने वाला नाम बदलता है, असली डेटा कॉलम सुरक्षित रहता है)
-                # ==================================================================
-                def render_column_name_editor(df_in, section_key):
-                    """
-                    Har column ke liye ek chhota text box deta hai jisse uska display
-                    naam (header) badla ja sake. Return: renamed dataframe.
-                    Original data / underlying column names change nahi hote — sirf
-                    is table (screen + print + download) me dikhne wala label badalta hai.
-                    """
-                    rename_map_key = f"{section_key}_rename_map"
-                    if rename_map_key not in st.session_state:
-                        st.session_state[rename_map_key] = {}
-
-                    with st.expander("✏️ कॉलम नाम एडिटर (Edit Column Header Names)", expanded=False):
-                        st.caption("नीचे जिस कॉलम का नाम बदलना है, उसके सामने नया नाम लिखें। खाली छोड़ने पर पुराना नाम ही रहेगा।")
-                        editable_cols = [c for c in df_in.columns if c != "S. No."]
-                        new_names = {}
-                        n_per_row = 3
-                        for i in range(0, len(editable_cols), n_per_row):
-                            row_cols = st.columns(n_per_row)
-                            for j, orig_col in enumerate(editable_cols[i:i + n_per_row]):
-                                with row_cols[j]:
-                                    current_label = st.session_state[rename_map_key].get(orig_col, orig_col)
-                                    new_val = st.text_input(
-                                        f"'{orig_col}' का नया नाम:",
-                                        value=current_label,
-                                        key=f"{section_key}_rename_{orig_col}"
-                                    )
-                                    new_names[orig_col] = new_val.strip() if new_val.strip() else orig_col
-                        if st.button("✅ नाम लागू करें (Apply Names)", key=f"{section_key}_apply_rename_btn"):
-                            st.session_state[rename_map_key] = new_names
-                            st.rerun()
-                        if st.session_state[rename_map_key]:
-                            if st.button("↩️ मूल नाम पर वापस जाएँ (Reset Names)", key=f"{section_key}_reset_rename_btn"):
-                                st.session_state[rename_map_key] = {}
-                                st.rerun()
-
-                    active_map = {k: v for k, v in st.session_state[rename_map_key].items() if k in df_in.columns}
-                    return df_in.rename(columns=active_map) if active_map else df_in.copy()
-
-                final_p2_render = render_column_name_editor(final_p2_render, "p2_grid")
-
-                # ==================================================================
-                # 📐 Remark कॉलम का साइज़ (Width / Height) खुद तय करें
-                # ==================================================================
-                remark_display_label = st.session_state.get("p2_grid_rename_map", {}).get("Remark", "Remark")
-                if remark_display_label in final_p2_render.columns:
-                    with st.expander("📐 Remark कॉलम का साइज़ सेट करें (Set Remark Column Width/Height)", expanded=False):
-                        size_c1, size_c2 = st.columns(2)
-                        with size_c1:
-                            remark_width_px = st.slider(
-                                "↔️ Remark कॉलम की चौड़ाई (Width in px):",
-                                min_value=60, max_value=500, value=st.session_state.get("p2_remark_width_px", 180),
-                                step=10, key="p2_remark_width_px"
-                            )
-                        with size_c2:
-                            remark_height_px = st.slider(
-                                "↕️ Remark के लिए अतिरिक्त ऊँचाई (Extra Height in px — 0 = कोई खाली जगह नहीं, सिर्फ़ प्रिंट में लागू होगी):",
-                                min_value=0, max_value=100, value=st.session_state.get("p2_remark_height_px", 0),
-                                step=4, key="p2_remark_height_px"
-                            )
-                else:
-                    remark_width_px = st.session_state.get("p2_remark_width_px", 180)
-                    remark_height_px = st.session_state.get("p2_remark_height_px", 0)
-
-                # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
-                lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
-                if remark_display_label in final_p2_render.columns:
-                    # स्क्रीन ग्रिड में Remark कॉलम की चौड़ाई लागू करना (small/medium/large के रूप में मैप करके)
-                    remark_width_bucket = "small" if remark_width_px < 130 else ("large" if remark_width_px > 280 else "medium")
-                    try:
-                        remark_col_config = {
-                            remark_display_label: st.column_config.TextColumn(remark_display_label, width=remark_width_bucket)
-                        }
-                    except Exception:
-                        remark_col_config = None
-
-                    edited_p2_render = st.data_editor(
-                        final_p2_render,
-                        use_container_width=True,
-                        hide_index=True,
-                        disabled=lockable_cols,
-                        column_config=remark_col_config,
-                        key="p2_remark_live_editor_grid"
-                    )
-                    if st.button("💾 Remark सुरक्षित करें (Save Remarks)", key="p2_save_remark_btn", use_container_width=True):
                         try:
-                            app_no_col = "Admission Application Number" if "Admission Application Number" in edited_p2_render.columns \
-                                else ("Application Number" if "Application Number" in edited_p2_render.columns else None)
-                            if app_no_col is None:
-                                st.error("Remark सेव करने के लिए 'Application Number' कॉलम चुना होना ज़रूरी है (ऊपर 'Select Columns to Display & Print' में जोड़ें).")
-                            else:
-                                remark_sync_counter = 0
-                                for _, r_row in edited_p2_render.iterrows():
-                                    target_app_no = str(r_row[app_no_col]).strip()
-                                    remark_val = str(r_row[remark_display_label]).strip()
-                                    idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_no].index
-                                    if not idx_matches.empty:
-                                        if "Remark" not in live_db.columns:
-                                            live_db["Remark"] = ""
-                                        for match_idx in idx_matches:
-                                            live_db.at[match_idx, "Remark"] = remark_val
-                                            remark_sync_counter += 1
-                                save_live_data(live_db)
-                                st.success(f"🎉 {remark_sync_counter} छात्र रिकॉर्ड्स की Remark मुख्य डेटाबेस में सुरक्षित हो गई है।")
-                                st.rerun()
-                        except Exception as remark_err:
-                            st.error(f"Remark सेव करने में समस्या आई: {remark_err}")
-                    final_p2_render = edited_p2_render
-                else:
-                    st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+                            admission_display_db["_parsed_date"] = pd.to_datetime(admission_display_db["Payment Date"], dayfirst=True, errors="coerce")
+                            admission_display_db = admission_display_db[
+                                (admission_display_db["_parsed_date"] >= pd.to_datetime(start_date)) & 
+                                (admission_display_db["_parsed_date"] <= pd.to_datetime(end_date))
+                            ]
+                            admission_display_db = admission_display_db.drop(columns=["_parsed_date"], errors="ignore")
+                        except Exception as date_err:
+                            st.error(f"तिथि फ़ॉर्मेट मिलान में तकनीकी त्रुटि: {date_err}")
 
-                # ==================================================================
-                # 📥 Excel Download — ऊपर चुने गए कॉलम्स + Sort Order + Filters के अनुसार ही (जैसा ग्रिड में दिख रहा है)
-                # ==================================================================
-                if not final_p2_render.empty:
-                    try:
-                        p2_excel_bytes = dataframe_to_excel_bytes(final_p2_render, "Admission List")
-                        st.download_button(
-                            label="📥 Download Excel File (.xlsx) — चुने हुए कॉलम्स के साथ",
-                            data=p2_excel_bytes,
-                            file_name=f"admission_list_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                            key="p2_download_excel_btn"
+                    # ==================================================================
+                    # ✍️ Print Header Text Boxes Customizer
+                    # ==================================================================
+                    st.markdown("---")
+                    if "p2_show_header_customizer_section" not in st.session_state:
+                        st.session_state.p2_show_header_customizer_section = True
+                    hdr_pc_1, hdr_pc_2 = st.columns([6, 1])
+                    with hdr_pc_1:
+                        st.subheader("✍️ प्रिंट हेडर कस्टमाइज़र (Print Header Text Customizer)")
+                    with hdr_pc_2:
+                        st.write("")
+                        if st.button("🙈 Hide" if st.session_state.p2_show_header_customizer_section else "👁️ Unhide",
+                                     key="p2_toggle_header_customizer_section", use_container_width=True):
+                            st.session_state.p2_show_header_customizer_section = not st.session_state.p2_show_header_customizer_section
+
+                    # 🔄 Header 3 & Header 4 ऑटो-सिंक इंजन — जब भी ऊपर "Advanced Matrix Filters System" में
+                    # Year/Subject (बॉक्स 3 के लिए) या Column Filter Target/Filter Value (बॉक्स 4 के लिए) बदलें,
+                    # ये टेक्स्ट बॉक्स अपने आप नई चुनी हुई वैल्यू के हिसाब से रीफ़्रेश हो जाएंगे।
+                    # (पहले सिर्फ पहली बार वाली default value सेट होती थी, बाद में year/subject बदलने पर भी
+                    # बॉक्स पुरानी वैल्यू पर ही अटका रहता था — यही bug अब ठीक कर दिया गया है)
+                    default_header_3 = f"Session: {p2_filter_year} | Subject: {p2_filter_subject}"
+                    default_header_4 = f"{p2_selected_col}: {p2_selected_val}" if p2_selected_val != "All Values" else ""
+                    default_header_ugpg = p2_filter_ugpg if p2_filter_ugpg != "All" else ""
+
+                    _h3_track_key = "_p2_h3_last_filters"
+                    if st.session_state.get(_h3_track_key) != (p2_filter_year, p2_filter_subject):
+                        st.session_state["p2_custom_head_line_3_final_fixed"] = default_header_3
+                        st.session_state[_h3_track_key] = (p2_filter_year, p2_filter_subject)
+
+                    _h4_track_key = "_p2_h4_last_filters"
+                    if st.session_state.get(_h4_track_key) != (p2_selected_col, p2_selected_val):
+                        st.session_state["p2_custom_head_line_4_final_fixed"] = default_header_4
+                        st.session_state[_h4_track_key] = (p2_selected_col, p2_selected_val)
+
+                    # 🆕 हेडर लाइन 2 (Under Graduate/Post Graduate) — मैट्रिक्स फ़िल्टर बॉक्स 2 से अपने आप सिंक होगी।
+                    # जब "All" चुना हो तो यह खाली रहेगी और प्रिंट में पूरी तरह गायब हो जाएगी (नीचे वाली लाइन ऊपर खिसक आएगी)।
+                    _h_ugpg_track_key = "_p2_h_ugpg_last_filter"
+                    if st.session_state.get(_h_ugpg_track_key) != p2_filter_ugpg:
+                        st.session_state["p2_custom_head_line_ugpg_final_fixed"] = default_header_ugpg
+                        st.session_state[_h_ugpg_track_key] = p2_filter_ugpg
+
+                    if st.session_state.p2_show_header_customizer_section:
+                        st.caption("नीचे दिए गए बॉक्स में आप जो भी लिखेंगे, वह प्रिंट रिपोर्ट के पहले पेज पर सबसे ऊपर दिखाई देगा। "
+                                    "बॉक्स 2, 4 और 5 अपने आप ऊपर चुने गए Under Graduate/Post Graduate, Year/Subject और Column Filter Target/Filter Value के हिसाब से अपडेट होते हैं "
+                                    "(बॉक्स 2 सिर्फ तभी दिखेगा जब 'Select Under Graduate/Post Graduate' में 'All' के अलावा कोई खास वैल्यू चुनी गई हो, और बॉक्स 5 सिर्फ तभी जब 'Filter Value for...' में 'All Values' के अलावा कोई खास वैल्यू चुनी गई हो — जरूरत न हो तो ये खाली/print में गायब रहेंगे, और उनकी जगह खाली रो नहीं बनेगी, बाकी लाइनें अपने आप ऊपर खिसक आएँगी)।")
+
+                        col_tb1, col_tb2, col_tb3, col_tb4, col_tb5 = st.columns(5)
+                        with col_tb1:
+                            custom_header_1 = st.text_input("1. हेडर लाइन 1 (उदा. कॉलेज का नाम):", value="GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)", key="p2_custom_head_line_1_final_fixed")
+                        with col_tb2:
+                            custom_header_ugpg = st.text_input("2. Select Under Graduate/Post Graduate:", value=default_header_ugpg, key="p2_custom_head_line_ugpg_final_fixed")
+                        with col_tb3:
+                            custom_header_2 = st.text_input("3. हेडर लाइन 2 (उदा. रिपोर्ट का प्रकार):", value="ADMISSION LIST", key="p2_custom_head_line_2_final_fixed")
+                        with col_tb4:
+                            custom_header_3 = st.text_input("4. हेडर लाइन 3 (उदा. आदेश संख्या या कोई विशेष नोट):", value=default_header_3, key="p2_custom_head_line_3_final_fixed")
+                        with col_tb5:
+                            custom_header_4 = st.text_input(f"5. Select Column Filter Target: (Filter Value for '{p2_selected_col}'):", value=default_header_4, key="p2_custom_head_line_4_final_fixed")
+
+                        render_print_header_style_controls()
+                    else:
+                        st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                    custom_header_1 = st.session_state.get("p2_custom_head_line_1_final_fixed", "GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)")
+                    custom_header_ugpg = st.session_state.get("p2_custom_head_line_ugpg_final_fixed", default_header_ugpg)
+                    custom_header_2 = st.session_state.get("p2_custom_head_line_2_final_fixed", "ADMISSION CONTROL & FEES PAYMENT REPORT SHEET")
+                    custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
+                    custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
+                    header_style_css = build_print_header_css()  # 🎨 Font size + colour (print header)
+                
+                    # ==================================================================
+                    # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
+                    # ==================================================================
+                    st.markdown("---")
+                    if "p2_show_columns_section" not in st.session_state:
+                        st.session_state.p2_show_columns_section = True
+                    hdr_cs_1, hdr_cs_2 = st.columns([6, 1])
+                    with hdr_cs_1:
+                        st.subheader("👁️ Select Columns to Display & Print")
+                    with hdr_cs_2:
+                        st.write("")
+                        if st.button("🙈 Hide" if st.session_state.p2_show_columns_section else "👁️ Unhide",
+                                     key="p2_toggle_columns_section", use_container_width=True):
+                            st.session_state.p2_show_columns_section = not st.session_state.p2_show_columns_section
+
+                    # 🟢 फिक्स: यहाँ पहले कॉलम नाम असली डेटा कॉलम्स से मेल नहीं खाते थे
+                    # (जैसे "Date Of Birth" vs असली कॉलम "Date of Birth", "Email" vs "Email ID",
+                    # "Enrollment No" vs "Enrollment No.") — इसी वजह से DOB, Email और Enrollment No
+                    # हमेशा खाली दिखते थे। अब नाम बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किए गए हैं।
+                    all_possible_p2_cols = [
+                        "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
+                        "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
+                        "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
+                        "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
+                        "Scholarship Name", "Payment Date", "Remark"
+                    ]
+
+                    if st.session_state.p2_show_columns_section:
+                        # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
+                        chosen_render_cols = st.multiselect(
+                            "रिपोर्ट में देखने के लिए आवश्यक कॉलम्स चुनें:",
+                            options=all_possible_p2_cols,
+                            default=all_possible_p2_cols, # डिफ़ॉल्ट रूप से सभी सेलेक्ट रहेंगे
+                            key="p2_columns_multiselect_dropdown_v20"
                         )
-                    except Exception as p2_xl_err:
-                        st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p2_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
 
-                # ==================================================================
-                # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix)
-                # ==================================================================
-                if not final_p2_render.empty:
-                    columns_list = list(final_p2_render.columns)
-                    records_list = final_p2_render.to_dict(orient="records")
+                        # 🖨️ नया फ़ीचर: प्रिंट ओरिएंटेशन चुनने का विकल्प (Portrait / Landscape)
+                        print_orientation = st.selectbox(
+                            "🖨️ प्रिंट पेज का लेआउट चुनें (Choose Print Orientation):",
+                            options=["Portrait (खड़ा पेज - कम कॉलम्स के लिए उत्तम)", "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"],
+                            index=1, # डिफ़ॉल्ट रूप से Landscape सेट रहेगा
+                            key="p2_print_orientation_selector"
+                        )
+                    else:
+                        st.caption("🙈 यह सेक्शन फ़िलहाल छुपा हुआ है। (Unhide करने पर पिछली सेटिंग बनी रहेगी)")
+
+                    chosen_render_cols = st.session_state.get("p2_columns_multiselect_dropdown_v20", all_possible_p2_cols)
+                    print_orientation = st.session_state.get(
+                        "p2_print_orientation_selector",
+                        "Landscape (आड़ा पेज - अधिक कॉलम्स के लिए उत्तम)"
+                    )
+
+                    # सीएसएस के लिए वैल्यू सेट करना
+                    orientation_css = "portrait" if "Portrait" in print_orientation else "landscape"
+
+                    # सुरक्षा नियम: यदि सब डिलीट कर दें तो कम से कम नाम और नंबर जरूर दिखे
+                    if not chosen_render_cols:
+                        chosen_render_cols = ["Admission Application Number", "Student Name"]
+
+                    # 🔀 List Order Selector — P10 जैसा ही Sort Order सिस्टम अब P2 में भी
+                    p2_sort_order_choice = st.selectbox(
+                        "🔀 लिस्ट किस क्रम में प्रिंट करें (Sort Order):",
+                        options=[
+                            "डिफ़ॉल्ट क्रम (जैसा डेटा है)",
+                            "Student Name (अल्फाबेटिक A-Z क्रम में)",
+                            "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
+                        ],
+                        key="p2_sort_order_choice"
+                    )
+                    if p2_sort_order_choice.startswith("Subject"):
+                        # 🔤 पहले Subject के अल्फाबेटिक क्रम में, फिर उसी Subject के अंदर Student Name A-Z
+                        admission_display_db["_sort_key_1"] = admission_display_db.get("Subject", "").astype(str).str.strip().str.upper()
+                        admission_display_db["_sort_key_2"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
+                        admission_display_db = admission_display_db.sort_values(
+                            by=["_sort_key_1", "_sort_key_2"], ascending=[True, True]
+                        ).drop(columns=["_sort_key_1", "_sort_key_2"]).reset_index(drop=True)
+                    elif p2_sort_order_choice.startswith("Student Name"):
+                        # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
+                        admission_display_db["_sort_key"] = admission_display_db.get("Student Name", "").astype(str).str.strip().str.upper()
+                        admission_display_db = admission_display_db.sort_values(
+                            by=["_sort_key"], ascending=[True]
+                        ).drop(columns=["_sort_key"]).reset_index(drop=True)
+                    # "डिफ़ॉल्ट क्रम" चुनने पर कोई sort नहीं होगा — डेटा जैसा है वैसा ही क्रम रहेगा
+
+                    st.markdown("---")
+                
+                    # ==================================================================
+                    # 📊 Data Grid Overview (स्क्रीन पर दिखने वाली एकमात्र मुख्य तालिका)
+                    # ==================================================================
+                    # 🟢 सुधार: दोनों नाम विविधताओं को सुरक्षित रूप से सिंक करें
+                    if "Admission Application Number" in admission_display_db.columns:
+                        admission_display_db["Application Number"] = admission_display_db["Admission Application Number"]
+                    elif "Application Number" in admission_display_db.columns:
+                        admission_display_db["Admission Application Number"] = admission_display_db["Application Number"]
+
+                    for col in chosen_render_cols:
+                        if col not in admission_display_db.columns:
+                            if col == "Admission & Enrollment Fees" and "Admssion & Enrollment Fees" in admission_display_db.columns:
+                                admission_display_db["Admission & Enrollment Fees"] = admission_display_db["Admssion & Enrollment Fees"]
+                            else:
+                                admission_display_db[col] = ""
+                        
+                    final_p2_render = admission_display_db[chosen_render_cols].copy()
+                
+                    # 🟢 पुराना रीनेम कोड हटाकर इसे पूरी तरह साफ़ और सुरक्षित किया गया
+                    final_p2_render = final_p2_render.loc[:, ~final_p2_render.columns.duplicated()].copy()
+                
+                    if not final_p2_render.empty:
+                        final_p2_render.insert(0, "S. No.", range(1, len(final_p2_render) + 1))
+                
+                    st.write(f"ग्रिड में प्रदर्शित कुल छात्र रिकॉर्ड संख्या: **{len(final_p2_render)}**")
+                
+                    # ==================================================================
+                    # ✏️ कॉलम नाम एडिटर — जिस भी कॉलम का नाम (हेडर) बदलना हो, यहाँ से बदलें
+                    # (सिर्फ़ स्क्रीन/प्रिंट/डाउनलोड में दिखने वाला नाम बदलता है, असली डेटा कॉलम सुरक्षित रहता है)
+                    # ==================================================================
+                    def render_column_name_editor(df_in, section_key):
+                        """
+                        Har column ke liye ek chhota text box deta hai jisse uska display
+                        naam (header) badla ja sake. Return: renamed dataframe.
+                        Original data / underlying column names change nahi hote — sirf
+                        is table (screen + print + download) me dikhne wala label badalta hai.
+                        """
+                        rename_map_key = f"{section_key}_rename_map"
+                        if rename_map_key not in st.session_state:
+                            st.session_state[rename_map_key] = {}
+
+                        with st.expander("✏️ कॉलम नाम एडिटर (Edit Column Header Names)", expanded=False):
+                            st.caption("नीचे जिस कॉलम का नाम बदलना है, उसके सामने नया नाम लिखें। खाली छोड़ने पर पुराना नाम ही रहेगा।")
+                            editable_cols = [c for c in df_in.columns if c != "S. No."]
+                            new_names = {}
+                            n_per_row = 3
+                            for i in range(0, len(editable_cols), n_per_row):
+                                row_cols = st.columns(n_per_row)
+                                for j, orig_col in enumerate(editable_cols[i:i + n_per_row]):
+                                    with row_cols[j]:
+                                        current_label = st.session_state[rename_map_key].get(orig_col, orig_col)
+                                        new_val = st.text_input(
+                                            f"'{orig_col}' का नया नाम:",
+                                            value=current_label,
+                                            key=f"{section_key}_rename_{orig_col}"
+                                        )
+                                        new_names[orig_col] = new_val.strip() if new_val.strip() else orig_col
+                            if st.button("✅ नाम लागू करें (Apply Names)", key=f"{section_key}_apply_rename_btn"):
+                                st.session_state[rename_map_key] = new_names
+                                st.rerun()
+                            if st.session_state[rename_map_key]:
+                                if st.button("↩️ मूल नाम पर वापस जाएँ (Reset Names)", key=f"{section_key}_reset_rename_btn"):
+                                    st.session_state[rename_map_key] = {}
+                                    st.rerun()
+
+                        active_map = {k: v for k, v in st.session_state[rename_map_key].items() if k in df_in.columns}
+                        return df_in.rename(columns=active_map) if active_map else df_in.copy()
+
+                    final_p2_render = render_column_name_editor(final_p2_render, "p2_grid")
+
+                    # ==================================================================
+                    # 📐 Remark कॉलम का साइज़ (Width / Height) खुद तय करें
+                    # ==================================================================
+                    remark_display_label = st.session_state.get("p2_grid_rename_map", {}).get("Remark", "Remark")
+                    if remark_display_label in final_p2_render.columns:
+                        with st.expander("📐 Remark कॉलम का साइज़ सेट करें (Set Remark Column Width/Height)", expanded=False):
+                            size_c1, size_c2 = st.columns(2)
+                            with size_c1:
+                                remark_width_px = st.slider(
+                                    "↔️ Remark कॉलम की चौड़ाई (Width in px):",
+                                    min_value=60, max_value=500, value=st.session_state.get("p2_remark_width_px", 180),
+                                    step=10, key="p2_remark_width_px"
+                                )
+                            with size_c2:
+                                remark_height_px = st.slider(
+                                    "↕️ Remark के लिए अतिरिक्त ऊँचाई (Extra Height in px — 0 = कोई खाली जगह नहीं, सिर्फ़ प्रिंट में लागू होगी):",
+                                    min_value=0, max_value=100, value=st.session_state.get("p2_remark_height_px", 0),
+                                    step=4, key="p2_remark_height_px"
+                                )
+                    else:
+                        remark_width_px = st.session_state.get("p2_remark_width_px", 180)
+                        remark_height_px = st.session_state.get("p2_remark_height_px", 0)
+
+                    # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
+                    lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
+                    if remark_display_label in final_p2_render.columns:
+                        # स्क्रीन ग्रिड में Remark कॉलम की चौड़ाई लागू करना (small/medium/large के रूप में मैप करके)
+                        remark_width_bucket = "small" if remark_width_px < 130 else ("large" if remark_width_px > 280 else "medium")
+                        try:
+                            remark_col_config = {
+                                remark_display_label: st.column_config.TextColumn(remark_display_label, width=remark_width_bucket)
+                            }
+                        except Exception:
+                            remark_col_config = None
+
+                        edited_p2_render = st.data_editor(
+                            final_p2_render,
+                            use_container_width=True,
+                            hide_index=True,
+                            disabled=lockable_cols,
+                            column_config=remark_col_config,
+                            key="p2_remark_live_editor_grid"
+                        )
+                        if st.button("💾 Remark सुरक्षित करें (Save Remarks)", key="p2_save_remark_btn", use_container_width=True):
+                            try:
+                                app_no_col = "Admission Application Number" if "Admission Application Number" in edited_p2_render.columns \
+                                    else ("Application Number" if "Application Number" in edited_p2_render.columns else None)
+                                if app_no_col is None:
+                                    st.error("Remark सेव करने के लिए 'Application Number' कॉलम चुना होना ज़रूरी है (ऊपर 'Select Columns to Display & Print' में जोड़ें).")
+                                else:
+                                    remark_sync_counter = 0
+                                    for _, r_row in edited_p2_render.iterrows():
+                                        target_app_no = str(r_row[app_no_col]).strip()
+                                        remark_val = str(r_row[remark_display_label]).strip()
+                                        idx_matches = live_db[live_db["Admission Application Number"].astype(str).str.strip() == target_app_no].index
+                                        if not idx_matches.empty:
+                                            if "Remark" not in live_db.columns:
+                                                live_db["Remark"] = ""
+                                            for match_idx in idx_matches:
+                                                live_db.at[match_idx, "Remark"] = remark_val
+                                                remark_sync_counter += 1
+                                    save_live_data(live_db)
+                                    st.success(f"🎉 {remark_sync_counter} छात्र रिकॉर्ड्स की Remark मुख्य डेटाबेस में सुरक्षित हो गई है।")
+                                    st.rerun()
+                            except Exception as remark_err:
+                                st.error(f"Remark सेव करने में समस्या आई: {remark_err}")
+                        final_p2_render = edited_p2_render
+                    else:
+                        st.dataframe(final_p2_render, use_container_width=True, hide_index=True)
+
+                    # ==================================================================
+                    # 📥 Excel Download — ऊपर चुने गए कॉलम्स + Sort Order + Filters के अनुसार ही (जैसा ग्रिड में दिख रहा है)
+                    # ==================================================================
+                    if not final_p2_render.empty:
+                        try:
+                            p2_excel_bytes = dataframe_to_excel_bytes(final_p2_render, "Admission List")
+                            st.download_button(
+                                label="📥 Download Excel File (.xlsx) — चुने हुए कॉलम्स के साथ",
+                                data=p2_excel_bytes,
+                                file_name=f"admission_list_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True,
+                                key="p2_download_excel_btn"
+                            )
+                        except Exception as p2_xl_err:
+                            st.error(f"Excel फ़ाइल बनाने में समस्या आई: {p2_xl_err} (requirements.txt में `openpyxl` जोड़ें)")
+
+                    # ==================================================================
+                    # 🖨️ Clean Variable-Based Iframe Print Engine (Dynamic Layout Fix)
+                    # ==================================================================
+                    if not final_p2_render.empty:
+                        columns_list = list(final_p2_render.columns)
+                        records_list = final_p2_render.to_dict(orient="records")
                     
-                    # 📐 Remark कॉलम के लिए तय की गई चौड़ाई यहाँ प्रिंट टेबल पर लागू होती है
-                    _remark_col_style = f"width:{remark_width_px}px; max-width:{remark_width_px}px;"
-                    _remark_cell_style = "word-wrap:break-word; white-space:normal;"
+                        # 📐 Remark कॉलम के लिए तय की गई चौड़ाई यहाँ प्रिंट टेबल पर लागू होती है
+                        _remark_col_style = f"width:{remark_width_px}px; max-width:{remark_width_px}px;"
+                        _remark_cell_style = "word-wrap:break-word; white-space:normal;"
 
-                    # 🟢 फिक्स: सभी रो का साइज़ एक-समान (compact) रखने के लिए कम padding + line-height,
-                    # और हर <tr> को "page-break-inside: avoid" ताकि कोई रो बीच में कटे नहीं
-                    _uniform_row_style = "padding:3px 5px; line-height:1.25; page-break-inside:avoid;"
+                        # 🟢 फिक्स: सभी रो का साइज़ एक-समान (compact) रखने के लिए कम padding + line-height,
+                        # और हर <tr> को "page-break-inside: avoid" ताकि कोई रो बीच में कटे नहीं
+                        _uniform_row_style = "padding:3px 5px; line-height:1.25; page-break-inside:avoid;"
 
-                    # 🟢 फिक्स: सिर्फ़ Remark सेल पर "min-height" लगाने पर कई प्रिंट/iframe इंजन में
-                    # रो की ऊँचाई नहीं बढ़ती थी। अब जब स्लाइडर 0 से ज़्यादा हो, तो पूरी <tr> और उसके
-                    # हर सेल पर सीधे "height" लगाया जाता है — यह हर ब्राउज़र में भरोसेमंद तरीक़े से काम करता है।
-                    _row_height_style = f"height:{remark_height_px}px;" if remark_height_px > 0 else ""
+                        # 🟢 फिक्स: सिर्फ़ Remark सेल पर "min-height" लगाने पर कई प्रिंट/iframe इंजन में
+                        # रो की ऊँचाई नहीं बढ़ती थी। अब जब स्लाइडर 0 से ज़्यादा हो, तो पूरी <tr> और उसके
+                        # हर सेल पर सीधे "height" लगाया जाता है — यह हर ब्राउज़र में भरोसेमंद तरीक़े से काम करता है।
+                        _row_height_style = f"height:{remark_height_px}px;" if remark_height_px > 0 else ""
 
-                    def _th_style(col_name):
-                        base = f"border:1px solid #111; {_uniform_row_style} background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
-                        return base + (" " + _remark_col_style if col_name == remark_display_label else "")
+                        def _th_style(col_name):
+                            base = f"border:1px solid #111; {_uniform_row_style} background:#f2f2f2; font-weight:bold; text-align:center; vertical-align:top;"
+                            return base + (" " + _remark_col_style if col_name == remark_display_label else "")
 
-                    # 🟢 नया: जिस भी सेल की वैल्यू सिर्फ़ एक नंबर (जैसे "13", "8319564700") हो,
-                    # वह अपने आप बीच में (center) दिखेगी — बाकी टेक्स्ट वाली सेल्स पहले जैसे left में ही रहेंगी
-                    def _is_pure_number(v):
-                        v = v.strip()
-                        return v != "" and v.replace(".", "", 1).replace("-", "", 1).isdigit()
+                        # 🟢 नया: जिस भी सेल की वैल्यू सिर्फ़ एक नंबर (जैसे "13", "8319564700") हो,
+                        # वह अपने आप बीच में (center) दिखेगी — बाकी टेक्स्ट वाली सेल्स पहले जैसे left में ही रहेंगी
+                        def _is_pure_number(v):
+                            v = v.strip()
+                            return v != "" and v.replace(".", "", 1).replace("-", "", 1).isdigit()
 
-                    def _td_style(col_name, cell_val=""):
-                        align = "center" if (col_name == "S. No." or _is_pure_number(cell_val)) else "left"
-                        base = f"border:1px solid #111; {_uniform_row_style} {_row_height_style} text-align:{align}; vertical-align:top;"
-                        return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
+                        def _td_style(col_name, cell_val=""):
+                            align = "center" if (col_name == "S. No." or _is_pure_number(cell_val)) else "left"
+                            base = f"border:1px solid #111; {_uniform_row_style} {_row_height_style} text-align:{align}; vertical-align:top;"
+                            return base + (" " + _remark_col_style + " " + _remark_cell_style if col_name == remark_display_label else "")
 
-                    headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
+                        headers_html = "".join([f"<th style='{_th_style(col)}'>{col}</th>" for col in columns_list])
                     
-                    rows_html = ""
-                    for row in records_list:
-                        rows_html += f"<tr style='page-break-inside: avoid; {_row_height_style}'>"
-                        for col in columns_list:
-                            val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
-                            rows_html += f"<td style='{_td_style(col, val)}'>{val}</td>"
-                        rows_html += "</tr>"
+                        rows_html = ""
+                        for row in records_list:
+                            rows_html += f"<tr style='page-break-inside: avoid; {_row_height_style}'>"
+                            for col in columns_list:
+                                val = str(row.get(col, "")).replace("`", "'").replace("\n", " ")
+                                rows_html += f"<td style='{_td_style(col, val)}'>{val}</td>"
+                            rows_html += "</tr>"
                     
-                    clean_table_html = f"""
-                    <html>
-                    <head>
-                        <style>
-                            @page {{
-                                size: A4 {orientation_css};
-                                margin: 8mm 8mm 14mm 8mm;
-                            }}
-                            /* 🔢 पेज नंबर — पेज के नीचे बीच में (सपोर्टेड ब्राउज़र्स में अपने-आप हर पेज पर दिखेगा) */
-                            @page {{
-                                @bottom-center {{
-                                    content: "Page No. " counter(page) " / " counter(pages);
-                                    font-size: 10px;
-                                    font-family: Arial, sans-serif;
-                                    color: #333;
-                                }}
-                            }}
-                            body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
-                            .custom-print-header {{
-                                width: 100%; border: 2px solid #0F2A4A; background-color: #EEF2F8;
-                                padding: 15px; margin-bottom: 20px; border-radius: 6px;
-                                box-sizing: border-box; text-align: center;
-                            }}
-                            {header_style_css}
-                            table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; page-break-inside: auto; }}
-                            thead {{ display: table-header-group; }}
-                            tr {{ page-break-inside: avoid; page-break-after: auto; }}
-                        </style>
-                    </head>
-                    <body>
-                        <div class="custom-print-header">
-                            <div class="h-line-1">{custom_header_1}</div>
-                            {f'<div class="h-line-ugpg">{custom_header_ugpg}</div>' if custom_header_ugpg and custom_header_ugpg.strip() else ''}
-                            <div class="h-line-2">{custom_header_2}</div>
-                            <div class="h-line-3">{custom_header_3}</div>
-                            {f'<div class="h-line-4">{custom_header_4}</div>' if custom_header_4 and custom_header_4.strip() else ''}
-                        </div>
-                        <table>
-                            <thead><tr>{headers_html}</tr></thead>
-                            <tbody>{rows_html}</tbody>
-                        </table>
-                    </body>
-                    </html>
-                    """
-                    
-                    safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
-                    
-                    # 🟢 यहाँ इंडेंटेशन फिक्स किया गया है (16 Spaces / 4 Tabs)
-                    st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-                    
-                    # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है
-                    components.html(
-                        f"""
+                        clean_table_html = f"""
                         <html>
+                        <head>
+                            <style>
+                                @page {{
+                                    size: A4 {orientation_css};
+                                    margin: 8mm 8mm 14mm 8mm;
+                                }}
+                                /* 🔢 पेज नंबर — पेज के नीचे बीच में (सपोर्टेड ब्राउज़र्स में अपने-आप हर पेज पर दिखेगा) */
+                                @page {{
+                                    @bottom-center {{
+                                        content: "Page No. " counter(page) " / " counter(pages);
+                                        font-size: 10px;
+                                        font-family: Arial, sans-serif;
+                                        color: #333;
+                                    }}
+                                }}
+                                body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }}
+                                .custom-print-header {{
+                                    width: 100%; border: 2px solid #0F2A4A; background-color: #EEF2F8;
+                                    padding: 15px; margin-bottom: 20px; border-radius: 6px;
+                                    box-sizing: border-box; text-align: center;
+                                }}
+                                {header_style_css}
+                                table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; page-break-inside: auto; }}
+                                thead {{ display: table-header-group; }}
+                                tr {{ page-break-inside: avoid; page-break-after: auto; }}
+                            </style>
+                        </head>
                         <body>
-                            <script>
-                            function printAdmissionList() {{
-                                var iframe = window.parent.document.createElement('iframe');
-                                iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
-                                iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
-                                window.parent.document.body.appendChild(iframe);
-                                
-                                var doc = iframe.contentWindow.document;
-                                doc.open(); doc.write(`{safe_html_string}`); doc.close();
-                                iframe.contentWindow.focus(); iframe.contentWindow.print();
-                                
-                                setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
-                            }}
-                            </script>
-                            <button onclick="printAdmissionList()" style="
-                                width: 100%; background-color: #0F2A4A; color: white; padding: 14px; 
-                                border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
-                                font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
-                                🖨️ Click Here to Print Admission & Payment Report Sheet
-                            </button>
+                            <div class="custom-print-header">
+                                <div class="h-line-1">{custom_header_1}</div>
+                                {f'<div class="h-line-ugpg">{custom_header_ugpg}</div>' if custom_header_ugpg and custom_header_ugpg.strip() else ''}
+                                <div class="h-line-2">{custom_header_2}</div>
+                                <div class="h-line-3">{custom_header_3}</div>
+                                {f'<div class="h-line-4">{custom_header_4}</div>' if custom_header_4 and custom_header_4.strip() else ''}
+                            </div>
+                            <table>
+                                <thead><tr>{headers_html}</tr></thead>
+                                <tbody>{rows_html}</tbody>
+                            </table>
                         </body>
                         </html>
-                        """,
-                        height=70
-                    )
+                        """
+                    
+                        safe_html_string = clean_table_html.replace("\\", "\\\\").replace("`", "'").replace("\n", " ").replace("\r", "")
+                    
+                        # 🟢 यहाँ इंडेंटेशन फिक्स किया गया है (16 Spaces / 4 Tabs)
+                        st.markdown('<div class="print-hide" style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                    
+                        # प्रिंट बटन जो सीधे बैकएंड से कनेक्टेड है
+                        components.html(
+                            f"""
+                            <html>
+                            <body>
+                                <script>
+                                function printAdmissionList() {{
+                                    var iframe = window.parent.document.createElement('iframe');
+                                    iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0';
+                                    iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
+                                    window.parent.document.body.appendChild(iframe);
+                                
+                                    var doc = iframe.contentWindow.document;
+                                    doc.open(); doc.write(`{safe_html_string}`); doc.close();
+                                    iframe.contentWindow.focus(); iframe.contentWindow.print();
+                                
+                                    setTimeout(function() {{ window.parent.document.body.removeChild(iframe); }}, 1000);
+                                }}
+                                </script>
+                                <button onclick="printAdmissionList()" style="
+                                    width: 100%; background-color: #0F2A4A; color: white; padding: 14px; 
+                                    border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;
+                                    font-family: sans-serif; box-shadow: 0 4px 6px rgba(20, 101, 222, 0.2);">
+                                    🖨️ Click Here to Print Admission & Payment Report Sheet
+                                </button>
+                            </body>
+                            </html>
+                            """,
+                            height=70
+                        )
 
         # ----------------------------------------------------------------------
         # P3: PANEL UNIQUE ID MODULE (Student Unique ID Mapping Engine)
