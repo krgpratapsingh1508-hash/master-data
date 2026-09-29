@@ -418,7 +418,7 @@ DEFAULT_COLUMNS = [
     "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility",
     "CCE Marks Obtained", "CCE Attendance Status", "Promotion Status", "Marks Obtained", "Result Status", "Exam Remarks",
-    "Document Submit Status"
+    "Document Submit Status", "Sent To P15"
 ]
 
 # ==========================================================
@@ -1780,6 +1780,11 @@ else:
             
             # 🔍 Isolated Firewall Query Filter Rule
             p2_authorized_db = live_db[live_db["Target Panel Visibility"] == "P2"].copy()
+
+            # 🆕 2.1 "Save & Send to P15" ke baad (rerun ke baad) result message dikhao
+            _p21_move_msg = st.session_state.pop("p21_move_msg", None)
+            if _p21_move_msg:
+                st.success(_p21_move_msg)
             
             if p2_authorized_db.empty: 
                 st.warning("⚠️ डेटाबेस वर्तमान में खाली है या इस पैनल के लिए कोई अधिकृत स्वीकृत (Approved) डेटा उपलब्ध नहीं है।")
@@ -1812,6 +1817,9 @@ else:
                     p21_db = p2_authorized_db.copy()      # index = live_db ka asli index (isi se save hoga)
                     if _P21_COL not in p21_db.columns:
                         p21_db[_P21_COL] = ""
+                    # 🆕 Jo students P15 ko bhej diye gaye ("Sent To P15" = Yes) wo sirf 2.1 ki list se hatenge (2.2 me rahenge)
+                    if "Sent To P15" in p21_db.columns:
+                        p21_db = p21_db[p21_db["Sent To P15"].astype(str).str.strip().str.lower() != "yes"]
                     for _c in ["Admission Year", "Subject", "Student Name", "Father Name", "Admission Application Number", _P21_COL]:
                         if _c not in p21_db.columns:
                             p21_db[_c] = ""
@@ -1843,6 +1851,29 @@ else:
                     st.write(f"कुल छात्र: **{len(p21_view)}**  |  ✅ Submit: **{_n_sub}**  |  ❎ Not Submit Document: **{_n_not}**  |  ⏳ Not Marked: **{_n_unm}**")
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
+
+                    # ---- 💾 Save & Send: jin students ka status "Submit" hai unhe P15 me bhej do
+                    #      ("Sent To P15" = Yes => sirf 2.1 ki list se hatenge; 2.2 me pehle jaise rahenge, P15 Master Grid me flag dikhega)
+                    _n_ready_p15 = int((p21_db[_P21_COL] == "Submit").sum())
+                    if st.button(f"💾 Save & Send Submit students to P15 ({_n_ready_p15})",
+                                 key="p21_save_send_p15_btn", type="primary",
+                                 disabled=(_n_ready_p15 == 0),
+                                 help="Jin students ke aage ✅ Submit hai, unhe P15 me bhej deta hai aur 2.1 ki list se hata deta hai (2.2 me ve rahenge)."):
+                        _fresh_db = load_live_data()
+                        for _fc in (_P21_COL, "Sent To P15"):
+                            if _fc not in _fresh_db.columns:
+                                _fresh_db[_fc] = ""
+                        _mv_mask = ((_fresh_db["Target Panel Visibility"].astype(str).str.strip() == "P2") &
+                                    (_fresh_db[_P21_COL].astype(str).str.strip() == "Submit") &
+                                    (_fresh_db["Sent To P15"].astype(str).str.strip().str.lower() != "yes"))
+                        _moved_n = int(_mv_mask.sum())
+                        if _moved_n:
+                            _fresh_db.loc[_mv_mask, "Sent To P15"] = "Yes"
+                            save_live_data(_fresh_db)
+                            st.session_state["p21_move_msg"] = f"✅ {_moved_n} Submit students P15 me bhej diye gaye aur 2.1 ki list se hata diye gaye।"
+                        else:
+                            st.session_state["p21_move_msg"] = "ℹ️ भेजने के लिए कोई Submit student नहीं मिला।"
+                        st.rerun()
 
                     # ---- pagination (buttons zyada hone se page heavy na ho)
                     _start = 0
