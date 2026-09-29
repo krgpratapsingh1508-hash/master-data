@@ -5731,70 +5731,71 @@ else:
                 if "p15_uploader_reset_counter" not in st.session_state:
                     st.session_state.p15_uploader_reset_counter = 0
 
-                with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=False):
-                    col_up_pass, col_up_file = st.columns(2)
-                    
-                    with col_up_pass:
-                        # काउंटर को की (Key) के साथ जोड़कर डायनेमिक बनाया गया है ताकि एरर न आए
+                with st.expander("🔑 सुरक्षित मास्टर फ़ाइल अपलोड गेटवे खोलें", expanded=True):
+                    # ✅ सब कुछ एक ही फ़ॉर्म में: पासवर्ड + फ़ाइल + पुष्टि + बटन। Enter दबाने या बीच-बीच में
+                    # पेज रीलोड होने पर कोई स्टेप अटकेगा नहीं; सब कुछ "Submit" दबाने पर ही एक साथ चेक होगा।
+                    with st.form(key=f"p15_master_overwrite_form_{st.session_state.p15_uploader_reset_counter}", clear_on_submit=False):
                         uploader_secure_password = st.text_input(
-                            "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:", 
-                            type="password", 
-                            key=f"p15_master_pass_widget_run_{st.session_state.p15_uploader_reset_counter}"
+                            "🛡️ फ़ाइल अपलोडर स्पेशल पासवर्ड दर्ज करें:",
+                            type="password"
                         )
-                    
-                    with col_up_file:
-                        is_password_correct = (uploader_secure_password == "admin@upload15")
-                        
                         uploaded_master_file = st.file_uploader(
-                            "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):", 
-                            type=["csv", "xlsx", "xls"],
-                            key=f"p15_master_file_widget_run_{st.session_state.p15_uploader_reset_counter}",
-                            disabled=not is_password_correct
+                            "सिस्टम में ओवरराइट करने के लिए मास्टर फ़ाइल चुनें (CSV / XLSX / XLS):",
+                            type=["csv", "xlsx", "xls"]
                         )
-                    
-                    if uploader_secure_password and not is_password_correct:
-                        st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
-                    elif is_password_correct:
-                        st.success("🔓 पासवर्ड सत्यापित! आप फ़ाइल अपलोड कर सकते हैं।")
-                        
-                        if uploaded_master_file is not None:
-                            st.info(f"📁ं चयनित फ़ाइल: `{uploaded_master_file.name}` प्रोसेस होने के लिए तैयार है।")
-                            
-                            confirm_overwrite_checkbox = st.checkbox(
-                                "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।",
-                                key=f"p15_master_chk_run_{st.session_state.p15_uploader_reset_counter}"
-                            )
-                            
-                            if st.button("💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW", type="primary", use_container_width=True, disabled=not confirm_overwrite_checkbox):
-                                try:
+                        confirm_overwrite_checkbox = st.checkbox(
+                            "मैं प्रमाणित करता हूँ कि मैं पुराना मास्टर डेटा डिलीट करके इस नई फ़ाइल को लाइव डेटाबेस बनाना चाहता हूँ।"
+                        )
+                        overwrite_submitted = st.form_submit_button(
+                            "💥 FORCE OVERWRITE COMPLETE MASTER DATABASE NOW",
+                            type="primary",
+                            use_container_width=True
+                        )
+
+                    if overwrite_submitted:
+                        if uploader_secure_password != "admin@upload15":
+                            st.error("❌ गलत फ़ाइल अपलोडर पासवर्ड! अपलोड ब्लॉक लॉक है।")
+                        elif uploaded_master_file is None:
+                            st.error("❌ कोई फ़ाइल चुनी नहीं गई। पहले CSV / XLSX फ़ाइल चुनें।")
+                        elif not confirm_overwrite_checkbox:
+                            st.error("❌ कृपया पुष्टि वाला चेकबॉक्स टिक करें।")
+                        else:
+                            try:
+                                with st.spinner("फ़ाइल प्रोसेस हो रही है..."):
                                     raw_uploaded_df = read_uploaded_file_as_csv_df(uploaded_master_file)
-                                    
-                                    if raw_uploaded_df.empty:
-                                        st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
-                                        if _UPLOAD_DIAG["info"]:
-                                            st.caption(f"🔎 Diagnostic: {_UPLOAD_DIAG['info']}")
-                                    else:
-                                        raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-                                        
-                                        for col in DEFAULT_COLUMNS:
-                                            if col not in raw_uploaded_df.columns:
-                                                raw_uploaded_df[col] = ""
-                                        
-                                        if "Target Panel Visibility" not in raw_uploaded_df.columns or raw_uploaded_df["Target Panel Visibility"].eq("").all():
-                                            raw_uploaded_df["Target Panel Visibility"] = "P2"
-                                        
-                                        finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
-                                        save_live_data(finalized_uploaded_master)
-                                        
-                                        # 🔒 सुरक्षित रीसेट मैकेनिज्म: काउंटर बदलते ही विजेट फ्रेश रीबूट हो जाएगा और पुराना डेटा मिट जाएगा
-                                        st.session_state.p15_uploader_reset_counter += 1
-                                        
-                                        st.success(f"🎉 शत-प्रतिशत सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है। गेटवे को सुरक्षित लॉक कर दिया गया है।")
-                                        st.balloons()
-                                        st.rerun()
-                                        
-                                except Exception as upload_err:
-                                    st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
+
+                                if raw_uploaded_df.empty:
+                                    st.error("❌ अपलोडेड फ़ाइल के अंदर कोई मान्य डेटा नहीं मिला।")
+                                    if _UPLOAD_DIAG["info"]:
+                                        st.caption(f"🔎 Diagnostic: {_UPLOAD_DIAG['info']}")
+                                else:
+                                    raw_uploaded_df = raw_uploaded_df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+
+                                    for col in DEFAULT_COLUMNS:
+                                        if col not in raw_uploaded_df.columns:
+                                            raw_uploaded_df[col] = ""
+
+                                    if "Target Panel Visibility" not in raw_uploaded_df.columns or raw_uploaded_df["Target Panel Visibility"].eq("").all():
+                                        raw_uploaded_df["Target Panel Visibility"] = "P2"
+
+                                    finalized_uploaded_master = raw_uploaded_df[DEFAULT_COLUMNS].copy()
+                                    save_live_data(finalized_uploaded_master)
+
+                                    st.session_state.p15_uploader_reset_counter += 1
+                                    st.session_state["p15_master_upload_success_msg"] = (
+                                        f"🎉 सफलता! `{uploaded_master_file.name}` को नया लाइव मास्टर डेटाबेस बना दिया गया है "
+                                        f"({len(finalized_uploaded_master)} रिकॉर्ड)।"
+                                    )
+                                    st.balloons()
+                                    st.rerun()
+                            except Exception as upload_err:
+                                st.error(f"मास्टर फ़ाइल डेटा प्रोसेसिंग चक्र में तकनीकी खराबी आई: {upload_err}")
+                                if _UPLOAD_DIAG["info"]:
+                                    st.caption(f"🔎 Diagnostic: {_UPLOAD_DIAG['info']}")
+
+                    _ok_msg = st.session_state.pop("p15_master_upload_success_msg", None)
+                    if _ok_msg:
+                        st.success(_ok_msg)
 
             # ----------------------------------------------------------------------
             # यहाँ से आपका पुराना कोड वापस शुरू हो जाएगा:
