@@ -665,6 +665,11 @@ def _load_live_data_cached():
         return df_empty
     try:
         df = pd.read_csv(DB_FILE, dtype=str)
+        # 🧹 Purane test-version ke bache hue columns ("Sent To P15" / "P21 Saved") database se hamesha ke liye hatao
+        _stale_cols = [c for c in ("Sent To P15", "P21 Saved") if c in df.columns]
+        if _stale_cols:
+            df = df.drop(columns=_stale_cols)
+            df.to_csv(DB_FILE, index=False)
         for col in DEFAULT_COLUMNS:
             if col not in df.columns: df[col] = ""
         df = df.fillna("").reset_index(drop=True)
