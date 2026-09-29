@@ -1859,7 +1859,8 @@ else:
                         _keys_now = p21_db.apply(lambda _r: _p21_key(_r["Student Name"], _r["Father Name"],
                                                                     _r["Admission Application Number"]), axis=1)
                         _saved_status = _keys_now.map(_p21_saved)                      # NaN = Save nahi hua
-                        _hide_mask = _saved_status.notna() & (_saved_status == p21_db[_P21_COL]) & (p21_db[_P21_COL] != "")
+                        # 🙈 Sirf "Submit" wali rows hide hongi — "Not Submit Document" wali row Save ke baad bhi list me rahegi
+                        _hide_mask = _saved_status.notna() & (_saved_status == p21_db[_P21_COL]) & (p21_db[_P21_COL] == "Submit")
                         # 🔁 Save ke baad jis student ka status badal gaya / hat gaya (P15 me), uski purani Save-entry hata do —
                         #    wo 2.1 me wapas dikhega aur dobara Save dabane par hi hatega
                         _stale = set(_keys_now[_saved_status.notna() & ~_hide_mask])
@@ -1897,19 +1898,19 @@ else:
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
-                    # ---- 💾 Save: jin students ke "Document Submit Status" column me status aa gaya (Submit / Not Submit Document)
-                    #      unki poori row 2.1 ki list se hat jayegi. Jinka status khaali (Not Marked) hai wo list me rahenge.
-                    _n_ready_p21 = int((p21_db[_P21_COL] != "").sum())
+                    # ---- 💾 Save: jin students ka "Document Submit Status" 'Submit' hai unki poori row 2.1 ki list se hat jayegi.
+                    #      "Not Submit Document" aur khaali (Not Marked) wale students list me rahenge.
+                    _n_ready_p21 = int((p21_db[_P21_COL] == "Submit").sum())
                     # 🙈 Button tabhi dikhega jab kam se kam ek student ka status aaya ho; Save ke baad wo rows hat jati hain, isliye button bhi hide ho jata hai
                     if _n_ready_p21 > 0 and st.button(f"💾 Save ({_n_ready_p21} rows 2.1 se hategi)",
                                  key="p21_save_hide_submit_btn", type="primary",
-                                 help="Jinke Document Submit Status me status aa gaya hai, unki poori row 2.1 se hata deta hai (2.2 aur P15 me ve pehle jaise rahenge)."):
-                        _marked_rows = p21_db[p21_db[_P21_COL] != ""]
+                                 help="Jinka Document Submit Status 'Submit' hai, unki poori row 2.1 se hata deta hai. 'Not Submit Document' wali rows list me rahengi (2.2 aur P15 me sab pehle jaisa rahega)."):
+                        _marked_rows = p21_db[p21_db[_P21_COL] == "Submit"]
                         _p21_new = {_p21_key(_r["Student Name"], _r["Father Name"], _r["Admission Application Number"]): _r[_P21_COL]
                                     for _, _r in _marked_rows.iterrows()}
                         _p21_write_saved({**_p21_load_saved(), **_p21_new})
                         st.session_state["p21_key_ver"] = _p21_kv + 1
-                        st.session_state["p21_move_msg"] = f"✅ {len(_p21_new)} students save ho gaye aur unki row 2.1 ki list se hata di gayi।"
+                        st.session_state["p21_move_msg"] = f"✅ {len(_p21_new)} Submit students save ho gaye aur unki row 2.1 ki list se hata di gayi। ❎ Not Submit Document wali rows list me hi rahengi।"
                         st.rerun()
 
                     # 🔀 List Order Selector — 2.2 jaisa hi Sort Order system ab 2.1 me bhi
@@ -5951,10 +5952,14 @@ else:
                 else:
                     if st.session_state.admin_lock_state:
                         # लॉक मोड: केवल डेटा व्यू करने के लिए (Read-Only) — हेडर और पहली रो के बीच सर्च बॉक्स के साथ
+                        st.caption("🔒 लिस्ट अभी **Locked** है — रो Delete/Edit करने के लिए ऊपर **🔓 लिस्ट अनलॉक करें (Editable)** बटन दबाएं।")
                         render_inline_filter_table(ordered_db_display.drop(columns=["S.No."], errors="ignore"), height=520)
                     else:
                         # अनलॉक मोड: ग्रिड एडिटिंग और रो डिलीट करने के लिए एक्टिवेट
-                        st.info("🔓 **एडिट और डिलीट मोड सक्रिय:** आप सेल पर डबल-क्लिक करके डेटा बदल सकते हैं। किसी रो को सिलेक्ट कर कीबोर्ड से Delete बटन दबाकर रो हटा सकते हैं।")
+                        if st.session_state.admin_unhide_edit:
+                            st.warning("✏️ **अभी EDIT टेबल दिख रही है (👀 एडमिट टेक्स्ट FUNCTION: active)** — इसमें सिर्फ़ सेल बदले जा सकते हैं, **Row Delete का option यहाँ नहीं आता।** रो डिलीट करने के लिए ऊपर का **'👀 एडमिट टेक्स्ट FUNCTION'** बटन दबाकर उसे **🙈 hidden** कर दें — तब Delete टेबल (चेकबॉक्स + 🗑️ Delete Selected Rows बटन) दिखेगी।")
+                        else:
+                            st.info("🔓 **डिलीट मोड सक्रिय:** नीचे टेबल में रो सेलेक्ट करें (बाईं ओर चेकबॉक्स), फिर 🗑️ **Delete Selected Rows** बटन दबाएं। सेल एडिट करना हो तो ऊपर '👀 एडमिट टेक्स्ट FUNCTION' को active करें।")
                         
                         disabled_fields = ["S.No."]
                         # यदि 'एडमिट टेक्स्ट FUNCTION' चालू नहीं (hidden) है, तो संवेदनशील कॉलम्स लॉक रहेंगे
