@@ -418,7 +418,7 @@ DEFAULT_COLUMNS = [
     "Branch", "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
     "Admssion & Enrollment Fees", "Scholarship Name", "Payment Date", "Target Panel Visibility",
     "CCE Marks Obtained", "CCE Attendance Status", "Promotion Status", "Marks Obtained", "Result Status", "Exam Remarks",
-    "Document Submit Status", "Sent To P15"
+    "Document Submit Status"
 ]
 
 # ==========================================================
@@ -1781,7 +1781,7 @@ else:
             # 🔍 Isolated Firewall Query Filter Rule
             p2_authorized_db = live_db[live_db["Target Panel Visibility"] == "P2"].copy()
 
-            # 🆕 2.1 "Save & Send to P15" ke baad (rerun ke baad) result message dikhao
+            # 🆕 2.1 "Save" ke baad (rerun ke baad) result message dikhao
             _p21_move_msg = st.session_state.pop("p21_move_msg", None)
             if _p21_move_msg:
                 st.success(_p21_move_msg)
@@ -1817,13 +1817,30 @@ else:
                     p21_db = p2_authorized_db.copy()      # index = live_db ka asli index (isi se save hoga)
                     if _P21_COL not in p21_db.columns:
                         p21_db[_P21_COL] = ""
-                    # 🆕 Jo students P15 ko bhej diye gaye ("Sent To P15" = Yes) wo sirf 2.1 ki list se hatenge (2.2 me rahenge)
-                    if "Sent To P15" in p21_db.columns:
-                        p21_db = p21_db[p21_db["Sent To P15"].astype(str).str.strip().str.lower() != "yes"]
                     for _c in ["Admission Year", "Subject", "Student Name", "Father Name", "Admission Application Number", _P21_COL]:
                         if _c not in p21_db.columns:
                             p21_db[_c] = ""
                         p21_db[_c] = p21_db[_c].fillna("").astype(str).str.strip()
+
+                    # 🆕 Jo students 2.1 me Save ho chuke wo sirf 2.1 ki list se hatenge (database, 2.2 aur P15 me jaise the waise rahenge).
+                    #    Koi naya column nahi — Save ki gayi list ek chhoti JSON file me rehti hai.
+                    _P21_SAVED_FILE = "p21_saved_students.json"
+
+                    def _p21_key(_name, _father, _app):
+                        return f"{str(_app).strip()}|{str(_name).strip()}|{str(_father).strip()}".lower()
+
+                    def _p21_load_saved():
+                        try:
+                            with open(_P21_SAVED_FILE, "r", encoding="utf-8") as _f:
+                                return set(json.load(_f))
+                        except Exception:
+                            return set()
+
+                    _p21_saved_keys = _p21_load_saved()
+                    if _p21_saved_keys and not p21_db.empty:
+                        _keys_now = p21_db.apply(lambda _r: _p21_key(_r["Student Name"], _r["Father Name"],
+                                                                    _r["Admission Application Number"]), axis=1)
+                        p21_db = p21_db[~_keys_now.isin(_p21_saved_keys)]
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
 
                     p21_view = p21_db.copy()
@@ -1852,27 +1869,18 @@ else:
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
-                    # ---- 💾 Save & Send: jin students ka status "Submit" hai unhe P15 me bhej do
-                    #      ("Sent To P15" = Yes => sirf 2.1 ki list se hatenge; 2.2 me pehle jaise rahenge, P15 Master Grid me flag dikhega)
-                    _n_ready_p15 = int((p21_db[_P21_COL] == "Submit").sum())
-                    if st.button(f"💾 Save & Send Submit students to P15 ({_n_ready_p15})",
-                                 key="p21_save_send_p15_btn", type="primary",
-                                 disabled=(_n_ready_p15 == 0),
-                                 help="Jin students ke aage ✅ Submit hai, unhe P15 me bhej deta hai aur 2.1 ki list se hata deta hai (2.2 me ve rahenge)."):
-                        _fresh_db = load_live_data()
-                        for _fc in (_P21_COL, "Sent To P15"):
-                            if _fc not in _fresh_db.columns:
-                                _fresh_db[_fc] = ""
-                        _mv_mask = ((_fresh_db["Target Panel Visibility"].astype(str).str.strip() == "P2") &
-                                    (_fresh_db[_P21_COL].astype(str).str.strip() == "Submit") &
-                                    (_fresh_db["Sent To P15"].astype(str).str.strip().str.lower() != "yes"))
-                        _moved_n = int(_mv_mask.sum())
-                        if _moved_n:
-                            _fresh_db.loc[_mv_mask, "Sent To P15"] = "Yes"
-                            save_live_data(_fresh_db)
-                            st.session_state["p21_move_msg"] = f"✅ {_moved_n} Submit students P15 me bhej diye gaye aur 2.1 ki list se hata diye gaye।"
-                        else:
-                            st.session_state["p21_move_msg"] = "ℹ️ भेजने के लिए कोई Submit student नहीं मिला।"
+                    # ---- 💾 Save: jin students ka status "Submit" hai wo 2.1 ki list se hat jayenge
+                    _n_ready_p21 = int((p21_db[_P21_COL] == "Submit").sum())
+                    if st.button(f"💾 Save ({_n_ready_p21} Submit students 2.1 se hatenge)",
+                                 key="p21_save_hide_submit_btn", type="primary",
+                                 disabled=(_n_ready_p21 == 0),
+                                 help="Jin students ke aage ✅ Submit hai, unhe 2.1 ki list se hata deta hai (2.2 aur P15 me ve pehle jaise rahenge)."):
+                        _sub_rows = p21_db[p21_db[_P21_COL] == "Submit"]
+                        _new_keys = {_p21_key(_r["Student Name"], _r["Father Name"], _r["Admission Application Number"])
+                                     for _, _r in _sub_rows.iterrows()}
+                        with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
+                            json.dump(sorted(_p21_load_saved() | _new_keys), _f, ensure_ascii=False, indent=2)
+                        st.session_state["p21_move_msg"] = f"✅ {len(_new_keys)} Submit students save ho gaye aur 2.1 ki list se hata diye gaye।"
                         st.rerun()
 
                     # ---- pagination (buttons zyada hone se page heavy na ho)
