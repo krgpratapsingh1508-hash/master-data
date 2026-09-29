@@ -1881,9 +1881,9 @@ else:
 
                     # ---- 💾 Save: jin students ka status "Submit" hai wo 2.1 ki list se hat jayenge
                     _n_ready_p21 = int((p21_db[_P21_COL] == "Submit").sum())
-                    if st.button(f"💾 Save ({_n_ready_p21} Submit students 2.1 se hatenge)",
+                    # 🙈 Save button tabhi dikhega jab kam se kam ek Submit student ho; Save ke baad Submit wale hat jate hain, isliye button bhi hide ho jata hai
+                    if _n_ready_p21 > 0 and st.button(f"💾 Save ({_n_ready_p21} Submit students 2.1 se hatenge)",
                                  key="p21_save_hide_submit_btn", type="primary",
-                                 disabled=(_n_ready_p21 == 0),
                                  help="Jin students ke aage ✅ Submit hai, unhe 2.1 ki list se hata deta hai (2.2 aur P15 me ve pehle jaise rahenge)."):
                         _sub_rows = p21_db[p21_db[_P21_COL] == "Submit"]
                         _new_keys = {_p21_key(_r["Student Name"], _r["Father Name"], _r["Admission Application Number"])
