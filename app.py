@@ -1837,31 +1837,39 @@ else:
                         return f"{str(_app).strip()}|{str(_name).strip()}|{str(_father).strip()}".lower()
 
                     def _p21_load_saved():
+                        """{student-key: saved status} — purani list wali file ho to sabko 'Submit' maana jayega."""
                         try:
                             with open(_P21_SAVED_FILE, "r", encoding="utf-8") as _f:
-                                return set(json.load(_f))
+                                _d = json.load(_f)
+                            if isinstance(_d, list):
+                                return {str(_k): "Submit" for _k in _d}
+                            return {str(_k): str(_v) for _k, _v in dict(_d).items()}
                         except Exception:
-                            return set()
+                            return {}
 
-                    _p21_saved_keys = _p21_load_saved()
-                    if _p21_saved_keys and not p21_db.empty:
+                    def _p21_write_saved(_d):
+                        with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
+                            json.dump(_d, _f, ensure_ascii=False, indent=2)
+
+                    # Status ko pehle saaf karo (sirf "Submit" / "Not Submit Document", warna khaali)
+                    p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
+
+                    _p21_saved = _p21_load_saved()
+                    if _p21_saved and not p21_db.empty:
                         _keys_now = p21_db.apply(lambda _r: _p21_key(_r["Student Name"], _r["Father Name"],
                                                                     _r["Admission Application Number"]), axis=1)
-                        # ⚠️ Sirf tab hatao jab database (P15) me bhi status abhi "Submit" hi ho.
-                        #    Agar P15 me kisi student ka status "Submit" nahi hai (khaali / Not Submit Document), to wo 2.1 me wapas dikhega.
-                        _is_submit_now = p21_db[_P21_COL].astype(str).str.strip() == "Submit"
-                        # 🔁 Jo student Save ke baad Submit se hat gaya (P15 me badla), uski purani Save-entry hata do —
-                        #    taaki dobara Submit karne par wo tabhi hate jab Save button dabaya jaye (apne aap na hate)
-                        _stale_keys = set(_keys_now[_keys_now.isin(_p21_saved_keys) & ~_is_submit_now])
-                        if _stale_keys:
-                            _p21_saved_keys = _p21_saved_keys - _stale_keys
+                        _saved_status = _keys_now.map(_p21_saved)                      # NaN = Save nahi hua
+                        _hide_mask = _saved_status.notna() & (_saved_status == p21_db[_P21_COL]) & (p21_db[_P21_COL] != "")
+                        # 🔁 Save ke baad jis student ka status badal gaya / hat gaya (P15 me), uski purani Save-entry hata do —
+                        #    wo 2.1 me wapas dikhega aur dobara Save dabane par hi hatega
+                        _stale = set(_keys_now[_saved_status.notna() & ~_hide_mask])
+                        if _stale:
+                            _p21_saved = {_k: _v for _k, _v in _p21_saved.items() if _k not in _stale}
                             try:
-                                with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
-                                    json.dump(sorted(_p21_saved_keys), _f, ensure_ascii=False, indent=2)
+                                _p21_write_saved(_p21_saved)
                             except Exception:
                                 pass
-                        p21_db = p21_db[~(_keys_now.isin(_p21_saved_keys) & _is_submit_now)]
-                    p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
+                        p21_db = p21_db[~_hide_mask]
 
                     p21_view = p21_db.copy()
 
@@ -1889,19 +1897,19 @@ else:
                     if _cf_active:
                         st.button("🧹 सर्च साफ़ करें", key="p21_cf_clear", on_click=_p21_clear_cf)
 
-                    # ---- 💾 Save: jin students ka status "Submit" hai wo 2.1 ki list se hat jayenge
-                    _n_ready_p21 = int((p21_db[_P21_COL] == "Submit").sum())
-                    # 🙈 Save button tabhi dikhega jab kam se kam ek Submit student ho; Save ke baad Submit wale hat jate hain, isliye button bhi hide ho jata hai
-                    if _n_ready_p21 > 0 and st.button(f"💾 Save ({_n_ready_p21} Submit students 2.1 se hatenge)",
+                    # ---- 💾 Save: jin students ke "Document Submit Status" column me status aa gaya (Submit / Not Submit Document)
+                    #      unki poori row 2.1 ki list se hat jayegi. Jinka status khaali (Not Marked) hai wo list me rahenge.
+                    _n_ready_p21 = int((p21_db[_P21_COL] != "").sum())
+                    # 🙈 Button tabhi dikhega jab kam se kam ek student ka status aaya ho; Save ke baad wo rows hat jati hain, isliye button bhi hide ho jata hai
+                    if _n_ready_p21 > 0 and st.button(f"💾 Save ({_n_ready_p21} rows 2.1 se hategi)",
                                  key="p21_save_hide_submit_btn", type="primary",
-                                 help="Jin students ke aage ✅ Submit hai, unhe 2.1 ki list se hata deta hai (2.2 aur P15 me ve pehle jaise rahenge)."):
-                        _sub_rows = p21_db[p21_db[_P21_COL] == "Submit"]
-                        _new_keys = {_p21_key(_r["Student Name"], _r["Father Name"], _r["Admission Application Number"])
-                                     for _, _r in _sub_rows.iterrows()}
-                        with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
-                            json.dump(sorted(_p21_load_saved() | _new_keys), _f, ensure_ascii=False, indent=2)
+                                 help="Jinke Document Submit Status me status aa gaya hai, unki poori row 2.1 se hata deta hai (2.2 aur P15 me ve pehle jaise rahenge)."):
+                        _marked_rows = p21_db[p21_db[_P21_COL] != ""]
+                        _p21_new = {_p21_key(_r["Student Name"], _r["Father Name"], _r["Admission Application Number"]): _r[_P21_COL]
+                                    for _, _r in _marked_rows.iterrows()}
+                        _p21_write_saved({**_p21_load_saved(), **_p21_new})
                         st.session_state["p21_key_ver"] = _p21_kv + 1
-                        st.session_state["p21_move_msg"] = f"✅ {len(_new_keys)} Submit students save ho gaye aur 2.1 ki list se hata diye gaye।"
+                        st.session_state["p21_move_msg"] = f"✅ {len(_p21_new)} students save ho gaye aur unki row 2.1 ki list se hata di gayi।"
                         st.rerun()
 
                     # ---- pagination (buttons zyada hone se page heavy na ho)
