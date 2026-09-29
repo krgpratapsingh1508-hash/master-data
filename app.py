@@ -1912,6 +1912,34 @@ else:
                         st.session_state["p21_move_msg"] = f"✅ {len(_p21_new)} students save ho gaye aur unki row 2.1 ki list se hata di gayi।"
                         st.rerun()
 
+                    # 🔀 List Order Selector — 2.2 jaisa hi Sort Order system ab 2.1 me bhi
+                    #    (sirf list ka dikhne wala order badalta hai; har row ka asli index wahi rehta hai,
+                    #     isliye ✅ / ❎ aur Save usi student par lagte hain jo screen par dikh raha hai)
+                    p21_sort_order_choice = st.selectbox(
+                        "🔀 लिस्ट किस क्रम में करें (Sort Order):",
+                        options=[
+                            "डिफ़ॉल्ट क्रम (जैसा डेटा है)",
+                            "Student Name (अल्फाबेटिक A-Z क्रम में)",
+                            "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
+                        ],
+                        key="p21_sort_order_choice"
+                    )
+                    if not p21_view.empty:
+                        if p21_sort_order_choice.startswith("Subject"):
+                            # 🔤 पहले Subject के अल्फाबेटिक क्रम में, फिर उसी Subject के अंदर Student Name A-Z
+                            p21_view = p21_view.assign(
+                                _sk1=p21_view["Subject"].astype(str).str.strip().str.upper(),
+                                _sk2=p21_view["Student Name"].astype(str).str.strip().str.upper()
+                            ).sort_values(by=["_sk1", "_sk2"], ascending=[True, True], kind="mergesort"
+                            ).drop(columns=["_sk1", "_sk2"])
+                        elif p21_sort_order_choice.startswith("Student Name"):
+                            # 🔤 Alphabetical (A-Z) क्रम — Student Name के आधार पर
+                            p21_view = p21_view.assign(
+                                _sk=p21_view["Student Name"].astype(str).str.strip().str.upper()
+                            ).sort_values(by=["_sk"], ascending=[True], kind="mergesort"
+                            ).drop(columns=["_sk"])
+                        # "डिफ़ॉल्ट क्रम" चुनने पर कोई sort नहीं — डेटा जैसा है वैसा ही क्रम रहेगा
+
                     # ---- pagination (buttons zyada hone se page heavy na ho)
                     _start = 0
                     p21_page_df = p21_view.iloc[0:0]
