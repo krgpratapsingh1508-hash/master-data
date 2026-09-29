@@ -1944,10 +1944,10 @@ else:
                             _cur = _r[_P21_COL]
                             _c = st.columns(_W)
                             _c[0].button("✅", key=f"p21_btn_sub_{_ridx}_v{_p21_kv}", help="Submit",
-                                         type="primary" if _cur == "Submit" else "secondary",
+                                         type="secondary",   # 🔕 laal (selected) look hata diya — abhi ka status sabse right wale column me likha dikhta hai,
                                          on_click=_p21_set_status, args=(_ridx, "Submit"))
                             _c[1].button("❎", key=f"p21_btn_not_{_ridx}_v{_p21_kv}", help="Not Submit Document",
-                                         type="primary" if _cur == "Not Submit Document" else "secondary",
+                                         type="secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Not Submit Document"))
                             _c[2].write(_n)
                             _c[3].write(_r["Student Name"])
