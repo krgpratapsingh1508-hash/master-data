@@ -1809,6 +1809,8 @@ else:
                     st.caption("हर छात्र के बाईं ओर ✅ Submit / ❌ Not Submit Document बटन दबाएँ — स्थिति सीधे मुख्य डेटाबेस में सेव हो जाएगी।")
 
                     _P21_COL = "Document Submit Status"
+                    # 🔄 Save ke baad row-buttons ke keys badal jate hain, taaki purane click/focus ki halat kisi dusre student ke button par na chipke
+                    _p21_kv = int(st.session_state.get("p21_key_ver", 0))
 
                     def _p21_set_status(row_idx, new_status):
                         """Ek student ki Document Submit Status ko database me turant save karta hai."""
@@ -1888,6 +1890,7 @@ else:
                                      for _, _r in _sub_rows.iterrows()}
                         with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
                             json.dump(sorted(_p21_load_saved() | _new_keys), _f, ensure_ascii=False, indent=2)
+                        st.session_state["p21_key_ver"] = _p21_kv + 1
                         st.session_state["p21_move_msg"] = f"✅ {len(_new_keys)} Submit students save ho gaye aur 2.1 ki list se hata diye gaye।"
                         st.rerun()
 
@@ -1916,6 +1919,8 @@ else:
                         "padding:0 .55rem !important;font-size:.95rem !important;line-height:1 !important;"
                         "border-radius:6px !important;width:auto !important;}"
                         "[class*='st-key-p21_btn_'] button p{font-size:.95rem !important;margin:0 !important;}"
+                        "[class*='st-key-p21_btn_'] button[kind='secondary']:focus:not(:hover):not(:active){"
+                        "border-color:rgba(49,51,63,.2) !important;color:inherit !important;box-shadow:none !important;outline:none !important;}"
                         "</style>",
                         unsafe_allow_html=True)
                     st.caption("✅ = Submit   |   ❎ = Not Submit Document")
@@ -1938,10 +1943,10 @@ else:
                             _ridx = int(_ridx)
                             _cur = _r[_P21_COL]
                             _c = st.columns(_W)
-                            _c[0].button("✅", key=f"p21_btn_sub_{_ridx}", help="Submit",
+                            _c[0].button("✅", key=f"p21_btn_sub_{_ridx}_v{_p21_kv}", help="Submit",
                                          type="primary" if _cur == "Submit" else "secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Submit"))
-                            _c[1].button("❎", key=f"p21_btn_not_{_ridx}", help="Not Submit Document",
+                            _c[1].button("❎", key=f"p21_btn_not_{_ridx}_v{_p21_kv}", help="Not Submit Document",
                                          type="primary" if _cur == "Not Submit Document" else "secondary",
                                          on_click=_p21_set_status, args=(_ridx, "Not Submit Document"))
                             _c[2].write(_n)
