@@ -1850,6 +1850,16 @@ else:
                         # ⚠️ Sirf tab hatao jab database (P15) me bhi status abhi "Submit" hi ho.
                         #    Agar P15 me kisi student ka status "Submit" nahi hai (khaali / Not Submit Document), to wo 2.1 me wapas dikhega.
                         _is_submit_now = p21_db[_P21_COL].astype(str).str.strip() == "Submit"
+                        # 🔁 Jo student Save ke baad Submit se hat gaya (P15 me badla), uski purani Save-entry hata do —
+                        #    taaki dobara Submit karne par wo tabhi hate jab Save button dabaya jaye (apne aap na hate)
+                        _stale_keys = set(_keys_now[_keys_now.isin(_p21_saved_keys) & ~_is_submit_now])
+                        if _stale_keys:
+                            _p21_saved_keys = _p21_saved_keys - _stale_keys
+                            try:
+                                with open(_P21_SAVED_FILE, "w", encoding="utf-8") as _f:
+                                    json.dump(sorted(_p21_saved_keys), _f, ensure_ascii=False, indent=2)
+                            except Exception:
+                                pass
                         p21_db = p21_db[~(_keys_now.isin(_p21_saved_keys) & _is_submit_now)]
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
 
