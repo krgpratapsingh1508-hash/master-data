@@ -1845,7 +1845,10 @@ else:
                     if _p21_saved_keys and not p21_db.empty:
                         _keys_now = p21_db.apply(lambda _r: _p21_key(_r["Student Name"], _r["Father Name"],
                                                                     _r["Admission Application Number"]), axis=1)
-                        p21_db = p21_db[~_keys_now.isin(_p21_saved_keys)]
+                        # ⚠️ Sirf tab hatao jab database (P15) me bhi status abhi "Submit" hi ho.
+                        #    Agar P15 me kisi student ka status "Submit" nahi hai (khaali / Not Submit Document), to wo 2.1 me wapas dikhega.
+                        _is_submit_now = p21_db[_P21_COL].astype(str).str.strip() == "Submit"
+                        p21_db = p21_db[~(_keys_now.isin(_p21_saved_keys) & _is_submit_now)]
                     p21_db[_P21_COL] = p21_db[_P21_COL].apply(lambda v: v if v in ("Submit", "Not Submit Document") else "")
 
                     p21_view = p21_db.copy()
