@@ -3193,12 +3193,40 @@ else:
                     ]
                     chosen_option = st.selectbox("📅 Select Semester / Year Scope:", options=custom_year_options, key="p7_foil_year_filter")
                     
-                # 🆕 Format 4: Paper Line sabse last me (filters ke baad)
+                # 🆕 Format 4: Paper Line — chune hue Column ke hisab se scroll list (Major - I, II, III / Minor - I, II ...)
                 if p7_is_sig_format:
-                    p7_sig_paper_line = st.text_input(
-                        "📘 Paper Line (जैसे: MAJOR - III ( CHEMISTRY )) — खाली = Auto:",
-                        key="p7_sig_paper_line"
+                    # ✏️ yahan list badal sakte hain: {column: (prefix, [paper numbers])}
+                    p7_paper_kind_map = {
+                        "Branch": ("MAJOR", ["I", "II", "III"]),
+                        "Minor Subjects": ("MINOR", ["I", "II"]),
+                        "MDC Subjects": ("MDC", []),
+                        "Vocational Subjects": ("VOCATIONAL", []),
+                        "PW/Ap/CE Subjects": ("PW/Ap/CE Subjects", []),
+                    }
+                    _kind, _nums = p7_paper_kind_map.get(selected_filter_column, ("", []))
+                    _auto_opt = "Auto (बिना Paper No.)"
+                    _custom_opt = "Custom (खुद लिखें)"
+                    if _nums:
+                        _paper_opts = [_auto_opt] + [f"{_kind} - {n}" for n in _nums] + [_custom_opt]
+                    elif _kind:
+                        _paper_opts = [_kind, _custom_opt]  # bina number wali list (MDC / VOCATIONAL / PW/Ap/CE Subjects)
+                    else:
+                        _paper_opts = [_auto_opt, _custom_opt]
+                    _paper_pick = st.selectbox(
+                        "📘 Paper Line चुनें:",
+                        options=_paper_opts,
+                        key=f"p7_sig_paper_sel_{selected_filter_column}"
                     )
+                    if _paper_pick == _custom_opt:
+                        p7_sig_paper_line = st.text_input(
+                            "✍️ Paper Line खुद लिखें (जैसे: MAJOR - III ( CHEMISTRY )):",
+                            key="p7_sig_paper_line"
+                        ).strip()
+                    elif _paper_pick == _auto_opt:
+                        p7_sig_paper_line = ""
+                    else:
+                        _sub_part = "" if selected_subject == "All Subjects" else f" ( {selected_subject.upper()} )"
+                        p7_sig_paper_line = f"{_paper_pick}{_sub_part}"
 
                 max_marks = "20"
 
@@ -3721,12 +3749,12 @@ else:
                             else:
                                 sig_class_line = _deg_in
                             if p7_sig_paper_line.strip():
-                                sig_paper_line = p7_sig_paper_line.strip().upper()
+                                sig_paper_line = p7_sig_paper_line.strip()
                             else:
                                 _subj_txt = "" if selected_subject == "All Subjects" else selected_subject.upper()
                                 _paper_kind = {
                                     "Branch": "MAJOR", "Minor Subjects": "MINOR", "MDC Subjects": "MDC",
-                                    "Vocational Subjects": "VOCATIONAL", "PW/Ap/CE Subjects": "PW/AP/CE"
+                                    "Vocational Subjects": "VOCATIONAL", "PW/Ap/CE Subjects": "PW/Ap/CE Subjects"
                                 }.get(selected_filter_column, "")
                                 if _subj_txt:
                                     sig_paper_line = f"{_paper_kind} ( {_subj_txt} )".strip()
