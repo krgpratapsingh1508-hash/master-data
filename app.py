@@ -3178,12 +3178,20 @@ else:
                 )
 
                 # 🆕 Format 4 (Signature Format) ke liye optional heading text — khali chhodne par auto bharega
-                p7_sig_class_line = ""
+                p7_sig_class_line = ""  # ab yahan Degree aata hai
                 p7_sig_paper_line = ""
                 if foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)":
                     _sg1, _sg2 = st.columns(2)
                     with _sg1:
-                        p7_sig_class_line = st.text_input("🏫 Class Line (जैसे: B. SC. I YEAR) — खाली = Auto:", key="p7_sig_class_line")
+                        p7_sig_degree_choice = st.selectbox(
+                            "🎓 Degree चुनें (Class Line में आएगा):",
+                            options=["B. SC.", "B. A.", "B. COM.", "M. SC.", "M. A.", "M. COM.", "BBA", "BCA", "Other (खुद लिखें)"],
+                            key="p7_sig_degree_choice"
+                        )
+                        if p7_sig_degree_choice.startswith("Other"):
+                            p7_sig_class_line = st.text_input("✍️ Degree खुद लिखें:", key="p7_sig_degree_custom").strip()
+                        else:
+                            p7_sig_class_line = p7_sig_degree_choice
                     with _sg2:
                         p7_sig_paper_line = st.text_input("📘 Paper Line (जैसे: MAJOR - III ( CHEMISTRY )) — खाली = Auto:", key="p7_sig_paper_line")
                 
@@ -3700,10 +3708,13 @@ else:
                                 if _c in foil_data_df.columns and not foil_data_df[_c].dropna().empty:
                                     _deg = str(foil_data_df[_c].dropna().astype(str).iloc[0]).strip()
                                     if _deg: break
-                            if p7_sig_class_line.strip():
-                                sig_class_line = p7_sig_class_line.strip().upper()
+                            _deg_in = p7_sig_class_line.strip().upper()
+                            if not _deg_in:
+                                _deg_in = _deg.upper()
+                            if chosen_option != "All Years":
+                                sig_class_line = f"{_deg_in} {_yr_txt} YEAR".strip()
                             else:
-                                sig_class_line = f"{_deg.upper()} {_yr_txt} YEAR".strip() if chosen_option != "All Years" else _deg.upper()
+                                sig_class_line = _deg_in
                             if p7_sig_paper_line.strip():
                                 sig_paper_line = p7_sig_paper_line.strip().upper()
                             else:
