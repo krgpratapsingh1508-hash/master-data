@@ -3774,7 +3774,7 @@ else:
                             _esc = lambda v: _html_mod.escape(str(v if v is not None else "").strip())
                             _nan = lambda v: "" if str(v).strip().lower() == "nan" else _esc(v)
 
-                            def _sig_table(chunk, start_idx):
+                            def _sig_table(chunk, start_idx, page_no, total_pages):
                                 t = f"""
                                 <div class="page">
                                 <div class="c1">GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)</div>
@@ -3783,9 +3783,9 @@ else:
                                 <table>
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:5%;">S. No.</th>
-                                      <th rowspan="2" style="width:11%;">Admission No.</th>
-                                      <th rowspan="2" style="width:7%;">Roll No.</th>
+                                      <th rowspan="2" style="width:5%;">S.<br>No.</th>
+                                      <th rowspan="2" style="width:11%;">Admissi<br>on No.</th>
+                                      <th rowspan="2" style="width:7%;">Roll<br>No.</th>
                                       <th rowspan="2" style="width:19%;">Student Name</th>
                                       <th rowspan="2" style="width:19%;">Father Name</th>
                                       <th colspan="4">MARKS</th>
@@ -3810,15 +3810,17 @@ else:
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
                                       <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                                     </tr>"""
-                                t += """
+                                t += f"""
                                   </tbody>
                                 </table>
+                                <div class="pgno">Page {page_no} of {total_pages}</div>
                                 </div>"""
                                 return t
 
                             sig_pages_html = ""
-                            for _ps in range(0, len(records_list), sig_rows_per_page):
-                                sig_pages_html += _sig_table(records_list[_ps:_ps + sig_rows_per_page], _ps)
+                            _sig_total_pages = max(1, -(-len(records_list) // sig_rows_per_page))
+                            for _pi, _ps in enumerate(range(0, len(records_list), sig_rows_per_page), start=1):
+                                sig_pages_html += _sig_table(records_list[_ps:_ps + sig_rows_per_page], _ps, _pi, _sig_total_pages)
 
                             sig_full_html = f"""
                             <html>
@@ -3835,6 +3837,9 @@ else:
                                 th, td {{ border:1px solid #000; padding:4px 3px; height:20px; overflow:hidden; word-wrap:break-word; }}
                                 th {{ font-weight:bold; }}
                                 td.l {{ text-align:left; }}
+                                .pgno {{ text-align:center; font-size:11px; font-weight:bold; margin-top:8px; }}
+                                .page:last-child {{ page-break-after: auto; }}
+                                @page {{ size: A4; margin: 10mm; }}
                                 @media print {{ .bar {{ display:none; }} body {{ margin:0; }} .page {{ margin:0; }} }}
                               </style>
                             </head>
