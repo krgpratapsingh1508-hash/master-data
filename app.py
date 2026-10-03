@@ -3724,7 +3724,7 @@ else:
                                     f3_pages_html += f"""
                                             <tr>
                                                 <td style="font-weight: bold;">{idx + 1}</td>
-                                                <td style="font-family: monospace;">{row.get("Roll No.", "")}</td>
+                                                <td style="font-family: monospace;">{row.get("_orig_roll", "")}</td>
                                                 <td style="text-align: left;">{s_name}</td>
                                                 <td style="text-align: left;">{f_name}</td>
                                                 <td style="font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
