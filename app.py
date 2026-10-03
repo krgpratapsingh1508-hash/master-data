@@ -3836,7 +3836,7 @@ else:
                                       <td>{_nan(r.get("_orig_roll", ""))}</td>
                                       <td class="l">{_nan(r.get("Student Name", ""))}</td>
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
-                                      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                      <td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td>
                                     </tr>"""
                                 t += f"""
                                   </tbody>
@@ -3857,7 +3857,10 @@ else:
                               <style>
                                 body {{ font-family: Arial, sans-serif; margin: 8px; background:#fff; color:#000; }}
                                 .bar {{ text-align:right; margin-bottom:8px; }}
-                                .bar button {{ padding:6px 14px; font-weight:bold; cursor:pointer; }}
+                                .bar button {{ padding:6px 14px; font-weight:bold; cursor:pointer; margin-left:6px; }}
+                                .bar #modeLbl {{ font-size:12px; font-weight:bold; margin-right:8px; }}
+                                body.entry td.ed {{ background:#fffbe0; outline:1px dashed #c9a400; outline-offset:-2px; }}
+                                body.entry td.ed:focus {{ background:#fff3b0; outline:2px solid #0b57d0; }}
                                 .page {{ max-width: 900px; margin: 0 auto 20px auto; page-break-after: always; }}
                                 .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
                                 .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
@@ -3872,8 +3875,37 @@ else:
                               </style>
                             </head>
                             <body>
-                              <div class="bar"><button onclick="window.print()">🖨️ Print</button></div>
+                              <div class="bar">
+                                <span id="modeLbl">Mode: 🖨️ Print Ready</span>
+                                <button id="modeBtn" type="button">✏️ Data Entry Mode</button>
+                                <button type="button" onclick="window.print()">🖨️ Print</button>
+                              </div>
                               {sig_pages_html}
+                              <script>
+                                var cells = Array.prototype.slice.call(document.querySelectorAll('td.ed'));
+                                var btn = document.getElementById('modeBtn');
+                                var lbl = document.getElementById('modeLbl');
+                                var editing = false;
+                                function setMode(on) {{
+                                  editing = on;
+                                  cells.forEach(function(td) {{ td.contentEditable = on ? 'true' : 'false'; }});
+                                  document.body.classList.toggle('entry', on);
+                                  btn.textContent = on ? '✅ Done (Print ke liye)' : '✏️ Data Entry Mode';
+                                  lbl.textContent = on ? 'Mode: ✏️ Data Entry' : 'Mode: 🖨️ Print Ready';
+                                  if (on && cells.length) {{ cells[0].focus(); }}
+                                }}
+                                btn.addEventListener('click', function() {{ setMode(!editing); }});
+                                cells.forEach(function(td, i) {{
+                                  td.addEventListener('keydown', function(e) {{
+                                    if (e.key === 'Enter') {{
+                                      e.preventDefault();
+                                      var nxt = cells[i + 5];   // ek row neeche, usi column me
+                                      if (nxt) {{ nxt.focus(); }}
+                                    }}
+                                  }});
+                                }});
+                                window.addEventListener('beforeprint', function() {{ if (editing) {{ setMode(false); }} }});
+                              </script>
                             </body>
                             </html>
                             """
