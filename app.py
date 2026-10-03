@@ -3174,6 +3174,7 @@ else:
                 selected_filter_column = st.selectbox(
                     "🗂️ Select Column to Filter By (Subject / Branch / Minor / MDC / Vocational / PW-Ap-CE):",
                     options=p7_available_filter_columns,
+                    format_func=lambda c: "Branch (Major)" if c == "Branch" else c,
                     key="p7_foil_filter_column_select"
                 )
 
@@ -3183,7 +3184,7 @@ else:
                         unique_subjects = sorted(list(set(render_df[selected_filter_column].dropna().astype(str).str.strip())))
                     else:
                         unique_subjects = []
-                    selected_subject = st.selectbox(f"📚 Select {selected_filter_column} Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
+                    selected_subject = st.selectbox(f"📚 Select {'Branch (Major)' if selected_filter_column == 'Branch' else selected_filter_column} Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
                 with col_p7_2:
                     custom_year_options = [
                         "All Years", "1st Sem.", "2nd Sem.", "3rd Sem.", "4th Sem.", "5th Sem.", "6th Sem.", 
@@ -3723,7 +3724,14 @@ else:
                                 sig_paper_line = p7_sig_paper_line.strip().upper()
                             else:
                                 _subj_txt = "" if selected_subject == "All Subjects" else selected_subject.upper()
-                                sig_paper_line = f"( {_subj_txt} )" if _subj_txt else ""
+                                _paper_kind = {
+                                    "Branch": "MAJOR", "Minor Subjects": "MINOR", "MDC Subjects": "MDC",
+                                    "Vocational Subjects": "VOCATIONAL", "PW/Ap/CE Subjects": "PW/AP/CE"
+                                }.get(selected_filter_column, "")
+                                if _subj_txt:
+                                    sig_paper_line = f"{_paper_kind} ( {_subj_txt} )".strip()
+                                else:
+                                    sig_paper_line = _paper_kind
                             sig_title_line = f"CCE LIST - {sig_paper_line}".strip(" -") if sig_paper_line else "CCE LIST"
 
                             sig_rows_per_page = 30
