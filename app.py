@@ -3783,9 +3783,9 @@ else:
                                 <table>
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:5%;">S.<br>No.</th>
-                                      <th rowspan="2" style="width:11%;">Admissi<br>on No.</th>
-                                      <th rowspan="2" style="width:7%;">Roll<br>No.</th>
+                                      <th rowspan="2" style="width:5%;">S. No.</th>
+                                      <th rowspan="2" style="width:11%;">Admission No.</th>
+                                      <th rowspan="2" style="width:7%;">Roll No.</th>
                                       <th rowspan="2" style="width:19%;">Student Name</th>
                                       <th rowspan="2" style="width:19%;">Father Name</th>
                                       <th colspan="4">MARKS</th>
