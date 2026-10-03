@@ -3805,8 +3805,9 @@ else:
                             # Agar Roll No. column me data hai to Admission No. column nahi aayega
                             sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
                             sig_show_adm = not sig_has_roll
-                            _adm_th = '<th rowspan="2" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
+                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
                             _name_w = "19%" if sig_show_adm else "25%"
+                            _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
                             def _sig_table(chunk, start_idx, page_no, total_pages):
                                 t = f"""
@@ -3814,22 +3815,22 @@ else:
                                 <div class="c1">GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)</div>
                                 <div class="c2">{_esc(sig_class_line)}</div>
                                 <div class="c2">{_esc(sig_title_line)}</div>
-                                <table>
+                                <table class="{_tbl_cls}">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:5%;">S.<br>No.</th>
+                                      <th rowspan="2" class="c-sno" style="width:5%;">S.<br>No.</th>
                                       {_adm_th}
-                                      <th rowspan="2" style="width:7%;">Roll<br>No.</th>
-                                      <th rowspan="2" style="width:{_name_w};">Student Name</th>
-                                      <th rowspan="2" style="width:{_name_w};">Father Name</th>
-                                      <th colspan="4">MARKS</th>
-                                      <th rowspan="2" style="width:8%;">TOTAL<br>({sig_max_total})</th>
+                                      <th rowspan="2" class="c-roll" style="width:7%;">Roll<br>No.</th>
+                                      <th rowspan="2" class="c-name" style="width:{_name_w};">Student Name</th>
+                                      <th rowspan="2" class="c-fath" style="width:{_name_w};">Father Name</th>
+                                      <th colspan="4" class="grp">MARKS</th>
+                                      <th rowspan="2" class="c-tot" style="width:8%;">TOTAL<br>({sig_max_total})</th>
                                     </tr>
                                     <tr>
-                                      <th style="width:7.5%;">CCE-1<br>({sig_max_each})</th>
-                                      <th style="width:7.5%;">CCE-2<br>({sig_max_each})</th>
-                                      <th style="width:7.5%;">CCE-3<br>({sig_max_each})</th>
-                                      <th style="width:7.5%;">CCE-4<br>({sig_max_each})</th>
+                                      <th class="c-cce" style="width:7.5%;">CCE-1<br>({sig_max_each})</th>
+                                      <th class="c-cce" style="width:7.5%;">CCE-2<br>({sig_max_each})</th>
+                                      <th class="c-cce" style="width:7.5%;">CCE-3<br>({sig_max_each})</th>
+                                      <th class="c-cce" style="width:7.5%;">CCE-4<br>({sig_max_each})</th>
                                     </tr>
                                   </thead>
                                   <tbody>"""
@@ -3868,6 +3869,15 @@ else:
                                 body.entry td.ed {{ background:#fffbe0; outline:1px dashed #c9a400; outline-offset:-2px; }}
                                 body.entry td.ed:focus {{ background:#fff3b0; outline:2px solid #0b57d0; }}
                                 td.tot {{ font-weight:bold; }}
+                                /* 📝 Sign. List mode: TOTAL hat jata hai, CCE-1..4 columns chaude ho jate hain */
+                                body.signmode .c-tot, body.signmode td.tot {{ display:none; }}
+                                body.signmode td.ed {{ color:transparent !important; background:#fff !important; outline:none !important; }}
+                                body.signmode table.sg .c-sno {{ width:4% !important; }}
+                                body.signmode table.sg .c-adm {{ width:9% !important; }}
+                                body.signmode table.sg .c-roll {{ width:6% !important; }}
+                                body.signmode table.sg .c-name, body.signmode table.sg .c-fath {{ width:17% !important; }}
+                                body.signmode table.sg .c-cce {{ width:11.75% !important; }}
+                                body.signmode table.sg.noadm .c-cce {{ width:14% !important; }}
                                 .page {{ max-width: 900px; margin: 0 auto 20px auto; page-break-after: always; }}
                                 .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
                                 .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
@@ -3885,6 +3895,7 @@ else:
                               <div class="bar">
                                 <span id="modeLbl">Mode: 🖨️ Print Ready</span>
                                 <button id="modeBtn" type="button">✏️ Data Entry Mode</button>
+                                <button id="signBtn" type="button">📝 Sign. List</button>
                                 <button type="button" onclick="window.print()">🖨️ Print</button>
                               </div>
                               {sig_pages_html}
@@ -3893,6 +3904,19 @@ else:
                                 var btn = document.getElementById('modeBtn');
                                 var lbl = document.getElementById('modeLbl');
                                 var editing = false;
+                                var signing = false;
+                                var grp = document.querySelectorAll('th.grp');
+                                var signBtn = document.getElementById('signBtn');
+                                function setSign(on) {{
+                                  if (on && editing) {{ setMode(false); }}
+                                  signing = on;
+                                  document.body.classList.toggle('signmode', on);
+                                  grp.forEach(function(g) {{ g.textContent = on ? 'SIGNATURE' : 'MARKS'; }});
+                                  signBtn.textContent = on ? '↩️ Marks List (वापस)' : '📝 Sign. List';
+                                  btn.disabled = on;
+                                  lbl.textContent = on ? 'Mode: 📝 Sign. List' : 'Mode: 🖨️ Print Ready';
+                                }}
+                                signBtn.addEventListener('click', function() {{ setSign(!signing); }});
                                 function setMode(on) {{
                                   editing = on;
                                   cells.forEach(function(td) {{ td.contentEditable = on ? 'true' : 'false'; }});
