@@ -3802,6 +3802,12 @@ else:
                             _esc = lambda v: _html_mod.escape(str(v if v is not None else "").strip())
                             _nan = lambda v: "" if str(v).strip().lower() == "nan" else _esc(v)
 
+                            # Agar Roll No. column me data hai to Admission No. column nahi aayega
+                            sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
+                            sig_show_adm = not sig_has_roll
+                            _adm_th = '<th rowspan="2" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
+                            _name_w = "19%" if sig_show_adm else "25%"
+
                             def _sig_table(chunk, start_idx, page_no, total_pages):
                                 t = f"""
                                 <div class="page">
@@ -3812,10 +3818,10 @@ else:
                                   <thead>
                                     <tr>
                                       <th rowspan="2" style="width:5%;">S.<br>No.</th>
-                                      <th rowspan="2" style="width:11%;">Admissi<br>on No.</th>
+                                      {_adm_th}
                                       <th rowspan="2" style="width:7%;">Roll<br>No.</th>
-                                      <th rowspan="2" style="width:19%;">Student Name</th>
-                                      <th rowspan="2" style="width:19%;">Father Name</th>
+                                      <th rowspan="2" style="width:{_name_w};">Student Name</th>
+                                      <th rowspan="2" style="width:{_name_w};">Father Name</th>
                                       <th colspan="4">MARKS</th>
                                       <th rowspan="2" style="width:8%;">TOTAL<br>({sig_max_total})</th>
                                     </tr>
@@ -3828,11 +3834,11 @@ else:
                                   </thead>
                                   <tbody>"""
                                 for j, r in enumerate(chunk):
-                                    adm = _nan(r.get("Admission Application Number", ""))
+                                    adm_td = f"<td>{_nan(r.get('Admission Application Number', ''))}</td>" if sig_show_adm else ""
                                     t += f"""
                                     <tr>
                                       <td>{start_idx + j + 1}</td>
-                                      <td>{adm}</td>
+                                      {adm_td}
                                       <td>{_nan(r.get("_orig_roll", ""))}</td>
                                       <td class="l">{_nan(r.get("Student Name", ""))}</td>
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
