@@ -3805,25 +3805,31 @@ else:
                             # Agar Roll No. column me data hai to Admission No. column nahi aayega
                             sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
                             sig_show_adm = not sig_has_roll
-                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admission No.</th>' if sig_show_adm else ""
+                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
                             _name_w = "19%" if sig_show_adm else "25%"
                             _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
                             def _sig_table(chunk, start_idx, page_no, total_pages, sign=False):
                                 # sign=True => Sign. List: TOTAL nahi, CCE columns chaude, rows double unchi
+                                # Dono lists ki columns ki chaudai ek jaisi (marks list me TOTAL ke liye 6% nikalkar barabar ghataai gayi)
+                                _b_sno, _b_adm, _b_roll, _b_nm = 4.0, 9.0, 9.0, 14.0
+                                _b_cce = 12.5 if sig_show_adm else 14.75
+                                _tot_w = 6.0
+                                _k = 100.0 / (100.0 + _tot_w)
+                                _pc = lambda v: f"{round(v, 2)}%"
                                 if sign:
-                                    _w_sno, _w_adm, _w_roll, _w_nm = "4%", "9%", "6%", "17%"
-                                    _w_cce = "11.75%" if sig_show_adm else "14%"
+                                    _w_sno, _w_adm, _w_roll, _w_nm = _pc(_b_sno), _pc(_b_adm), _pc(_b_roll), _pc(_b_nm)
+                                    _w_cce = _pc(_b_cce)
                                     _grp_txt = "SIGNATURE"
                                     _tot_th = ""
                                     _cls = "page pg-sign"
                                 else:
-                                    _w_sno, _w_adm, _w_roll, _w_nm = "5%", "11%", "7%", _name_w
-                                    _w_cce = "7.5%"
+                                    _w_sno, _w_adm, _w_roll, _w_nm = _pc(_b_sno * _k), _pc(_b_adm * _k), _pc(_b_roll * _k), _pc(_b_nm * _k)
+                                    _w_cce = _pc(_b_cce * _k)
                                     _grp_txt = "MARKS"
-                                    _tot_th = f'<th rowspan="2" class="c-tot" style="width:8%;">TOTAL<br>({sig_max_total})</th>'
+                                    _tot_th = f'<th rowspan="2" class="c-tot" style="width:{_pc(_tot_w * _k)};">TOTAL<br>({sig_max_total})</th>'
                                     _cls = "page pg-marks"
-                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admission No.</th>' if sig_show_adm else ""
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
                                 _cce_head = "".join(
                                     f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
                                 )
@@ -3835,9 +3841,9 @@ else:
                                 <table class="sg">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:{_w_sno};">S. No.</th>
+                                      <th rowspan="2" style="width:{_w_sno};">S.<br>No.</th>
                                       {_adm_head}
-                                      <th rowspan="2" style="width:{_w_roll};">Roll No.</th>
+                                      <th rowspan="2" style="width:{_w_roll};">Roll<br>No.</th>
                                       <th rowspan="2" style="width:{_w_nm};">Student Name</th>
                                       <th rowspan="2" style="width:{_w_nm};">Father Name</th>
                                       <th colspan="4">{_grp_txt}</th>
