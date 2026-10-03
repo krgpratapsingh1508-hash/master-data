@@ -3133,6 +3133,32 @@ else:
                 st.markdown('<div class="print-hide">', unsafe_allow_html=True)
                 st.subheader("📄 2. Generate University Official Blank Foil Sheets")
                 
+                foil_format_type = st.selectbox(
+                    "📄 Select Foil Format Type:",
+                    options=[
+                        "University Official Blank Foil Sheets (Side-by-Side)",
+                        "CCE Mark Entry (Detailed Marks View)",
+                        "CCE List (Internal Evaluation - Multi Paper)",
+                        "CCE List - Signature Format (CCE-1 to CCE-4 + Total)"
+                    ],
+                    key="p7_foil_format_type_selector"
+                )
+                p7_is_sig_format = (foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)")
+
+                # 🆕 Format 4: sab se pehle Degree puchho (Class Line me aayega)
+                p7_sig_class_line = ""
+                p7_sig_paper_line = ""
+                if p7_is_sig_format:
+                    p7_sig_degree_choice = st.selectbox(
+                        "🎓 Degree चुनें (Class Line में आएगा):",
+                        options=["B. SC.", "B. A.", "B. COM.", "M. SC.", "M. A.", "M. COM.", "BBA", "BCA", "Other (खुद लिखें)"],
+                        key="p7_sig_degree_choice"
+                    )
+                    if p7_sig_degree_choice.startswith("Other"):
+                        p7_sig_class_line = st.text_input("✍️ Degree खुद लिखें:", key="p7_sig_degree_custom").strip()
+                    else:
+                        p7_sig_class_line = p7_sig_degree_choice
+
                 # 🟢 P7: Subject Filter se pehle "Column Scroll List" — user pehle yeh chunega
                 # ki kis column (Subject / Branch / Minor Subjects / MDC Subjects /
                 # Vocational Subjects / PW/Ap/CE Subjects) ke aadhar par filter karna hai,
@@ -3166,35 +3192,13 @@ else:
                     ]
                     chosen_option = st.selectbox("📅 Select Semester / Year Scope:", options=custom_year_options, key="p7_foil_year_filter")
                     
-                foil_format_type = st.selectbox(
-                    "📄 Select Foil Format Type:", 
-                    options=[
-                        "University Official Blank Foil Sheets (Side-by-Side)",
-                        "CCE Mark Entry (Detailed Marks View)",
-                        "CCE List (Internal Evaluation - Multi Paper)",
-                        "CCE List - Signature Format (CCE-1 to CCE-4 + Total)"
-                    ],
-                    key="p7_foil_format_type_selector"
-                )
+                # 🆕 Format 4: Paper Line sabse last me (filters ke baad)
+                if p7_is_sig_format:
+                    p7_sig_paper_line = st.text_input(
+                        "📘 Paper Line (जैसे: MAJOR - III ( CHEMISTRY )) — खाली = Auto:",
+                        key="p7_sig_paper_line"
+                    )
 
-                # 🆕 Format 4 (Signature Format) ke liye optional heading text — khali chhodne par auto bharega
-                p7_sig_class_line = ""  # ab yahan Degree aata hai
-                p7_sig_paper_line = ""
-                if foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)":
-                    _sg1, _sg2 = st.columns(2)
-                    with _sg1:
-                        p7_sig_degree_choice = st.selectbox(
-                            "🎓 Degree चुनें (Class Line में आएगा):",
-                            options=["B. SC.", "B. A.", "B. COM.", "M. SC.", "M. A.", "M. COM.", "BBA", "BCA", "Other (खुद लिखें)"],
-                            key="p7_sig_degree_choice"
-                        )
-                        if p7_sig_degree_choice.startswith("Other"):
-                            p7_sig_class_line = st.text_input("✍️ Degree खुद लिखें:", key="p7_sig_degree_custom").strip()
-                        else:
-                            p7_sig_class_line = p7_sig_degree_choice
-                    with _sg2:
-                        p7_sig_paper_line = st.text_input("📘 Paper Line (जैसे: MAJOR - III ( CHEMISTRY )) — खाली = Auto:", key="p7_sig_paper_line")
-                
                 max_marks = "20"
 
                 if st.button("🔄 Generate Foil Sheet Now", type="primary", use_container_width=True, key="p7_foil_generate_btn"):
