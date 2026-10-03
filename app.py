@@ -3823,7 +3823,7 @@ else:
                                     _grp_txt = "MARKS"
                                     _tot_th = f'<th rowspan="2" class="c-tot" style="width:8%;">TOTAL<br>({sig_max_total})</th>'
                                     _cls = "page pg-marks"
-                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admission No.</th>' if sig_show_adm else ""
                                 _cce_head = "".join(
                                     f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
                                 )
