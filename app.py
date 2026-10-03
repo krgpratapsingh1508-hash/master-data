@@ -3620,21 +3620,12 @@ else:
 
                         # --- फ़ॉर्मेट 2: DETAILED MARKS VIEW (Display Fixed विथ Iframe) ---
                         elif foil_format_type == "CCE Mark Entry (Detailed Marks View)":
-                            mark_entry_html = f"""
-                            <html>
-                            <head>
-                                <style>
-                                    body {{ font-family: Arial, sans-serif; margin: 10px; background-color: #fff; color: #000; }}
-                                    .wrapper {{ width: 100%; max-width: 850px; margin: 0 auto; border: 1px solid #000; padding: 15px; box-sizing: border-box; }}
-                                    .title {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; }}
-                                    .meta-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0; }}
-                                    .sub-row {{ font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 8px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }}
-                                    th, td {{ border: 1px solid #000; padding: 6px; }}
-                                    th {{ background-color: #f2f2f2; font-weight: bold; }}
-                                </style>
-                            </head>
-                            <body>
+                            f2_rows_per_page = 35
+                            f2_total_pages = max(1, -(-len(records_list) // f2_rows_per_page))
+                            f2_pages_html = ""
+                            for _pi, _ps in enumerate(range(0, len(records_list), f2_rows_per_page), start=1):
+                                _chunk = records_list[_ps:_ps + f2_rows_per_page]
+                                f2_pages_html += f"""
                                 <div class="wrapper">
                                     <div class="title">GOVT. K.R.G. POST-GRADUATE (AUTO.) COLLEGE, GWALIOR (M.P.)</div>
                                     <div class="meta-row">
@@ -3652,46 +3643,61 @@ else:
                                                 <th style="width: 40%;">In Words</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                            """
-                            for idx, row in enumerate(records_list):
-                                tot = str(row.get("CCE Marks Obtained", "")).strip()
-                                att = str(row.get("CCE Attendance Status", "")).strip()
-                                mark_entry_html += f"""
+                                        <tbody>"""
+                                for _j, row in enumerate(_chunk):
+                                    idx = _ps + _j
+                                    tot = str(row.get("CCE Marks Obtained", "")).strip()
+                                    att = str(row.get("CCE Attendance Status", "")).strip()
+                                    f2_pages_html += f"""
                                             <tr>
                                                 <td style="font-weight: bold;">{idx + 1}</td>
                                                 <td style="font-family: monospace; font-size: 13px;">{row.get("Roll No.", "")}</td>
                                                 <td style="font-weight: bold; color: blue;">{tot if tot else "&nbsp;"}</td>
                                                 <td>{att if att else "&nbsp;"}</td>
                                                 <td style="text-align: left; padding-left: 10px;">{num_to_words(tot) if tot else ""}</td>
-                                            </tr>
-                                """
-                            mark_entry_html += """
+                                            </tr>"""
+                                f2_pages_html += f"""
                                         </tbody>
                                     </table>
-                                </div>
-                            </body>
-                            </html>
-                            """
-                            # 🚨 फिक्स: st.markdown हटाकर सीधे Iframe रेंडर इंजन का इस्तेमाल ताकि स्क्रीन पर कोड न दिखे
-                            st.components.v1.html(mark_entry_html, height=600, scrolling=True)
-
-                        # --- फ़ॉर्मेट 3: MULTI-PAPER ASSESSMENT LIST (Display Fixed विथ Iframe) ---
-                        elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
-                            multi_paper_html = f"""
+                                    <div class="pgno">Page {_pi} of {f2_total_pages}</div>
+                                </div>"""
+                            mark_entry_html = f"""
                             <html>
                             <head>
+                                <meta charset="utf-8">
                                 <style>
                                     body {{ font-family: Arial, sans-serif; margin: 10px; background-color: #fff; color: #000; }}
-                                    .wrapper {{ width: 100%; max-width: 950px; margin: 0 auto; border: 1px solid #000; padding: 15px; box-sizing: border-box; }}
-                                    .center-txt {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px; }}
-                                    .border-bottom {{ text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; table-layout: fixed; }}
-                                    th, td {{ border: 1px solid #000; padding: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+                                    .bar {{ text-align: right; margin-bottom: 8px; }}
+                                    .bar button {{ padding: 6px 14px; font-weight: bold; cursor: pointer; }}
+                                    .wrapper {{ width: 100%; max-width: 850px; margin: 0 auto 20px auto; border: 1px solid #000; padding: 15px; box-sizing: border-box; page-break-after: always; }}
+                                    .wrapper:last-child {{ page-break-after: auto; }}
+                                    .title {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; }}
+                                    .meta-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0; }}
+                                    .sub-row {{ font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 8px; }}
+                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }}
+                                    th, td {{ border: 1px solid #000; padding: 5px; }}
                                     th {{ background-color: #f2f2f2; font-weight: bold; }}
+                                    .pgno {{ text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; }}
+                                    @page {{ size: A4; margin: 10mm; }}
+                                    @media print {{ .bar {{ display: none; }} body {{ margin: 0; }} .wrapper {{ margin: 0 auto; }} }}
                                 </style>
                             </head>
                             <body>
+                                <div class="bar"><button onclick="window.print()">🖨️ Print</button></div>
+                                {f2_pages_html}
+                            </body>
+                            </html>
+                            """
+                            st.components.v1.html(mark_entry_html, height=650, scrolling=True)
+
+                        # --- फ़ॉर्मेट 3: MULTI-PAPER ASSESSMENT LIST (Display Fixed विथ Iframe) ---
+                        elif foil_format_type == "CCE List (Internal Evaluation - Multi Paper)":
+                            f3_rows_per_page = 30
+                            f3_total_pages = max(1, -(-len(records_list) // f3_rows_per_page))
+                            f3_pages_html = ""
+                            for _pi, _ps in enumerate(range(0, len(records_list), f3_rows_per_page), start=1):
+                                _chunk = records_list[_ps:_ps + f3_rows_per_page]
+                                f3_pages_html += f"""
                                 <div class="wrapper">
                                     <div class="center-txt">GOVT. K.R.G. POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)</div>
                                     <div class="center-txt" style="font-size: 13px;">Scope: {chosen_option.upper()} | Mapped Year: {target_db_year}</div>
@@ -3708,14 +3714,14 @@ else:
                                                 <th style="width: 14%;">Sign</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                            """
-                            for idx, row in enumerate(records_list):
-                                s_name = str(row.get("Student Name", "")).upper()
-                                f_name = str(row.get("Father Name", "")).upper()
-                                cce_live = str(row.get("CCE Marks Obtained", "")).strip()
-                                att_live = str(row.get("CCE Attendance Status", "")).strip()
-                                multi_paper_html += f"""
+                                        <tbody>"""
+                                for _j, row in enumerate(_chunk):
+                                    idx = _ps + _j
+                                    s_name = str(row.get("Student Name", "")).upper()
+                                    f_name = str(row.get("Father Name", "")).upper()
+                                    cce_live = str(row.get("CCE Marks Obtained", "")).strip()
+                                    att_live = str(row.get("CCE Attendance Status", "")).strip()
+                                    f3_pages_html += f"""
                                             <tr>
                                                 <td style="font-weight: bold;">{idx + 1}</td>
                                                 <td style="font-family: monospace;">{row.get("Roll No.", "")}</td>
@@ -3724,17 +3730,39 @@ else:
                                                 <td style="font-weight: bold; color: blue;">{cce_live if cce_live else "&nbsp;"}</td>
                                                 <td>{att_live if att_live else "&nbsp;"}</td>
                                                 <td>&nbsp;</td>
-                                            </tr>
-                                """
-                            multi_paper_html += """
+                                            </tr>"""
+                                f3_pages_html += f"""
                                         </tbody>
                                     </table>
-                                </div>
+                                    <div class="pgno">Page {_pi} of {f3_total_pages}</div>
+                                </div>"""
+                            multi_paper_html = f"""
+                            <html>
+                            <head>
+                                <meta charset="utf-8">
+                                <style>
+                                    body {{ font-family: Arial, sans-serif; margin: 10px; background-color: #fff; color: #000; }}
+                                    .bar {{ text-align: right; margin-bottom: 8px; }}
+                                    .bar button {{ padding: 6px 14px; font-weight: bold; cursor: pointer; }}
+                                    .wrapper {{ width: 100%; max-width: 950px; margin: 0 auto 20px auto; border: 1px solid #000; padding: 15px; box-sizing: border-box; page-break-after: always; }}
+                                    .wrapper:last-child {{ page-break-after: auto; }}
+                                    .center-txt {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px; }}
+                                    .border-bottom {{ text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px; }}
+                                    table {{ width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; table-layout: fixed; }}
+                                    th, td {{ border: 1px solid #000; padding: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+                                    th {{ background-color: #f2f2f2; font-weight: bold; }}
+                                    .pgno {{ text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; }}
+                                    @page {{ size: A4; margin: 10mm; }}
+                                    @media print {{ .bar {{ display: none; }} body {{ margin: 0; }} .wrapper {{ margin: 0 auto; }} }}
+                                </style>
+                            </head>
+                            <body>
+                                <div class="bar"><button onclick="window.print()">🖨️ Print</button></div>
+                                {f3_pages_html}
                             </body>
                             </html>
                             """
-                            # 🚨 फिक्स: st.markdown हटाकर फ़ॉर्मेट 3 को भी Iframe रेंडर इंजन में सुरक्षित ट्रांसफर किया
-                            st.components.v1.html(multi_paper_html, height=600, scrolling=True)
+                            st.components.v1.html(multi_paper_html, height=650, scrolling=True)
 
                         # --- फ़ॉर्मेट 4: CCE LIST - SIGNATURE FORMAT (CCE-1..CCE-4 + TOTAL) ---
                         elif foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)":
