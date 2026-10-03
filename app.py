@@ -3171,10 +3171,21 @@ else:
                     options=[
                         "University Official Blank Foil Sheets (Side-by-Side)",
                         "CCE Mark Entry (Detailed Marks View)",
-                        "CCE List (Internal Evaluation - Multi Paper)"
+                        "CCE List (Internal Evaluation - Multi Paper)",
+                        "CCE List - Signature Format (CCE-1 to CCE-4 + Total)"
                     ],
                     key="p7_foil_format_type_selector"
                 )
+
+                # 🆕 Format 4 (Signature Format) ke liye optional heading text — khali chhodne par auto bharega
+                p7_sig_class_line = ""
+                p7_sig_paper_line = ""
+                if foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)":
+                    _sg1, _sg2 = st.columns(2)
+                    with _sg1:
+                        p7_sig_class_line = st.text_input("🏫 Class Line (जैसे: B. SC. I YEAR) — खाली = Auto:", key="p7_sig_class_line")
+                    with _sg2:
+                        p7_sig_paper_line = st.text_input("📘 Paper Line (जैसे: MAJOR - III ( CHEMISTRY )) — खाली = Auto:", key="p7_sig_paper_line")
                 
                 max_marks = "20"
 
@@ -3676,7 +3687,107 @@ else:
                             </html>
                             """
                             # 🚨 फिक्स: st.markdown हटाकर फ़ॉर्मेट 3 को भी Iframe रेंडर इंजन में सुरक्षित ट्रांसफर किया
-                            st.components.v1.html(multi_paper_html, height=600, scrolling=True)                
+                            st.components.v1.html(multi_paper_html, height=600, scrolling=True)
+
+                        # --- फ़ॉर्मेट 4: CCE LIST - SIGNATURE FORMAT (CCE-1..CCE-4 + TOTAL) ---
+                        elif foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)":
+                            import html as _html_mod
+                            _roman = {"1st Year": "I", "2nd Year": "II", "3rd Year": "III",
+                                      "4th Year": "IV", "5th Year": "V", "6th Year": "VI"}
+                            _yr_txt = _roman.get(str(target_db_year), str(target_db_year).upper())
+                            _deg = ""
+                            for _c in ("Degree", "Eligibility Name"):
+                                if _c in foil_data_df.columns and not foil_data_df[_c].dropna().empty:
+                                    _deg = str(foil_data_df[_c].dropna().astype(str).iloc[0]).strip()
+                                    if _deg: break
+                            if p7_sig_class_line.strip():
+                                sig_class_line = p7_sig_class_line.strip().upper()
+                            else:
+                                sig_class_line = f"{_deg.upper()} {_yr_txt} YEAR".strip() if chosen_option != "All Years" else _deg.upper()
+                            if p7_sig_paper_line.strip():
+                                sig_paper_line = p7_sig_paper_line.strip().upper()
+                            else:
+                                _subj_txt = "" if selected_subject == "All Subjects" else selected_subject.upper()
+                                sig_paper_line = f"( {_subj_txt} )" if _subj_txt else ""
+                            sig_title_line = f"CCE LIST - {sig_paper_line}".strip(" -") if sig_paper_line else "CCE LIST"
+
+                            sig_rows_per_page = 30
+                            sig_max_each = "10"
+                            sig_max_total = "30"
+                            _esc = lambda v: _html_mod.escape(str(v if v is not None else "").strip())
+                            _nan = lambda v: "" if str(v).strip().lower() == "nan" else _esc(v)
+
+                            def _sig_table(chunk, start_idx):
+                                t = f"""
+                                <div class="page">
+                                <div class="c1">GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)</div>
+                                <div class="c2">{_esc(sig_class_line)}</div>
+                                <div class="c2">{_esc(sig_title_line)}</div>
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th rowspan="2" style="width:5%;">S.<br>No.</th>
+                                      <th rowspan="2" style="width:11%;">Admissi<br>on No.</th>
+                                      <th rowspan="2" style="width:7%;">Roll<br>No.</th>
+                                      <th rowspan="2" style="width:19%;">Student Name</th>
+                                      <th rowspan="2" style="width:19%;">Father Name</th>
+                                      <th colspan="4">SIGNATURE</th>
+                                      <th rowspan="2" style="width:8%;">TOTAL<br>({sig_max_total})</th>
+                                    </tr>
+                                    <tr>
+                                      <th style="width:7.5%;">CCE-1<br>({sig_max_each})</th>
+                                      <th style="width:7.5%;">CCE-2<br>({sig_max_each})</th>
+                                      <th style="width:7.5%;">CCE-3<br>({sig_max_each})</th>
+                                      <th style="width:7.5%;">CCE-4<br>({sig_max_each})</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>"""
+                                for j, r in enumerate(chunk):
+                                    adm = _nan(r.get("Admission Application Number", ""))
+                                    t += f"""
+                                    <tr>
+                                      <td>{start_idx + j + 1}</td>
+                                      <td>{adm}</td>
+                                      <td>{_nan(r.get("Roll No.", ""))}</td>
+                                      <td class="l">{_nan(r.get("Student Name", ""))}</td>
+                                      <td class="l">{_nan(r.get("Father Name", ""))}</td>
+                                      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                    </tr>"""
+                                t += """
+                                  </tbody>
+                                </table>
+                                </div>"""
+                                return t
+
+                            sig_pages_html = ""
+                            for _ps in range(0, len(records_list), sig_rows_per_page):
+                                sig_pages_html += _sig_table(records_list[_ps:_ps + sig_rows_per_page], _ps)
+
+                            sig_full_html = f"""
+                            <html>
+                            <head>
+                              <meta charset="utf-8">
+                              <style>
+                                body {{ font-family: Arial, sans-serif; margin: 8px; background:#fff; color:#000; }}
+                                .bar {{ text-align:right; margin-bottom:8px; }}
+                                .bar button {{ padding:6px 14px; font-weight:bold; cursor:pointer; }}
+                                .page {{ max-width: 900px; margin: 0 auto 20px auto; page-break-after: always; }}
+                                .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
+                                .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
+                                table {{ width:100%; border-collapse:collapse; margin-top:8px; font-size:11px; text-align:center; table-layout:fixed; }}
+                                th, td {{ border:1px solid #000; padding:4px 3px; height:20px; overflow:hidden; word-wrap:break-word; }}
+                                th {{ font-weight:bold; }}
+                                td.l {{ text-align:left; }}
+                                @media print {{ .bar {{ display:none; }} body {{ margin:0; }} .page {{ margin:0; }} }}
+                              </style>
+                            </head>
+                            <body>
+                              <div class="bar"><button onclick="window.print()">🖨️ Print</button></div>
+                              {sig_pages_html}
+                            </body>
+                            </html>
+                            """
+                            st.components.v1.html(sig_full_html, height=650, scrolling=True)                
                             
         # ----------------------------------------------------------------------
         # P8: PANEL PROMOTION MODULE (Academic Year Batch Progression Control)
