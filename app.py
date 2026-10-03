@@ -3159,6 +3159,36 @@ else:
                     else:
                         p7_sig_class_line = p7_sig_degree_choice
 
+                # 🎓 Degree ke hisab se list chhantne ke helper (Format 4)
+                import re as _re_deg
+                def _p7_degree_key(raw):
+                    n = _re_deg.sub(r"[^a-z]", "", str(raw).lower())
+                    if not n or n == "nan":
+                        return ""
+                    long_names = [
+                        ("bachelorofscience", "bsc"), ("bachelorofarts", "ba"), ("bachelorofcommerce", "bcom"),
+                        ("bachelorofbusiness", "bba"), ("bachelorofcomputer", "bca"),
+                        ("masterofscience", "msc"), ("masterofarts", "ma"), ("masterofcommerce", "mcom"),
+                    ]
+                    for _full, _k in long_names:
+                        if n.startswith(_full):
+                            return _k
+                    for _k in ("bsc", "bcom", "bba", "bca", "msc", "mcom", "ba", "ma"):
+                        if n.startswith(_k):
+                            return _k
+                    return ""
+
+                def _p7_apply_degree(df_in, key):
+                    if not key or "Degree" not in df_in.columns:
+                        return df_in
+                    _keys = df_in["Degree"].fillna("").astype(str).map(_p7_degree_key)
+                    if not (_keys != "").any():
+                        return df_in   # data me Degree pehchana nahi gaya => filter nahi lagega
+                    return df_in[_keys == key]
+
+                p7_deg_key = _p7_degree_key(p7_sig_class_line) if p7_is_sig_format else ""
+                p7_deg_df = _p7_apply_degree(render_df, p7_deg_key) if p7_is_sig_format else render_df
+
                 # 🟢 P7: Subject Filter se pehle "Column Scroll List" — user pehle yeh chunega
                 # ki kis column (Subject / Branch / Minor Subjects / MDC Subjects /
                 # Vocational Subjects / PW/Ap/CE Subjects) ke aadhar par filter karna hai,
@@ -3167,6 +3197,11 @@ else:
                     "Subject", "Branch", "Minor Subjects", "Vocational Subjects",
                     "MDC Subjects", "PW/Ap/CE Subjects"
                 ]
+                # UG degree (B.A./B.Sc./B.Com./BBA/BCA) => Branch/Minor/MDC/Vocational/PW-Ap-CE ; PG degree (M.A./M.Sc./M.Com.) => sirf Subject
+                if p7_is_sig_format and p7_deg_key in ("ba", "bsc", "bcom", "bba", "bca"):
+                    p7_filter_column_options = [c for c in p7_filter_column_options if c != "Subject"]
+                elif p7_is_sig_format and p7_deg_key in ("ma", "msc", "mcom"):
+                    p7_filter_column_options = ["Subject"]
                 p7_available_filter_columns = [c for c in p7_filter_column_options if c in render_df.columns]
                 if not p7_available_filter_columns:
                     p7_available_filter_columns = ["Subject"]
@@ -3180,8 +3215,8 @@ else:
 
                 col_p7_1, col_p7_2 = st.columns(2)
                 with col_p7_1:
-                    if selected_filter_column in render_df.columns:
-                        unique_subjects = sorted(list(set(render_df[selected_filter_column].dropna().astype(str).str.strip())))
+                    if selected_filter_column in p7_deg_df.columns:
+                        unique_subjects = sorted(list(set(p7_deg_df[selected_filter_column].dropna().astype(str).str.strip())))
                     else:
                         unique_subjects = []
                     selected_subject = st.selectbox(f"📚 Select {'Branch (Major)' if selected_filter_column == 'Branch' else selected_filter_column} Filter:", options=["All Subjects"] + [s for s in unique_subjects if s != ""], key="p7_foil_subject_filter")
@@ -3236,6 +3271,8 @@ else:
                         
                 if st.session_state.get("cce_foil_generated", False):
                     foil_data_df = render_df.copy()
+                    if p7_is_sig_format:
+                        foil_data_df = _p7_apply_degree(foil_data_df, p7_deg_key).copy()
                     
                     # 📚 सेमेस्टर-टू-ईयर लाइव मैपिंग इंजन
                     sem_to_year_map = {
@@ -3805,7 +3842,7 @@ else:
                             # Agar Roll No. column me data hai to Admission No. column nahi aayega
                             sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
                             sig_show_adm = not sig_has_roll
-                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admission No.</th>' if sig_show_adm else ""
+                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
                             _name_w = "19%" if sig_show_adm else "25%"
                             _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
@@ -3829,7 +3866,7 @@ else:
                                     _grp_txt = "MARKS"
                                     _tot_th = f'<th rowspan="2" class="c-tot" style="width:{_pc(_tot_w * _k)};">TOTAL<br>({sig_max_total})</th>'
                                     _cls = "page pg-marks"
-                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admission No.</th>' if sig_show_adm else ""
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
                                 _cce_head = "".join(
                                     f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
                                 )
@@ -3841,9 +3878,9 @@ else:
                                 <table class="sg">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:{_w_sno};">S. No.</th>
+                                      <th rowspan="2" style="width:{_w_sno};">S.<br>No.</th>
                                       {_adm_head}
-                                      <th rowspan="2" style="width:{_w_roll};">Roll No.</th>
+                                      <th rowspan="2" style="width:{_w_roll};">Roll<br>No.</th>
                                       <th rowspan="2" style="width:{_w_nm};">Student Name</th>
                                       <th rowspan="2" style="width:{_w_nm};">Father Name</th>
                                       <th colspan="4">{_grp_txt}</th>
