@@ -3836,7 +3836,7 @@ else:
                                       <td>{_nan(r.get("_orig_roll", ""))}</td>
                                       <td class="l">{_nan(r.get("Student Name", ""))}</td>
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
-                                      <td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td>
+                                      <td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="tot"></td>
                                     </tr>"""
                                 t += f"""
                                   </tbody>
@@ -3861,6 +3861,7 @@ else:
                                 .bar #modeLbl {{ font-size:12px; font-weight:bold; margin-right:8px; }}
                                 body.entry td.ed {{ background:#fffbe0; outline:1px dashed #c9a400; outline-offset:-2px; }}
                                 body.entry td.ed:focus {{ background:#fff3b0; outline:2px solid #0b57d0; }}
+                                td.tot {{ font-weight:bold; }}
                                 .page {{ max-width: 900px; margin: 0 auto 20px auto; page-break-after: always; }}
                                 .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
                                 .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
@@ -3899,11 +3900,26 @@ else:
                                   td.addEventListener('keydown', function(e) {{
                                     if (e.key === 'Enter') {{
                                       e.preventDefault();
-                                      var nxt = cells[i + 5];   // ek row neeche, usi column me
+                                      var nxt = cells[i + 4];   // ek row neeche, usi column me
                                       if (nxt) {{ nxt.focus(); }}
                                     }}
                                   }});
+                                  td.addEventListener('input', function() {{ calcTotal(td.parentElement); }});
                                 }});
+                                // TOTAL = CCE-1..CCE-4 me se sabse zyada 3 marks ka jod (khud nikalta hai)
+                                function calcTotal(tr) {{
+                                  var eds = tr.querySelectorAll('td.ed');
+                                  var tot = tr.querySelector('td.tot');
+                                  var nums = [];
+                                  eds.forEach(function(c) {{
+                                    var v = parseFloat((c.textContent || '').trim());
+                                    if (!isNaN(v)) {{ nums.push(v); }}
+                                  }});
+                                  if (!nums.length) {{ tot.textContent = ''; return; }}
+                                  nums.sort(function(a, b) {{ return b - a; }});
+                                  var sum = nums.slice(0, 3).reduce(function(a, b) {{ return a + b; }}, 0);
+                                  tot.textContent = String(Math.round(sum * 100) / 100);
+                                }}
                                 window.addEventListener('beforeprint', function() {{ if (editing) {{ setMode(false); }} }});
                               </script>
                             </body>
