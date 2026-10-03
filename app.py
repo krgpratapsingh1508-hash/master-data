@@ -3264,6 +3264,12 @@ else:
                             str(target_db_year).strip().upper()
                         ]
                     
+                    # 🆕 Asli Roll No. pehle hi bacha lo (Signature Format me khali roll khali hi dikhega)
+                    if "Roll No." in foil_data_df.columns:
+                        foil_data_df["_orig_roll"] = foil_data_df["Roll No."].fillna("").astype(str).str.strip().replace({"nan": "", "None": ""})
+                    else:
+                        foil_data_df["_orig_roll"] = ""
+
                     # 🟢 3. रोल नंबर खाली होने पर स्टूडेंट नेम रिप्लेसमेंट नियम (ONLY FOR 1st YEAR FILTER)
                     if not foil_data_df.empty and "Roll No." in foil_data_df.columns:
                         def apply_roll_name_rule(row):
@@ -3799,7 +3805,7 @@ else:
                                     <tr>
                                       <td>{start_idx + j + 1}</td>
                                       <td>{adm}</td>
-                                      <td>{_nan(r.get("Roll No.", ""))}</td>
+                                      <td>{_nan(r.get("_orig_roll", ""))}</td>
                                       <td class="l">{_nan(r.get("Student Name", ""))}</td>
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
                                       <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
