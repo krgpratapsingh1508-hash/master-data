@@ -3788,7 +3788,7 @@ else:
                                       <th rowspan="2" style="width:7%;">Roll<br>No.</th>
                                       <th rowspan="2" style="width:19%;">Student Name</th>
                                       <th rowspan="2" style="width:19%;">Father Name</th>
-                                      <th colspan="4">SIGNATURE</th>
+                                      <th colspan="4">MARKS</th>
                                       <th rowspan="2" style="width:8%;">TOTAL<br>({sig_max_total})</th>
                                     </tr>
                                     <tr>
