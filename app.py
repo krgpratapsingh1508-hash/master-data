@@ -3809,33 +3809,51 @@ else:
                             _name_w = "19%" if sig_show_adm else "25%"
                             _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
-                            def _sig_table(chunk, start_idx, page_no, total_pages):
+                            def _sig_table(chunk, start_idx, page_no, total_pages, sign=False):
+                                # sign=True => Sign. List: TOTAL nahi, CCE columns chaude, rows double unchi
+                                if sign:
+                                    _w_sno, _w_adm, _w_roll, _w_nm = "4%", "9%", "6%", "17%"
+                                    _w_cce = "11.75%" if sig_show_adm else "14%"
+                                    _grp_txt = "SIGNATURE"
+                                    _tot_th = ""
+                                    _cls = "page pg-sign"
+                                else:
+                                    _w_sno, _w_adm, _w_roll, _w_nm = "5%", "11%", "7%", _name_w
+                                    _w_cce = "7.5%"
+                                    _grp_txt = "MARKS"
+                                    _tot_th = f'<th rowspan="2" class="c-tot" style="width:8%;">TOTAL<br>({sig_max_total})</th>'
+                                    _cls = "page pg-marks"
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
+                                _cce_head = "".join(
+                                    f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
+                                )
                                 t = f"""
-                                <div class="page">
+                                <div class="{_cls}">
                                 <div class="c1">GOVT. KAMLARAJA GIRLS POST-GRADUATE AUTONOMOUS COLLEGE, GWALIOR (M.P.)</div>
                                 <div class="c2">{_esc(sig_class_line)}</div>
                                 <div class="c2">{_esc(sig_title_line)}</div>
-                                <table class="{_tbl_cls}">
+                                <table class="sg">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" class="c-sno" style="width:5%;">S.<br>No.</th>
-                                      {_adm_th}
-                                      <th rowspan="2" class="c-roll" style="width:7%;">Roll<br>No.</th>
-                                      <th rowspan="2" class="c-name" style="width:{_name_w};">Student Name</th>
-                                      <th rowspan="2" class="c-fath" style="width:{_name_w};">Father Name</th>
-                                      <th colspan="4" class="grp">MARKS</th>
-                                      <th rowspan="2" class="c-tot" style="width:8%;">TOTAL<br>({sig_max_total})</th>
+                                      <th rowspan="2" style="width:{_w_sno};">S.<br>No.</th>
+                                      {_adm_head}
+                                      <th rowspan="2" style="width:{_w_roll};">Roll<br>No.</th>
+                                      <th rowspan="2" style="width:{_w_nm};">Student Name</th>
+                                      <th rowspan="2" style="width:{_w_nm};">Father Name</th>
+                                      <th colspan="4">{_grp_txt}</th>
+                                      {_tot_th}
                                     </tr>
                                     <tr>
-                                      <th class="c-cce" style="width:7.5%;">CCE-1<br>({sig_max_each})</th>
-                                      <th class="c-cce" style="width:7.5%;">CCE-2<br>({sig_max_each})</th>
-                                      <th class="c-cce" style="width:7.5%;">CCE-3<br>({sig_max_each})</th>
-                                      <th class="c-cce" style="width:7.5%;">CCE-4<br>({sig_max_each})</th>
+                                      {_cce_head}
                                     </tr>
                                   </thead>
                                   <tbody>"""
                                 for j, r in enumerate(chunk):
                                     adm_td = f"<td>{_nan(r.get('Admission Application Number', ''))}</td>" if sig_show_adm else ""
+                                    if sign:
+                                        _blank_cells = '<td></td><td></td><td></td><td></td>'
+                                    else:
+                                        _blank_cells = '<td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="tot"></td>'
                                     t += f"""
                                     <tr>
                                       <td>{start_idx + j + 1}</td>
@@ -3843,7 +3861,7 @@ else:
                                       <td>{_nan(r.get("_orig_roll", ""))}</td>
                                       <td class="l">{_nan(r.get("Student Name", ""))}</td>
                                       <td class="l">{_nan(r.get("Father Name", ""))}</td>
-                                      <td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="ed"></td><td class="tot"></td>
+                                      {_blank_cells}
                                     </tr>"""
                                 t += f"""
                                   </tbody>
@@ -3857,6 +3875,13 @@ else:
                             for _pi, _ps in enumerate(range(0, len(records_list), sig_rows_per_page), start=1):
                                 sig_pages_html += _sig_table(records_list[_ps:_ps + sig_rows_per_page], _ps, _pi, _sig_total_pages)
 
+                            # 📝 Sign. List pages: rows double unchi hone se ek page par kam rows (14)
+                            sign_rows_per_page = 14
+                            sign_pages_html = ""
+                            _sign_total_pages = max(1, -(-len(records_list) // sign_rows_per_page))
+                            for _pi, _ps in enumerate(range(0, len(records_list), sign_rows_per_page), start=1):
+                                sign_pages_html += _sig_table(records_list[_ps:_ps + sign_rows_per_page], _ps, _pi, _sign_total_pages, sign=True)
+
                             sig_full_html = f"""
                             <html>
                             <head>
@@ -3869,16 +3894,13 @@ else:
                                 body.entry td.ed {{ background:#fffbe0; outline:1px dashed #c9a400; outline-offset:-2px; }}
                                 body.entry td.ed:focus {{ background:#fff3b0; outline:2px solid #0b57d0; }}
                                 td.tot {{ font-weight:bold; }}
-                                /* 📝 Sign. List mode: TOTAL hat jata hai, CCE-1..4 columns chaude ho jate hain */
-                                body.signmode .c-tot, body.signmode td.tot {{ display:none; }}
-                                body.signmode td.ed {{ color:transparent !important; background:#fff !important; outline:none !important; }}
-                                body.signmode table.sg .c-sno {{ width:4% !important; }}
-                                body.signmode table.sg .c-adm {{ width:9% !important; }}
-                                body.signmode table.sg .c-roll {{ width:6% !important; }}
-                                body.signmode table.sg .c-name, body.signmode table.sg .c-fath {{ width:17% !important; }}
-                                body.signmode table.sg .c-cce {{ width:11.75% !important; }}
-                                body.signmode table.sg.noadm .c-cce {{ width:14% !important; }}
-                                .page {{ max-width: 900px; margin: 0 auto 20px auto; page-break-after: always; }}
+                                /* 📝 Sign. List: alag pages — marks wale aur sign wale sets me se ek hi dikhta hai */
+                                #signSet {{ display:none; }}
+                                body.signmode #signSet {{ display:block; }}
+                                body.signmode #marksSet {{ display:none; }}
+                                .pg-sign td {{ height:50px; }}
+                                .page {{ max-width: 900px; margin: 0 auto 20px auto; }}
+                                .page + .page {{ page-break-before: always; }}
                                 .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
                                 .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
                                 table {{ width:100%; border-collapse:collapse; margin-top:8px; font-size:11px; text-align:center; table-layout:fixed; }}
@@ -3886,7 +3908,6 @@ else:
                                 th {{ font-weight:bold; }}
                                 td.l {{ text-align:left; }}
                                 .pgno {{ text-align:center; font-size:11px; font-weight:bold; margin-top:8px; }}
-                                .page:last-child {{ page-break-after: auto; }}
                                 @page {{ size: A4; margin: 10mm; }}
                                 @media print {{ .bar {{ display:none; }} body {{ margin:0; }} .page {{ margin:0; }} }}
                               </style>
@@ -3898,20 +3919,19 @@ else:
                                 <button id="signBtn" type="button">📝 Sign. List</button>
                                 <button type="button" onclick="window.print()">🖨️ Print</button>
                               </div>
-                              {sig_pages_html}
+                              <div id="marksSet">{sig_pages_html}</div>
+                              <div id="signSet">{sign_pages_html}</div>
                               <script>
                                 var cells = Array.prototype.slice.call(document.querySelectorAll('td.ed'));
                                 var btn = document.getElementById('modeBtn');
                                 var lbl = document.getElementById('modeLbl');
                                 var editing = false;
                                 var signing = false;
-                                var grp = document.querySelectorAll('th.grp');
                                 var signBtn = document.getElementById('signBtn');
                                 function setSign(on) {{
                                   if (on && editing) {{ setMode(false); }}
                                   signing = on;
                                   document.body.classList.toggle('signmode', on);
-                                  grp.forEach(function(g) {{ g.textContent = on ? 'SIGNATURE' : 'MARKS'; }});
                                   signBtn.textContent = on ? '↩️ Marks List (वापस)' : '📝 Sign. List';
                                   btn.disabled = on;
                                   lbl.textContent = on ? 'Mode: 📝 Sign. List' : 'Mode: 🖨️ Print Ready';
