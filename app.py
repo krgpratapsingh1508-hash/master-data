@@ -3863,7 +3863,7 @@ else:
                             # Agar Roll No. column me data hai to Admission No. column nahi aayega
                             sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
                             sig_show_adm = not sig_has_roll
-                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
+                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admission No.</th>' if sig_show_adm else ""
                             _name_w = "19%" if sig_show_adm else "25%"
                             _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
@@ -3887,7 +3887,7 @@ else:
                                     _grp_txt = "MARKS"
                                     _tot_th = f'<th rowspan="2" class="c-tot" style="width:{_pc(_tot_w * _k)};">TOTAL<br>({sig_max_total})</th>'
                                     _cls = "page pg-marks"
-                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admission No.</th>' if sig_show_adm else ""
                                 _cce_head = "".join(
                                     f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
                                 )
@@ -3899,9 +3899,9 @@ else:
                                 <table class="sg">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:{_w_sno};">S.<br>No.</th>
+                                      <th rowspan="2" style="width:{_w_sno};">S. No.</th>
                                       {_adm_head}
-                                      <th rowspan="2" style="width:{_w_roll};">Roll<br>No.</th>
+                                      <th rowspan="2" style="width:{_w_roll};">Roll No.</th>
                                       <th rowspan="2" style="width:{_w_nm};">Student Name</th>
                                       <th rowspan="2" style="width:{_w_nm};">Father Name</th>
                                       <th colspan="4">{_grp_txt}</th>
