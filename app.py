@@ -3066,6 +3066,13 @@ else:
                 # केवल वही 22 कॉलम छाँटें
                 render_df = filtered_cce[cce_requested_cols].copy()
                 render_df = render_df.loc[:, ~render_df.columns.duplicated()].copy()
+
+                # 🎓 render_df me "Degree" column nahi hota, isliye Format 4 ke Degree filter ke liye alag se bacha ke rakho
+                _fc_unique = filtered_cce.loc[:, ~filtered_cce.columns.duplicated()]
+                if "Degree" in _fc_unique.columns:
+                    p7_degree_series = _fc_unique["Degree"].reindex(render_df.index)
+                else:
+                    p7_degree_series = pd.Series("", index=render_df.index)
                 
                 # डिस्प्ले रीनेम मैप
                 display_rename_map = {
@@ -3178,16 +3185,30 @@ else:
                             return _k
                     return ""
 
+                def _p7_deg_keys(df_in):
+                    # Degree column se key nikalo; khali/na-pehchani ho to Subject column ("M.Sc. (Chemistry)") se
+                    src = p7_degree_series.reindex(df_in.index).fillna("").astype(str)
+                    keys = src.map(_p7_degree_key)
+                    if "Subject" in df_in.columns:
+                        _sk = df_in["Subject"].fillna("").astype(str).map(_p7_degree_key)
+                        keys = keys.where(keys != "", _sk)
+                    return keys
+
                 def _p7_apply_degree(df_in, key):
-                    if not key or "Degree" not in df_in.columns:
+                    if not key:
                         return df_in
-                    _keys = df_in["Degree"].fillna("").astype(str).map(_p7_degree_key)
+                    _keys = _p7_deg_keys(df_in)
                     if not (_keys != "").any():
                         return df_in   # data me Degree pehchana nahi gaya => filter nahi lagega
                     return df_in[_keys == key]
 
                 p7_deg_key = _p7_degree_key(p7_sig_class_line) if p7_is_sig_format else ""
                 p7_deg_df = _p7_apply_degree(render_df, p7_deg_key) if p7_is_sig_format else render_df
+                if p7_is_sig_format and p7_deg_key:
+                    if (_p7_deg_keys(render_df) != "").any():
+                        st.caption(f"🎓 {p7_sig_class_line} के कुल {len(p7_deg_df)} students मिले (बाकी degrees की list नहीं आएगी)")
+                    else:
+                        st.warning("⚠️ Data में Degree पहचानी नहीं गई, इसलिए Degree filter नहीं लग पाया — सभी degrees के students दिखेंगे।")
 
                 # 🟢 P7: Subject Filter se pehle "Column Scroll List" — user pehle yeh chunega
                 # ki kis column (Subject / Branch / Minor Subjects / MDC Subjects /
@@ -3842,7 +3863,7 @@ else:
                             # Agar Roll No. column me data hai to Admission No. column nahi aayega
                             sig_has_roll = any(str(_r.get("_orig_roll", "")).strip() not in ("", "nan", "None") for _r in records_list)
                             sig_show_adm = not sig_has_roll
-                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admission No.</th>' if sig_show_adm else ""
+                            _adm_th = '<th rowspan="2" class="c-adm" style="width:11%;">Admissi<br>on No.</th>' if sig_show_adm else ""
                             _name_w = "19%" if sig_show_adm else "25%"
                             _tbl_cls = "sg" if sig_show_adm else "sg noadm"
 
@@ -3866,7 +3887,7 @@ else:
                                     _grp_txt = "MARKS"
                                     _tot_th = f'<th rowspan="2" class="c-tot" style="width:{_pc(_tot_w * _k)};">TOTAL<br>({sig_max_total})</th>'
                                     _cls = "page pg-marks"
-                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admission No.</th>' if sig_show_adm else ""
+                                _adm_head = f'<th rowspan="2" style="width:{_w_adm};">Admissi<br>on No.</th>' if sig_show_adm else ""
                                 _cce_head = "".join(
                                     f'<th style="width:{_w_cce};">CCE-{k}<br>({sig_max_each})</th>' for k in (1, 2, 3, 4)
                                 )
@@ -3878,9 +3899,9 @@ else:
                                 <table class="sg">
                                   <thead>
                                     <tr>
-                                      <th rowspan="2" style="width:{_w_sno};">S. No.</th>
+                                      <th rowspan="2" style="width:{_w_sno};">S.<br>No.</th>
                                       {_adm_head}
-                                      <th rowspan="2" style="width:{_w_roll};">Roll No.</th>
+                                      <th rowspan="2" style="width:{_w_roll};">Roll<br>No.</th>
                                       <th rowspan="2" style="width:{_w_nm};">Student Name</th>
                                       <th rowspan="2" style="width:{_w_nm};">Father Name</th>
                                       <th colspan="4">{_grp_txt}</th>
