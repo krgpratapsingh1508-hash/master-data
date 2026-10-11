@@ -1651,6 +1651,13 @@ else:
 
                                     # आम तौर पर एक्सेल/CSV में इस्तेमाल होने वाले जाने-पहचाने वैरिएशन
                                     manual_aliases = {
+                                        # 🆔 "Admission Id" = "Admission Application Number" (P3 wali file me yahi naam aata hai)
+                                        "admissionid": "Admission Application Number",
+                                        "admissionno": "Admission Application Number",
+                                        "admissionnumber": "Admission Application Number",
+                                        "admissionappno": "Admission Application Number",
+                                        "admissionapplicationid": "Admission Application Number",
+                                        "admissionapplicationno": "Admission Application Number",
                                         "enrollmentno": "Enrollment No.",
                                         "enrollmentnumber": "Enrollment No.",
                                         "enrollmentnum": "Enrollment No.",
