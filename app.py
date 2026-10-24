@@ -2236,7 +2236,7 @@ else:
                     # "Enrollment No" vs "Enrollment No.") — इसी वजह से DOB, Email और Enrollment No
                     # हमेशा खाली दिखते थे। अब नाम बिल्कुल सही स्कीमा फॉर्मेट में फिक्स किए गए हैं।
                     all_possible_p2_cols = [
-                        "Application Number", "Student Abc Id", "Student Name", "Father Name", "Mother Name",
+                        "Application Number", "Student Abc Id", "Unique ID", "Roll No.", "Student Name", "Father Name", "Mother Name",
                         "Date of Birth", "Category", "Admission Category", "Subject", "Degree", "Branch",
                         "Minor Subjects", "Vocational Subjects", "MDC Subjects", "PW/Ap/CE Subjects",
                         "Mobile Number", "Email ID", "Address", "Enrollment No.", "Admssion & Enrollment Fees",
@@ -2249,6 +2249,16 @@ else:
                         if _ms_key in st.session_state and "Document Submit Status" not in st.session_state[_ms_key]:
                             st.session_state[_ms_key] = list(st.session_state[_ms_key]) + ["Document Submit Status"]
                         st.session_state["_p2_docstatus_col_added"] = True
+                    # 🆕 Unique ID aur Roll No. bhi ab fee ki tarah P2 me merge hokar aate hain —
+                    # purane session ki saved column-list me ye dono nahi hote, isliye ek baar automatically jod dete hain.
+                    if not st.session_state.get("_p2_uid_roll_cols_added"):
+                        if _ms_key in st.session_state:
+                            _cur_sel = list(st.session_state[_ms_key])
+                            for _nc in ["Unique ID", "Roll No."]:
+                                if _nc not in _cur_sel:
+                                    _cur_sel.append(_nc)
+                            st.session_state[_ms_key] = _cur_sel
+                        st.session_state["_p2_uid_roll_cols_added"] = True
 
                     if st.session_state.p2_show_columns_section:
                         # ड्रॉपडाउन लिस्ट जो स्क्रीन और प्रिंट दोनों को कंट्रोल करेगी
@@ -2325,6 +2335,10 @@ else:
                             else:
                                 admission_display_db[col] = ""
                         
+                    # 🧹 Unique ID / Roll No. jinki value merge se nahi aayi, wahan "nan" ki jagah khaali dikhe
+                    for _uc in ["Unique ID", "Roll No."]:
+                        if _uc in admission_display_db.columns:
+                            admission_display_db[_uc] = admission_display_db[_uc].astype(str).str.strip().replace({"nan": "", "None": "", "NaN": ""})
                     final_p2_render = admission_display_db[chosen_render_cols].copy()
                 
                     # 🟢 पुराना रीनेम कोड हटाकर इसे पूरी तरह साफ़ और सुरक्षित किया गया
@@ -5493,6 +5507,11 @@ else:
                 # ----------------------------------------------------------------------
                 else:
                     anya_file_subset = stage_db[stage_db["Uploaded File Name"] == selected_anya_file].copy()
+                    # 🆕 Unique ID / Roll No. file ke headers ki alag spelling (Unique Id, Roll No, Roll Number...) ko standard naam par lao,
+                    # taaki merge ke baad ye main file ke "Unique ID" / "Roll No." column me hi bharein (alag duplicate column na bane)
+                    _anya_alias = {"Unique Id": "Unique ID", "UniqueID": "Unique ID", "Unique id": "Unique ID",
+                                   "Roll No": "Roll No.", "Roll Number": "Roll No.", "Roll no.": "Roll No.", "Roll No.": "Roll No."}
+                    anya_file_subset = anya_file_subset.rename(columns={k: v for k, v in _anya_alias.items() if k in anya_file_subset.columns and v not in anya_file_subset.columns})
                     st.write(f"📦 **Anya File (Staging Column Source):** `{selected_anya_file}` | छात्र रिकॉर्ड्स: `{len(anya_file_subset)}`")
 
                     with st.expander("⚠️ डेंजर ज़ोन: गलत फ़ाइल को स्टेजिंग से हटाएं", expanded=False):
@@ -5527,7 +5546,7 @@ else:
                         anya_return_cols = st.multiselect(
                             "Anya File के वे कॉलम्स चुनें जिनका डेटा Main File में भरना है (जैसे B, C, D कॉलम्स):",
                             options=[c for c in anya_file_subset.columns if c not in ["Uploaded File Name", "Target Panel Visibility"]],
-                            default=[c for c in ["Student Name", "Father Name", "Mother Name", "Roll No.", "Enrollment No."] if c in anya_file_subset.columns],
+                            default=[c for c in ["Student Name", "Father Name", "Mother Name", "Unique ID", "Roll No.", "Enrollment No."] if c in anya_file_subset.columns],
                             key="xl_anya_return_cols_v15"
                         )
 
