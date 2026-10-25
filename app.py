@@ -3082,6 +3082,22 @@ def _run_p3_ug_pg_app(st):
     
         # 🗂️ डेटा सीधे मास्टर फ़ाइल (shared_student_database.csv) से आता है — अलग अपलोड की ज़रूरत नहीं
         raw_df = load_master_data()
+
+        # 📅 सबसे पहले: Admission Session चुनें (मास्टर फ़ाइल के सेशन में से)
+        _sess_col = next((c for c in raw_df.columns if c.strip().lower() == "admission session"), None) if not raw_df.empty else None
+        if _sess_col:
+            _sess_vals = sorted({str(v).strip() for v in raw_df[_sess_col].dropna() if str(v).strip() and str(v).strip().lower() != "nan"})
+            st.subheader("📅 Step 1: Admission Session चुनें")
+            _sess_pick = st.selectbox(
+                "Admission Session:", ["-- चुनें --"] + _sess_vals + ["सभी सेशन (All)"],
+                key="p2_admission_session_select"
+            )
+            if _sess_pick == "-- चुनें --":
+                st.info("👆 आगे का डेटा देखने/अप्रूव करने के लिए पहले Admission Session चुनें।")
+                st.stop()
+            if _sess_pick != "सभी सेशन (All)":
+                raw_df = raw_df[raw_df[_sess_col].astype(str).str.strip() == _sess_pick].reset_index(drop=True)
+            st.divider()
         st.caption(f"🗂️ डेटा-स्रोत: **मास्टर फ़ाइल** ({len(raw_df)} रोज़)" if not raw_df.empty else "")
     
         if raw_df is None or raw_df.empty:
@@ -3193,7 +3209,19 @@ def _run_p3_ug_pg_app(st):
         
             if st.button("✅ डेटा अप्रूव करें और पैनल्स में ट्रांसफर करें", key="approve_transfer_all_btn"):
                 # मास्टर फ़ाइल हर बार पूरा ताज़ा डेटा देती है, इसलिए पुराना UG/PG डेटा बदला जाता है (डुप्लीकेट नहीं बनते)
+                # अगर कोई एक सेशन चुना है तो सिर्फ़ उसी सेशन का पुराना डेटा बदला जाएगा, बाकी सेशन सुरक्षित रहेंगे
+                _keep_old = {}
+                if _sess_col and st.session_state.get("p2_admission_session_select") not in (None, "-- चुनें --", "सभी सेशन (All)"):
+                    _chosen = st.session_state["p2_admission_session_select"]
+                    for _ct in ("UG", "PG"):
+                        _old = load_permanent_data(_ct)
+                        if not _old.empty and _sess_col in _old.columns:
+                            _old = _old[_old[_sess_col].astype(str).str.strip() != _chosen]
+                            _keep_old[_ct] = _old
                 cursor.execute("DELETE FROM perma_store WHERE course_type IN ('UG', 'PG')")
+                for _ct, _old in _keep_old.items():
+                    if not _old.empty:
+                        cursor.execute("INSERT INTO perma_store (data_json, course_type) VALUES (?, ?)", (json.dumps(_old.to_dict(orient='records')), _ct))
                 if not df_ug_preview.empty:
                     ug_json_str = json.dumps(df_ug_preview[reordered_cols].to_dict(orient='records'))
                     cursor.execute("INSERT INTO perma_store (data_json, course_type) VALUES (?, ?)", (ug_json_str, "UG"))
