@@ -1634,127 +1634,27 @@ def _run_p3_ug_pg_app(st):
         components.html(btn_html, height=64)
 
     # Session States Management
-    if "ok" not in st.session_state: st.session_state["ok"] = False
     if "deleted_cols" not in st.session_state: st.session_state["deleted_cols"] = []
 
-    # --- LOGIN SYSTEM (पैनल-वाइज: हर पैनल का अपना पासवर्ड) ---
-    # 🔧 फिक्स: पुराने सेशन (जिसमें "ok"=True था लेकिन "panel" key नहीं थी) की वजह से
-    # KeyError न आए, इसलिए दोनों चीज़ें एक साथ चेक कर रहे हैं
-    if not st.session_state["ok"] or "panel" not in st.session_state:
-        st.session_state["ok"] = False
-
-        left, mid, right = st.columns([1, 1.3, 1])
-        with mid:
-            # 👋 अगर अभी-अभी Logout किया है, तो एक प्यारा-सा फेयरवेल मैसेज दिखाएं
-            if st.session_state.pop("show_farewell", False):
-                st.markdown(
-                    "<div class='farewell-box'>👋 सफलतापूर्वक Logout हो गए! फिर मिलते हैं 😊</div>",
-                    unsafe_allow_html=True
-                )
-
-            # 🎨 Admin द्वारा सेट किया गया टाइटल और लोगो (डिफ़ॉल्ट: इमोजी + "NEP Master Data System")
-            _login_title = get_app_setting("login_title", "NEP Master Data System")
-            _login_subtitle = get_app_setting("login_subtitle", "अपना पैनल चुनें और आगे बढ़ने के लिए पासवर्ड डालें")
-            _logo_b64 = get_app_setting("login_logo_b64")
-            _logo_mime = get_app_setting("login_logo_mime", "image/png")
-            _logo_width = int(get_app_setting("login_logo_width", "140"))
-            _logo_height = int(get_app_setting("login_logo_height", "140"))
-            _logo_fit = get_app_setting("login_logo_fit", "contain")  # "contain" = पूरी image दिखेगी (कटेगी नहीं), "cover" = बॉक्स भरेगी (क्रॉप हो सकती है)
-
-            if _logo_b64:
-                badge_html = (
-                    f'<img src="data:{_logo_mime};base64,{_logo_b64}" class="login-logo-img" '
-                f'style="width:{_logo_width}px; height:{_logo_height}px; object-fit:{_logo_fit};" />'
-                )
-            else:
-                badge_html = '<div class="emoji-badge">🎓🔒</div>'
-
-            st.markdown(
-                f"""
-            <div class="login-hero">
-                {badge_html}
-                <h1>{_login_title}</h1>
-                <p>{_login_subtitle}</p>
-            </div>
-            """,
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                """
-            <div class="login-badge-row">
-                <span class="login-badge">💻 Approve</span>
-                <span class="login-badge">🎓 UG</span>
-                <span class="login-badge">📜 PG</span>
-                <span class="login-badge">📊 Dashboard</span>
-                <span class="login-badge">⚙️ Admin</span>
-            </div>
-            """,
-                unsafe_allow_html=True
-            )
-
-            with st.container(border=True):
-                panel_choice_label = st.selectbox("🗂️ पैनल चुनें:", ["-- चुनें --"] + list(PANEL_KEY_TO_NAME.values()))
-                pas = st.text_input("🔑 Password:", type="password", placeholder="अपना पासवर्ड यहाँ डालें")
-                login_clicked = st.button("🚀 Login करें", use_container_width=True, type="primary")
-
-                if login_clicked:
-                    if panel_choice_label == "-- चुनें --":
-                        st.error("⚠️ कृपया पहले एक पैनल चुनें।")
-                    else:
-                        selected_key = PANEL_NAME_TO_KEY[panel_choice_label]
-                        correct_pw = get_panel_password(selected_key)
-                        if correct_pw is not None and pas == correct_pw:
-                            st.session_state["ok"] = True
-                            st.session_state["panel_key"] = selected_key
-                            st.session_state["panel"] = panel_choice_label
-                            st.success(f"🎉 स्वागत है! {panel_choice_label} में लॉगिन हो रहे हैं...")
-                            st.balloons()
-                            st.rerun()
-                        else:
-                            st.error("❌ गलत पासवर्ड! कृपया सही पासवर्ड डालें।")
-
-            st.markdown(
-                "<p style='text-align:center; color:#a3adbd; font-size:12px; margin-top:10px;'>"
-            "🔐 आपका डेटा सुरक्षित है — हर पैनल का अपना अलग पासवर्ड है</p>",
-                unsafe_allow_html=True
-            )
-        st.stop()
-
-    # =========================================================================
-    # 🔄 लॉगिन किए गए पैनल को लोड करना
-    # =========================================================================
-    panel = st.session_state["panel"]
-    panel_key = st.session_state.get("panel_key")
+    # 🔓 P3 के अंदर अलग लॉगिन पैनल की ज़रूरत नहीं — मुख्य ऐप में लॉगिन पहले ही हो चुका है।
+    # सीधे साइडबार से पैनल चुनकर काम किया जाता है।
+    panel_key = "p6"
+    is_admin_session = True  # सभी पैनल (Hide किए हुए भी) खुले रहेंगे
 
     st.sidebar.markdown(
-        f"""
+        """
     <div style="background: linear-gradient(135deg, #eef6ff, #f3fff5); border: 1px solid #d7e6f9;
                 border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;">
-        <div style="font-size:11px; color:#7a869f; font-weight:600; letter-spacing:0.5px;">लॉगिन पैनल</div>
-        <div style="font-size:15px; font-weight:700; color:#1a3c6e; margin-top:2px;">{panel}</div>
+        <div style="font-size:11px; color:#7a869f; font-weight:600; letter-spacing:0.5px;">पैनल चुनें</div>
     </div>
     """,
         unsafe_allow_html=True
     )
-    if st.sidebar.button("🔓 Logout करें", use_container_width=True, key="logout_btn"):
-        st.session_state["ok"] = False
-        st.session_state.pop("panel", None)
-        st.session_state.pop("panel_key", None)
-        st.session_state["show_farewell"] = True
-        st.rerun()
-
-    # 👁️ सिर्फ Admin (P6 लॉगिन) के लिए: बाकी सभी पैनल्स (P2-P5) को भी देखने का विकल्प
-    is_admin_session = (panel_key == "p6")
-    if is_admin_session:
-        st.sidebar.divider()
-        admin_view_choice = st.sidebar.selectbox(
-            "👁️ पैनल देखें (Admin View):",
-            ["⚙️ 6. Admin Panel"] + [PANEL_KEY_TO_NAME[k] for k in ["p2", "p3", "p4", "p5"]],
-            key="admin_view_selector"
-        )
-        active_panel = admin_view_choice
-    else:
-        active_panel = panel
+    active_panel = st.sidebar.selectbox(
+        "🗂️ पैनल:",
+        [PANEL_KEY_TO_NAME[k] for k in ["p2", "p3", "p4", "p5", "p6"]],
+        key="p3_panel_selector"
+    )
 
     import io
     from openpyxl.styles import PatternFill, Border, Side
