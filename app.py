@@ -1399,7 +1399,6 @@ def _run_p3_ug_pg_app(st):
 
     # डिफ़ॉल्ट पासवर्ड (सिर्फ पहली बार, जब टेबल में डेटा न हो, तभी डाले जाएंगे)
     _default_panel_passwords = {
-        "p1": "op",       # पहले Operator का पासवर्ड
         "p2": "p2pass",
         "p3": "ug",       # पहले Teacher_UG का पासवर्ड
         "p4": "pg",       # पहले Teacher_PG का पासवर्ड
@@ -1412,7 +1411,6 @@ def _run_p3_ug_pg_app(st):
 
     # पैनल-की और उसके डिस्प्ले नाम की मैपिंग
     PANEL_KEY_TO_NAME = {
-        "p1": "📥 1. Entry / Upload Panel",
         "p2": "💻 2. Work / Approve Panel",
         "p3": "🎓 3. UG Panel",
         "p4": "📜 4. PG Panel",
@@ -1499,46 +1497,17 @@ def _run_p3_ug_pg_app(st):
             return pd.DataFrame()
         return pd.DataFrame(all_records)
 
-    def save_p1_last_upload(df, filename):
-        """📥 Entry Panel में जो भी फ़ाइल आखिरी बार अपलोड/लोड हुई, उसे परमानेंट रूप से सेव करता है
-    (raw_store की तरह ट्रांसफर पर डिलीट नहीं होती) — ताकि P5 के मास्टर एक्सेल की Sheet 1 पर
-    वही मूल फ़ाइल जस की तस दी जा सके।"""
+    def load_master_data():
+        """मास्टर फ़ाइल (shared_student_database.csv) का लाइव डेटा लौटाता है — अलग Entry/Upload पैनल की जगह।"""
         try:
-            set_app_setting("p1_last_upload_data", json.dumps(df.to_dict(orient='records')))
-            set_app_setting("p1_last_upload_name", filename or "Uploaded_File")
+            _m = load_live_data()
         except Exception:
-            pass
-
-    def load_p1_last_upload():
-        """Entry Panel में आखिरी बार अपलोड हुई फ़ाइल (DataFrame, फ़ाइल-नाम) लौटाता है।"""
-        _name = get_app_setting("p1_last_upload_name", "Uploaded_File")
-        _data = get_app_setting("p1_last_upload_data")
-        if not _data:
-            return None, _name
-        try:
-            _records = json.loads(_data)
-            if isinstance(_records, dict):
-                _records = [_records]
-            if not _records:
-                return None, _name
-            return pd.DataFrame(_records), _name
-        except (json.JSONDecodeError, TypeError):
-            return None, _name
-
-    def load_raw_data():
-        cursor.execute("SELECT data_json FROM raw_store ORDER BY id DESC LIMIT 1")
-        row = cursor.fetchone()
-        if not row or not row[0]:
             return pd.DataFrame()
-        try:
-            records = json.loads(row[0])
-        except (json.JSONDecodeError, TypeError):
+        if _m is None or _m.empty:
             return pd.DataFrame()
-        if isinstance(records, dict):
-            records = [records]
-        if not records:
-            return pd.DataFrame()
-        return pd.DataFrame(records)
+        # पूरी तरह खाली रोज़ हटाना
+        _m = _m.loc[~(_m.astype(str).apply(lambda c: c.str.strip()).eq("").all(axis=1))].reset_index(drop=True)
+        return _m
 
     import datetime
 
@@ -1713,7 +1682,6 @@ def _run_p3_ug_pg_app(st):
             st.markdown(
                 """
             <div class="login-badge-row">
-                <span class="login-badge">📥 Entry</span>
                 <span class="login-badge">💻 Approve</span>
                 <span class="login-badge">🎓 UG</span>
                 <span class="login-badge">📜 PG</span>
@@ -1775,13 +1743,13 @@ def _run_p3_ug_pg_app(st):
         st.session_state["show_farewell"] = True
         st.rerun()
 
-    # 👁️ सिर्फ Admin (P6 लॉगिन) के लिए: बाकी सभी पैनल्स (P1-P5) को भी देखने का विकल्प
+    # 👁️ सिर्फ Admin (P6 लॉगिन) के लिए: बाकी सभी पैनल्स (P2-P5) को भी देखने का विकल्प
     is_admin_session = (panel_key == "p6")
     if is_admin_session:
         st.sidebar.divider()
         admin_view_choice = st.sidebar.selectbox(
             "👁️ पैनल देखें (Admin View):",
-            ["⚙️ 6. Admin Panel"] + [PANEL_KEY_TO_NAME[k] for k in ["p1", "p2", "p3", "p4", "p5"]],
+            ["⚙️ 6. Admin Panel"] + [PANEL_KEY_TO_NAME[k] for k in ["p2", "p3", "p4", "p5"]],
             key="admin_view_selector"
         )
         active_panel = admin_view_choice
@@ -3103,92 +3071,21 @@ def _run_p3_ug_pg_app(st):
         return output.getvalue()
 
     # =========================================================================
-    # 📥 PANEL 1: ENTRY / UPLOAD PANEL (डेटा सुरक्षित अपलोड)
-    # =========================================================================
-    if active_panel == "📥 1. Entry / Upload Panel":
-        st.title("📥 Entry Panel - डेटा सुरक्षित अपलोड")
-        if is_panel_hidden("p1") and not is_admin_session:
-            st.warning("🔒 यह पैनल फिलहाल Admin द्वारा Hide किया गया है। डेटा उपलब्ध नहीं है।")
-            st.dataframe(pd.DataFrame(), use_container_width=True)
-            st.stop()
-        st.write("यहाँ अपनी मुख्य एक्सेल/CSV फ़ाइल अपलोड करें। यह डेटा सीधे समीक्षा और क्लीनिंग के लिए **Work / Approve Panel (P2)** में ट्रांसफर हो जाएगा।")
-    
-        # ✅ ट्रांसफर के बाद वाला सफलता संदेश (अपलोडर खाली होने के बाद दिखता है)
-        if st.session_state.pop("p1_transfer_done", False):
-            st.success("🎉 डेटा सफलतापूर्वक **Work / Approve Panel (P2)** में ट्रांसफर हो गया है! अब यहाँ से फ़ाइल हट गई है — नई फ़ाइल अपलोड की जा सकती है।")
-            st.balloons()
-
-        # एक्सेल या सीएसवी फ़ाइल अपलोड करने का विकल्प
-        # (key बदलते ही अपलोडर खाली हो जाता है — इसी से ट्रांसफर के बाद फ़ाइल हटाई जाती है)
-        if "p1_uploader_gen" not in st.session_state:
-            st.session_state["p1_uploader_gen"] = 0
-        f = st.file_uploader(
-            "अपनी फ़ाइल अपलोड करें (CSV / XLS / XLSX)",
-            type=["csv", "xls", "xlsx"],
-            key=f"p1_uploader_{st.session_state['p1_uploader_gen']}"
-        )
-        if f:
-            try:
-                if f.name.lower().endswith((".xls", ".xlsx")):
-                    # 🔄 Excel फ़ाइल → पहले CSV में कन्वर्ट, फिर बिल्कुल CSV की तरह ही आगे प्रोसेस
-                    raw_bytes = f.getvalue()
-                    sheet_names = get_excel_sheet_names(raw_bytes)
-                    sheet_choice = 0
-                    if len(sheet_names) > 1:
-                        sheet_choice = st.selectbox("📑 कौन सी शीट लोड करनी है?", sheet_names, key="p1_sheet_select")
-                    csv_bytes, n_rows = excel_bytes_to_csv_bytes(raw_bytes, sheet_choice)
-                    st.info(f"🔄 Excel फ़ाइल '{f.name}' अपने-आप CSV में बदल दी गई ({n_rows} रोज़)।")
-                    st.download_button(
-                        "📥 बदली हुई CSV फ़ाइल डाउनलोड करें (ज़रूरत हो तो)",
-                        data=csv_bytes,
-                        file_name=os.path.splitext(f.name)[0] + ".csv",
-                        mime="text/csv",
-                        key="p1_converted_csv_dl"
-                    )
-                    # CSV से वापस पढ़ना, ताकि डेटा बिल्कुल CSV अपलोड जैसा ही बर्ताव करे
-                    df = pd.read_csv(io.BytesIO(csv_bytes), encoding="utf-8-sig")
-                else:
-                    df = pd.read_csv(f)
-                st.success(f"🎉 फ़ाइल सफलतापूर्वक लोड हो गई ({len(df)} रोज़)!")
-
-                # 🆕 इस अपलोड को परमानेंट रूप से सेव करना (P5 मास्टर एक्सेल की Sheet 1 के लिए)
-                save_p1_last_upload(df, os.path.splitext(f.name)[0])
-            
-                # डेटा को P2 में ट्रांसफर करने का बटन
-                if st.button("📤 वर्क/अप्रूवल पैनल (P2) में ट्रांसफर करें", key="transfer_p2_btn", type="primary"):
-                    # पुराने किसी भी रॉ (Temporary) डेटा को साफ़ करना
-                    cursor.execute("DELETE FROM raw_store")
-                
-                    # डेटाफ़्रेम को JSON में बदलकर सुरक्षित रूप से अस्थायी डेटाबेस में स्टोर करना
-                    cursor.execute("INSERT INTO raw_store (data_json) VALUES (?)", (json.dumps(df.to_dict(orient='records')),))
-                    conn.commit()
-                
-                    # पुराने फ़ाइल के डिलीट किए गए कॉलम्स की सेटिंग्स को रीसेट करना
-                    st.session_state["deleted_cols"] = [] 
-                
-                    # 🧹 ट्रांसफर के बाद Entry Panel से फ़ाइल हटाना (अपलोडर रीसेट)
-                    st.session_state["p1_uploader_gen"] += 1
-                    st.session_state.pop("p1_sheet_select", None)
-                    st.session_state["p1_transfer_done"] = True
-                    st.rerun()
-            except Exception as e:
-                st.error(f"त्रुटि: {e}")
-
-    # =========================================================================
     # 💻 PANEL 2: WORK / APPROVE PANEL (कॉलम मूव + लाइव स्प्लिट + डेटाबेस रूटिंग)
     # =========================================================================
-    elif active_panel == "💻 2. Work / Approve Panel":
+    if active_panel == "💻 2. Work / Approve Panel":
         st.title("💻 Work / Approve Panel - डेटा प्रोसेसिंग एवं अप्रूवल")
         if is_panel_hidden("p2") and not is_admin_session:
             st.warning("🔒 यह पैनल फिलहाल Admin द्वारा Hide किया गया है। डेटा उपलब्ध नहीं है।")
             st.dataframe(pd.DataFrame(), use_container_width=True)
             st.stop()
     
-        # Panel 1 से ट्रांसफर होकर आया हुआ Staging (Raw) डेटा लोड करना
-        raw_df = load_raw_data()
+        # 🗂️ डेटा सीधे मास्टर फ़ाइल (shared_student_database.csv) से आता है — अलग अपलोड की ज़रूरत नहीं
+        raw_df = load_master_data()
+        st.caption(f"🗂️ डेटा-स्रोत: **मास्टर फ़ाइल** ({len(raw_df)} रोज़)" if not raw_df.empty else "")
     
         if raw_df is None or raw_df.empty:
-            st.info("📥 वर्तमान में कोई नई अपलोड की गई फ़ाइल पेंडिंग नहीं है। कृपया पहले 'Entry / Upload Panel (P1)' से फ़ाइल अपलोड करें।")
+            st.info("🗂️ मास्टर फ़ाइल में अभी कोई डेटा नहीं है। कृपया पहले मास्टर डेटाबेस में छात्रों का डेटा जोड़ें।")
         else:
             # --- कार्य 1: बेकार कॉलम हटाना ---
             st.subheader("🗑️ बेकार कॉलम हटाएं (Remove Unwanted Columns)")
@@ -3221,8 +3118,23 @@ def _run_p3_ug_pg_app(st):
             
             final_raw_df = final_raw_df[reordered_cols]
         
-            deg_col = next((c for c in final_raw_df.columns if any(k in c.lower() for k in ['deg', 'course', 'class'])), final_raw_df.columns)
-            br_col = next((c for c in final_raw_df.columns if any(k in c.lower() for k in ['branch', 'stream', 'subject'])), final_raw_df.columns if len(final_raw_df.columns) > 1 else final_raw_df.columns)
+            deg_col = next((c for c in final_raw_df.columns if any(k in c.lower() for k in ['deg', 'course', 'class'])), final_raw_df.columns[0])
+            br_col = next((c for c in final_raw_df.columns if any(k in c.lower() for k in ['branch', 'stream', 'subject'])), final_raw_df.columns[1] if len(final_raw_df.columns) > 1 else final_raw_df.columns[0])
+
+            # पहले हटाई गई (excluded) डिग्री/ब्रांच की रोज़ फ़िल्टर करना
+            _ex_d = st.session_state.get("p2_excl_degs", [])
+            _ex_b = st.session_state.get("p2_excl_brs", [])
+            if _ex_d or _ex_b:
+                _keep = ~(final_raw_df[deg_col].astype(str).isin(_ex_d) | final_raw_df[br_col].astype(str).isin(_ex_b))
+                _n_ex = int((~_keep).sum())
+                final_raw_df = final_raw_df[_keep]
+                raw_df = raw_df[_keep.values]
+                c_ex1, c_ex2 = st.columns([4, 1])
+                c_ex1.caption(f"🚫 {_n_ex} रोज़ हटाई गई हैं (डिग्री: {', '.join(_ex_d) or '-'} | ब्रांच: {', '.join(_ex_b) or '-'})")
+                if c_ex2.button("↩️ वापस लाएँ", key="p2_restore_excl_btn"):
+                    st.session_state["p2_excl_degs"] = []
+                    st.session_state["p2_excl_brs"] = []
+                    st.rerun()
         
             # --- कार्य 3: विशिष्ट डिग्री / ब्रांच की पूरी रो डिलीट करना ---
             st.divider()
@@ -3239,23 +3151,14 @@ def _run_p3_ug_pg_app(st):
             
             if selected_degs or selected_branches:
                 if st.button("🗑️ चुनी हुई रोज़ हमेशा के लिए डिलीट करें", key="danger_delete_rows_btn"):
-                    filtered_rows = []
-                    for _, row in raw_df.iterrows():
-                        match_deg = str(row[deg_col]) in selected_degs if selected_degs else False
-                        match_br = str(row[br_col]) in selected_branches if selected_branches else False
-                        if not (match_deg or match_br):
-                            filtered_rows.append(row.to_dict())
-                
-                    cursor.execute("DELETE FROM raw_store")
-                    if filtered_rows:
-                        cursor.execute("INSERT INTO raw_store (data_json) VALUES (?)", (json.dumps(filtered_rows),))
-                    conn.commit()
-                    st.success("🎉  चयनित डिग्री/ब्रांच की सभी रोज़ को सफलतापूर्वक डिलीट कर दिया गया है!")
+                    st.session_state["p2_excl_degs"] = list(set(st.session_state.get("p2_excl_degs", [])) | {str(x) for x in selected_degs})
+                    st.session_state["p2_excl_brs"] = list(set(st.session_state.get("p2_excl_brs", [])) | {str(x) for x in selected_branches})
+                    st.success("🎉  चयनित डिग्री/ब्रांच की रोज़ इस प्रोसेसिंग से हटा दी गईं (मास्टर फ़ाइल में कोई बदलाव नहीं होता)!")
                     st.rerun()
 
             # फ़िल्टर्ड और रीऑर्डर किए गए डेटा का लाइव प्रीव्यू दिखाना
             st.divider()
-            st.subheader("📋 अपलोड किए गए रॉ डेटा का लाइव प्रीव्यू (संशोधित क्रम)")
+            st.subheader("📋 मास्टर फ़ाइल डेटा का लाइव प्रीव्यू (संशोधित क्रम)")
             st.dataframe(final_raw_df, height=350, use_container_width=True)
         
             el_col = next((c for c in final_raw_df.columns if any(k in c.lower() for k in ['elig', 'qual', 'class', 'course', 'deg'])), final_raw_df.columns)
@@ -3289,6 +3192,8 @@ def _run_p3_ug_pg_app(st):
             st.write("📈 **डेटा ट्रांसफर:** क्लीन और रीऑर्डर किए गए छात्रों के डेटा को आगे UG (P3) और PG (P4) पैनल में भेजने के लिए यह बटन दबाएँ।")
         
             if st.button("✅ डेटा अप्रूव करें और पैनल्स में ट्रांसफर करें", key="approve_transfer_all_btn"):
+                # मास्टर फ़ाइल हर बार पूरा ताज़ा डेटा देती है, इसलिए पुराना UG/PG डेटा बदला जाता है (डुप्लीकेट नहीं बनते)
+                cursor.execute("DELETE FROM perma_store WHERE course_type IN ('UG', 'PG')")
                 if not df_ug_preview.empty:
                     ug_json_str = json.dumps(df_ug_preview[reordered_cols].to_dict(orient='records'))
                     cursor.execute("INSERT INTO perma_store (data_json, course_type) VALUES (?, ?)", (ug_json_str, "UG"))
@@ -3296,7 +3201,6 @@ def _run_p3_ug_pg_app(st):
                     pg_json_str = json.dumps(df_pg_preview[reordered_cols].to_dict(orient='records'))
                     cursor.execute("INSERT INTO perma_store (data_json, course_type) VALUES (?, ?)", (pg_json_str, "PG"))
             
-                cursor.execute("DELETE FROM raw_store")
                 conn.commit()
                 st.success("🎉 बधाई हो! डेटा सफलतापूर्वक कस्टमाइज्ड क्रम में ट्रांसफर और लॉक कर दिया गया है।")
                 st.balloons()
@@ -3311,7 +3215,7 @@ def _run_p3_ug_pg_app(st):
         df_ug = load_permanent_data("UG")
     
         if df_ug is None or df_ug.empty: 
-            st.info("ℹ️ UG डेटाबेस खाली है। कृपया पहले Panel 2 से डेटा अप्रूव करें।")
+            st.info("ℹ️ UG डेटाबेस खाली है। कृपया पहले Work / Approve Panel (P2) में मास्टर फ़ाइल का डेटा अप्रूव करें।")
         else:
             # ℹ️ UG डेटाबेस की वो डिग्री जो इस पैनल की डिग्री-सूची में नहीं आतीं (इसलिए यहाँ नहीं दिखेंगी)
             _ug_dc, _ = detect_deg_branch_cols(df_ug)
@@ -3447,7 +3351,7 @@ def _run_p3_ug_pg_app(st):
     
         # अब यह कंडीशन बिना किसी एरर के बिल्कुल सही रन होगी
         if not all_dfs:
-            st.info("ℹ️ काउंट प्रदर्शित करने के लिए डेटाबेस में कोई डेटा उपलब्ध नहीं है। कृपया पहले Panel 2 से डेटा अप्रूव करें।")
+            st.info("ℹ️ काउंट प्रदर्शित करने के लिए डेटाबेस में कोई डेटा उपलब्ध नहीं है। कृपया पहले Work / Approve Panel (P2) में मास्टर फ़ाइल का डेटा अप्रूव करें।")
         else:
             master_df = pd.concat(all_dfs, ignore_index=True)
         
@@ -4170,7 +4074,7 @@ def _run_p3_ug_pg_app(st):
             st.divider()
             st.markdown("### 📥 मास्टर एक्सेल डाउनलोड करें (7 शीट)")
             st.caption(
-                "Sheet 1: Entry Panel (P1) में जो फ़ाइल अपलोड की गई थी, वह जस की तस  |  "
+                "Sheet 1: मास्टर फ़ाइल का पूरा डेटा जस का तस  |  "
             "Sheet 2-3: UG/PG का पूरा रॉ डेटा (🔵 खाली | 🔴 गलत | 🟢 Approved)  |  "
             "Sheet 4: ब्रांच-वाइज विषय शीट (Total Admission + Minor/MDC/Voc/PW के नाम व संख्या)  |  "
             "Sheet 5: डिग्री+ब्रांच-वाइज समरी (Minor+MDC+Voc+PW सभी एक साथ)  |  "
@@ -4178,11 +4082,11 @@ def _run_p3_ug_pg_app(st):
             "Sheet 7: Sheet 6 में से जो पहले ही Approve हो चुके हैं, उनकी लिस्ट।"
             )
 
-            _p5_sheet1_df, _p5_sheet1_name = load_p1_last_upload()
+            _p5_sheet1_df, _p5_sheet1_name = load_master_data(), "Master_File"
             if _p5_sheet1_df is not None and not _p5_sheet1_df.empty:
-                st.caption(f"📎 Sheet 1 में जाएगी: '{_p5_sheet1_name}' ({len(_p5_sheet1_df)} रोज़, Entry Panel की आखिरी अपलोड)")
+                st.caption(f"📎 Sheet 1 में जाएगी: '{_p5_sheet1_name}' ({len(_p5_sheet1_df)} रोज़, मास्टर फ़ाइल)")
             else:
-                st.caption("📎 Sheet 1 खाली रहेगी — अभी तक Entry Panel (P1) में कोई फ़ाइल अपलोड नहीं हुई है।")
+                st.caption("📎 Sheet 1 खाली रहेगी — मास्टर फ़ाइल में अभी कोई डेटा नहीं है।")
 
             _p5_ug_key_col = find_student_key_col(df_ug_all) if (df_ug_all is not None and not df_ug_all.empty) else None
             _p5_pg_key_col = find_student_key_col(df_pg_all) if (df_pg_all is not None and not df_pg_all.empty) else None
@@ -4482,7 +4386,7 @@ def _run_p3_ug_pg_app(st):
         # =====================================================================
         # 🔑 पैनल पासवर्ड अपडेट सिस्टम (6 पैनल्स)
         # =====================================================================
-        if admin_section_toggle("passwords", "🔑 पैनल पासवर्ड अपडेट करें", "यहाँ से आप किसी भी पैनल (P1-P6) का पासवर्ड बदल सकते हैं। बदलने के बाद उस पैनल में लॉगिन के लिए नया पासवर्ड इस्तेमाल होगा।"):
+        if admin_section_toggle("passwords", "🔑 पैनल पासवर्ड अपडेट करें", "यहाँ से आप किसी भी पैनल (P2-P6) का पासवर्ड बदल सकते हैं। बदलने के बाद उस पैनल में लॉगिन के लिए नया पासवर्ड इस्तेमाल होगा।"):
 
             pw_cols = st.columns(3)
             new_pw_inputs = {}
@@ -4506,10 +4410,10 @@ def _run_p3_ug_pg_app(st):
         # =====================================================================
         # 👁️ पैनल हाइड / अनहाइड सिस्टम (P1 से P5 तक)
         # =====================================================================
-        if admin_section_toggle("panelvis", "👁️ पैनल Hide / Unhide करें (P1 से P5)", "जिस पैनल को Hide करेंगे, उसमें सही पासवर्ड डालने पर भी डेटा नहीं दिखेगा (सिर्फ पैनल का ढांचा दिखेगा)। Unhide करने पर डेटा फिर से दिखने लगेगा।"):
+        if admin_section_toggle("panelvis", "👁️ पैनल Hide / Unhide करें (P2 से P5)", "जिस पैनल को Hide करेंगे, उसमें सही पासवर्ड डालने पर भी डेटा नहीं दिखेगा (सिर्फ पैनल का ढांचा दिखेगा)। Unhide करने पर डेटा फिर से दिखने लगेगा।"):
 
-            hide_cols = st.columns(5)
-            hide_keys = ["p1", "p2", "p3", "p4", "p5"]
+            hide_cols = st.columns(4)
+            hide_keys = ["p2", "p3", "p4", "p5"]
             new_hidden_state = {}
             for i, pk in enumerate(hide_keys):
                 with hide_cols[i]:
