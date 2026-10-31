@@ -311,32 +311,6 @@ def render_print_header_style_controls():
               on_click=_reset_header_styles, disabled=is_locked)
 
 
-def render_print_font_size_control(key, default_px=11, min_px=6, max_px=30, label="🔤 प्रिंट Font Size (px)"):
-    """हर print वाले पैनल के लिए Font Size resize control: ➖/➕ बटन + स्लाइडर।
-    सिर्फ़ print/preview की table का font बदलता है, असली डेटा पर कोई असर नहीं।"""
-    state_key = f"{key}_value"
-    if state_key not in st.session_state:
-        st.session_state[state_key] = int(default_px)
-
-    def _bump(delta):
-        st.session_state[state_key] = max(min_px, min(max_px, int(st.session_state[state_key]) + delta))
-
-    def _reset():
-        st.session_state[state_key] = int(default_px)
-
-    c_lbl, c_minus, c_plus, c_reset = st.columns([5, 1, 1, 2])
-    with c_lbl:
-        st.markdown(f"**{label}** — अभी: `{int(st.session_state[state_key])}px`")
-    with c_minus:
-        st.button("➖", key=f"{key}_minus", on_click=_bump, args=(-1,), use_container_width=True)
-    with c_plus:
-        st.button("➕", key=f"{key}_plus", on_click=_bump, args=(1,), use_container_width=True)
-    with c_reset:
-        st.button("↩️ Default", key=f"{key}_reset", on_click=_reset, use_container_width=True)
-    st.slider("Font Size (px)", min_value=min_px, max_value=max_px, key=state_key, label_visibility="collapsed")
-    return int(st.session_state[state_key])
-
-
 # डेटा स्टोरेज फ़ाइलों के पाथ और नाम परिभाषा
 DB_FILE = "shared_student_database.csv"
 STAGE_FILE = "merge_stage_database.csv"
@@ -2241,7 +2215,6 @@ else:
                     custom_header_3 = st.session_state.get("p2_custom_head_line_3_final_fixed", default_header_3)
                     custom_header_4 = st.session_state.get("p2_custom_head_line_4_final_fixed", default_header_4)
                     header_style_css = build_print_header_css()  # 🎨 Font size + colour (print header)
-                    p2_print_font_px = render_print_font_size_control("p2_print_font", 11, label="🔤 प्रिंट टेबल का Font Size (px)")
                 
                     # ==================================================================
                     # 👁️ NEW: Multi-Select Column Filter (कॉलम यहाँ से सेलेक्ट करें)
@@ -2442,6 +2415,13 @@ else:
                     else:
                         remark_width_px = st.session_state.get("p2_remark_width_px", 180)
                         remark_height_px = st.session_state.get("p2_remark_height_px", 0)
+
+                    # 🔠 Print Table Font Size — print/preview table ke text ka size yahin se badlein
+                    p2_print_font_px = st.number_input(
+                        "🔠 Print Table Font Size (px) — Print Sheet ke text ka size:",
+                        min_value=6, max_value=24, value=int(st.session_state.get("p2_print_font_px", 11)),
+                        step=1, key="p2_print_font_px"
+                    )
 
                     # 🌟 स्क्रीन की एकमात्र मुख्य ग्रिड तालिका — "Remark" कॉलम यहीं से लिखा/एडिट किया जा सकता है
                     lockable_cols = [c for c in final_p2_render.columns if c != remark_display_label]
@@ -3200,6 +3180,14 @@ else:
                 )
                 p7_is_sig_format = (foil_format_type == "CCE List - Signature Format (CCE-1 to CCE-4 + Total)")
 
+                # 🔠 Font Resize — sabhi 4 print formats ke table/data text par lagu hota hai
+                p7_font_scale = st.slider(
+                    "🔠 Print Font Size (%) — 100% = default size:",
+                    min_value=60, max_value=160, value=int(st.session_state.get("p7_print_font_scale", 100)),
+                    step=5, key="p7_print_font_scale"
+                )
+                _p7fs = lambda px: round(px * p7_font_scale / 100.0, 1)
+
                 # 🆕 Format 4: sab se pehle Degree puchho (Class Line me aayega)
                 p7_sig_class_line = ""
                 p7_sig_paper_line = ""
@@ -3331,8 +3319,6 @@ else:
                     else:
                         _sub_part = "" if selected_subject == "All Subjects" else f" ( {selected_subject.upper()} )"
                         p7_sig_paper_line = f"{_paper_pick}{_sub_part}"
-
-                p7_font_px = render_print_font_size_control("p7_print_font", 11, label="🔤 Foil / List Font Size (px)")
 
                 max_marks = "20"
 
@@ -3484,9 +3470,9 @@ else:
                                         is_numeric_roll = roll_no.isdigit() or roll_no == "&nbsp;"
                                         
                                         if is_numeric_roll:
-                                            td_style = f"font-family: monospace; font-size: {p7_font_px}px; text-align: center; letter-spacing: 0.5px; padding: 4px 2px;"
+                                            td_style = f"font-family: monospace; font-size: {_p7fs(11)}px; text-align: center; letter-spacing: 0.5px; padding: 4px 2px;"
                                         else:
-                                            td_style = f"font-family: Arial, sans-serif; font-size: {max(6, p7_font_px - 1)}px; text-align: left !important; padding: 4px 2px 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; letter-spacing: 0px;"
+                                            td_style = f"font-family: Arial, sans-serif; font-size: {_p7fs(10)}px; text-align: left !important; padding: 4px 2px 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; letter-spacing: 0px;"
                                             
                                         html_rows += f"""
                                         <tr>
@@ -3524,7 +3510,7 @@ else:
                                             <span>Min Pass Marks: ............</span>
                                         </div>
                                         <div class='foil-label' style='text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;'>FOIL</div>
-                                        <table style='width: 100%; border-collapse: collapse; font-size: {max(6, p7_font_px - 1)}px; margin-bottom: 8px;'>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: {_p7fs(10)}px; margin-bottom: 8px;'>
                                             <thead>
                                                 <tr>
                                                     <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>1</th>
@@ -3579,7 +3565,7 @@ else:
                                             <span>Min Pass Marks: ............</span>
                                         </div>
                                         <div class='foil-label' style='text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; letter-spacing: 2px;'>FOIL</div>
-                                        <table style='width: 100%; border-collapse: collapse; font-size: {max(6, p7_font_px - 1)}px; margin-bottom: 8px;'>
+                                        <table style='width: 100%; border-collapse: collapse; font-size: {_p7fs(10)}px; margin-bottom: 8px;'>
                                             <thead>
                                                 <tr>
                                                     <th colspan='2' style='border: 1px solid #000; text-align: center; font-weight: bold; padding: 2px;'>1</th>
@@ -3759,7 +3745,7 @@ else:
                                     f2_pages_html += f"""
                                             <tr>
                                                 <td style="font-weight: bold;">{idx + 1}</td>
-                                                <td style="font-family: monospace; font-size: {p7_font_px + 2}px;">{row.get("Roll No.", "")}</td>
+                                                <td style="font-family: monospace; font-size: {_p7fs(13)}px;">{row.get("Roll No.", "")}</td>
                                                 <td style="font-weight: bold; color: blue;">{tot if tot else "&nbsp;"}</td>
                                                 <td>{att if att else "&nbsp;"}</td>
                                                 <td style="text-align: left; padding-left: 10px;">{num_to_words(tot) if tot else ""}</td>
@@ -3782,7 +3768,7 @@ else:
                                     .title {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; }}
                                     .meta-row {{ display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; padding: 3px 0; }}
                                     .sub-row {{ font-size: 12px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 8px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: {p7_font_px + 1}px; text-align: center; }}
+                                    table {{ width: 100%; border-collapse: collapse; font-size: {_p7fs(12)}px; text-align: center; }}
                                     th, td {{ border: 1px solid #000; padding: 5px; }}
                                     th {{ background-color: #f2f2f2; font-weight: bold; }}
                                     .pgno {{ text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; }}
@@ -3856,7 +3842,7 @@ else:
                                     .wrapper:last-child {{ page-break-after: auto; }}
                                     .center-txt {{ text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px; }}
                                     .border-bottom {{ text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 5px; }}
-                                    table {{ width: 100%; border-collapse: collapse; font-size: {p7_font_px + 1}px; text-align: center; table-layout: fixed; }}
+                                    table {{ width: 100%; border-collapse: collapse; font-size: {_p7fs(12)}px; text-align: center; table-layout: fixed; }}
                                     th, td {{ border: 1px solid #000; padding: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
                                     th {{ background-color: #f2f2f2; font-weight: bold; }}
                                     .pgno {{ text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; }}
@@ -4017,7 +4003,7 @@ else:
                                 .page + .page {{ page-break-before: always; }}
                                 .c1 {{ text-align:center; font-weight:bold; font-size:15px; }}
                                 .c2 {{ text-align:center; font-weight:bold; font-size:13px; margin-top:3px; }}
-                                table {{ width:100%; border-collapse:collapse; margin-top:8px; font-size:{p7_font_px}px; text-align:center; table-layout:fixed; }}
+                                table {{ width:100%; border-collapse:collapse; margin-top:8px; font-size:{_p7fs(11)}px; text-align:center; table-layout:fixed; }}
                                 th, td {{ border:1px solid #000; padding:4px 3px; height:20px; overflow:hidden; word-wrap:break-word; }}
                                 th {{ font-weight:bold; }}
                                 td.l {{ text-align:left; }}
@@ -4475,8 +4461,6 @@ else:
                 reg_unit_css_map = {"mm": "mm", "cm": "cm", "Inch": "in"}
                 reg_unit_css = reg_unit_css_map.get(reg_row_height_unit, "mm")
 
-                reg_font_px = render_print_font_size_control("p10_reg_print_font", 11, label="🔤 प्रिंट लिस्ट का Font Size (px)")
-
                 # 🟢 Column Select Engine — user jo columns select karega sirf wahi paper par print honge
                 # 🟢 Fix: पहले सिर्फ 8 columns ही list में थे, अब सभी उपलब्ध columns (जो ऊपर register
                 # ग्रिड में दिखते हैं) यहाँ भी दिख रहे हैं ताकि जो भी column चाहिए वो select किया जा सके।
@@ -4808,6 +4792,13 @@ else:
                         "Subject → Student Name (पहले Subject, फिर नाम अनुसार A-Z)"
                     ],
                     key="p10_reg_sort_order_choice"
+                )
+
+                # 🔠 Font Resize — register list table ke text ka size
+                reg_font_px = st.number_input(
+                    "🔠 Print Font Size (px) — Register List ke text ka size:",
+                    min_value=6, max_value=24, value=int(st.session_state.get("p10_reg_font_px", 11)),
+                    step=1, key="p10_reg_font_px"
                 )
 
                 if st.button("🔄 Generate Roll-Wise Printable Register List", type="primary", use_container_width=True, key="p10_reg_generate_btn"):
